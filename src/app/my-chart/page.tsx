@@ -7,12 +7,12 @@ export default function MyChart() {
     planets: {
       sun: { longitude: 45, retrograde: false },
       moon: { longitude: 120, retrograde: false },
-      mercury: { longitude: 78, retrograde: true }
+      mercury: { longitude: 78, retrograde: true },
     },
     dignities: {
       sun: 'domicile',
-      moon: 'exaltation'
-    }
+      moon: 'exaltation',
+    },
   };
 
   return (

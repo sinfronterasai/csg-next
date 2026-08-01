@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import SiteHeader from '@/components/SiteHeader';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,7 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="absolute bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-cosmic-secondary opacity-[0.1] blur-[180px]" />
           <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] rounded-full bg-blue-900 opacity-[0.12] blur-[160px]" />
         </div>
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10">
+          <SiteHeader />
+          <main className="pt-24">{children}</main>
+        </div>
       </body>
     </html>
   );
