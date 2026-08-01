@@ -6,6 +6,10 @@ export default function Home() {
           AETHERIA <span className="text-cosmic-primary">Starter</span>
         </h1>
         <p className="mt-4 text-gray-300">Clean parallel instance bootstrapped.</p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <a href="/constellations" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20">Explore Constellations</a>
+          <a href="/birth-chart" className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20">Birth Chart</a>
+        </div>
       </div>
     </main>
   );
