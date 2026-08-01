@@ -124,7 +124,7 @@ export default function Constellations() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 space-y-6">
             <span className="text-xs uppercase tracking-[0.4em] text-gold block">Cosmic Navigator</span>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">Interactive <br>Celestial Map</h2>
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">Interactive <br />Celestial Map</h2>
             <p className="text-gray-400 text-sm font-light leading-relaxed">
               Drag to orbit the celestial vault, scroll to zoom deep into nebulae, and hover over stellar nodes. Interact with the cosmic geometry to realign the stars.
             </p>
