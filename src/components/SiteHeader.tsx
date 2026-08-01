@@ -14,7 +14,7 @@ export default function SiteHeader() {
             <span className="absolute inset-1 border border-dashed border-gold rounded-full -rotate-45 group-hover:-rotate-180 transition-transform duration-1000"></span>
             <i className="fa-solid fa-moon text-gold text-lg absolute"></i>
           </div>
-          <span className="font-serif text-xl tracking-widest text-white group-hover:text-gold transition-colors duration-300">AETHERIA</span>
+          <span className="font-serif text-xl tracking-widest text-white group-hover:text-gold transition-colors duration-300">COSMIC SPIRIT GUIDE</span>
         </a>
 
         <nav className="hidden md:flex items-center space-x-8 text-sm tracking-widest">

@@ -4,7 +4,7 @@ import SiteHeader from '@/components/SiteHeader';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AETHERIA | Cosmic Astrology & Celestial Guidance',
+  title: 'COSMIC SPIRIT GUIDE | Cosmic Astrology & Celestial Guidance',
   description: 'Interactive birth charts, celestial map explorer, and cosmic readings.',
 };
 
