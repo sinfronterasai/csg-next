@@ -10,7 +10,7 @@ export default function Footer() {
                 <span className="absolute inset-0 border border-gold rounded-full rotate-45"></span>
                 <i className="fa-solid fa-moon text-gold text-xs absolute"></i>
               </div>
-              <span className="font-serif text-lg tracking-widest text-white">AETHERIA</span>
+              <span className="font-serif text-lg tracking-widest text-white">COSMIC SPIRIT GUIDE</span>
             </a>
             <p className="text-[11px] text-gray-400 font-light leading-relaxed">
               Decoding cosmic geometry and mapping celestial cycles since retrogrades began. Connect to the sky above.
@@ -46,7 +46,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px]">
-          <span>&copy; {year} Aetheria LLC. Designed for the celestial seeker.</span>
+          <span>&copy; {year} Cosmic Spirit Guide Designed for the celestial seeker.</span>
           <span className="flex items-center gap-1.5"><i className="fa-solid fa-heart text-gold"></i> Crafted in astronomical harmony.</span>
         </div>
       </div>
