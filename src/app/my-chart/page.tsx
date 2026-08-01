@@ -24,7 +24,7 @@ export default function MyChart() {
           <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto mt-6"></div>
         </div>
 
-        <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
+        <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 max-w-2xl mx-auto">
           <BirthChartWheel chartData={demoChart} birthInfo={{ name: 'Demo Saved Chart', date: '1990-01-01', time: '12:00', location: 'New York, NY' }} interactive />
         </div>
       </div>
