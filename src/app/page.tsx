@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import ZodiacExplorer from '../components/ZodiacExplorer';
+import About from '../components/About';
+import Services from '../components/Services';
+import Newsletter from '../components/Newsletter';
+import Footer from '../components/Footer';
 import { computeChart } from '../lib/chartEngine';
 import { getSign } from '../lib/astrology';
 
@@ -111,6 +115,11 @@ export default function Home() {
           <ZodiacExplorer />
         </div>
       </section>
+
+      <About />
+      <Services />
+      <Newsletter />
+      <Footer />
     </main>
   );
 }
