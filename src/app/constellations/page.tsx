@@ -30,6 +30,7 @@ function waitForSize(container: HTMLDivElement) {
 export default function Constellations() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [labels, setLabels] = useState<Array<{ name: string; x: number; y: number }>>([]);
 
   useEffect(() => {
@@ -48,11 +49,19 @@ export default function Constellations() {
       const { width, height } = await waitForSize(container);
       if (cancelled) return;
 
+      let renderer: any;
+      let resizeObserver: ResizeObserver | undefined;
+      try {
       const scene = new THREE_CDN.Scene();
       const camera = new THREE_CDN.PerspectiveCamera(45, width / height, 0.1, 1000);
       camera.position.z = 10;
 
-      const renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
+      try {
+        renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
+      } catch (err) {
+        if (!cancelled) setFailed(true);
+        return;
+      }
       renderer.setSize(width, height);
       renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
@@ -161,7 +170,7 @@ export default function Constellations() {
       }
       animate();
 
-      const resizeObserver = new ResizeObserver((entries) => {
+      resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
         if (!entry) return;
         const w = entry.contentRect.width || width;
@@ -173,6 +182,10 @@ export default function Constellations() {
       resizeObserver.observe(container);
 
       setReady(true);
+      } catch (err) {
+        if (!cancelled) setFailed(true);
+        return;
+      }
 
       return () => {
         cancelled = true;
@@ -223,8 +236,20 @@ export default function Constellations() {
 
           <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple group interactive-canvas-container">
             <div ref={containerRef} id="interactive-canvas-container" className="w-full h-full" />
-            {!ready && (
+            {!ready && !failed && (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">Loading celestial view…</div>
+            )}
+            {failed && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 space-y-3">
+                <i className="fa-solid fa-meteor text-gold text-2xl"></i>
+                <p className="text-sm text-gray-300">The interactive 3D map needs WebGL. Your browser or device has it disabled.</p>
+                <p className="text-xs text-gray-400">The named stars of the celestial vault are listed below.</p>
+                <div className="flex flex-wrap gap-2 justify-center mt-2">
+                  {STAR_CATALOG.map((star) => (
+                    <span key={star.name} className="glass-panel-light px-3 py-1 rounded-full text-[11px] text-white/90">{star.name}</span>
+                  ))}
+                </div>
+              </div>
             )}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               {labels.map((label) => (
