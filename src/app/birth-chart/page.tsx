@@ -20,19 +20,14 @@ export default function BirthChart() {
           planets: {
             sun: { longitude: 45, retrograde: false },
             moon: { longitude: 120, retrograde: false },
-            mercury: { longitude: 78, retrograde: true }
+            mercury: { longitude: 78, retrograde: true },
           },
           dignities: {
             sun: 'domicile',
-            moon: 'exaltation'
-          }
+            moon: 'exaltation',
+          },
         },
-        birthInfo: {
-          date: formData.date,
-          time: formData.time,
-          location: formData.location,
-          rectified
-        }
+        birthInfo: { date: formData.date, time: formData.time, location: formData.location, rectified },
       });
       setLoading(false);
     }, 600);
@@ -116,7 +111,7 @@ export default function BirthChart() {
                   <label htmlFor="rectified" className="text-xs text-gray-400 cursor-pointer">I don&apos;t know my exact time of birth (Use Solar Houses)</label>
                 </div>
 
-                <button type="submit" className="w-full py-4 bg-gradient-to-r from-gold-600 to-gold text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)]">
+                <button type="submit" className="w-full py-4 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)]">
                   Cast Celestial Chart
                 </button>
               </form>
@@ -159,7 +154,7 @@ export default function BirthChart() {
                       <h4 className="text-2xl font-serif text-white">{result.name}</h4>
                       <span className="text-xs text-gold tracking-wider uppercase">NATAL COSMIC CONFIGURATION</span>
                     </div>
-                    <i className="fa-solid fa-bahai text-gold text-3xl animate-spin-slow"></i>
+                    <i className="fa-solid fa-bahai text-gold text-3xl"></i>
                   </div>
 
                   <div className="flex justify-center">
