@@ -20,11 +20,8 @@ function waitForSize(container: HTMLDivElement) {
     const measure = () => {
       const width = container.clientWidth || 800;
       const height = container.clientHeight || 500;
-      if (width > 0 && height > 0) {
-        resolve({ width, height });
-      } else {
-        requestAnimationFrame(measure);
-      }
+      if (width > 0 && height > 0) resolve({ width, height });
+      else requestAnimationFrame(measure);
     };
     measure();
   });
@@ -38,13 +35,11 @@ export default function Constellations() {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     let cancelled = false;
 
     const boot = async () => {
       const THREE_CDN = (window as any).THREE;
       const OrbitControls = (window as any).THREE?.OrbitControls;
-
       if (!THREE_CDN || !OrbitControls) {
         setTimeout(boot, 50);
         return;
@@ -98,9 +93,7 @@ export default function Constellations() {
         for (let j = i + 1; j < numNodes; j++) {
           const p2 = new THREE_CDN.Vector3(nodePosArray[j * 3], nodePosArray[j * 3 + 1], nodePosArray[j * 3 + 2]);
           const dist = p1.distanceTo(p2);
-          if (dist < 1.6 && Math.random() > 0.4) {
-            lineIndices.push(i, j);
-          }
+          if (dist < 1.6 && Math.random() > 0.4) lineIndices.push(i, j);
         }
       }
       lineGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
@@ -133,7 +126,6 @@ export default function Constellations() {
       });
 
       const tempV = new THREE_CDN.Vector3();
-
       const updateLabels = () => {
         const rect = container.getBoundingClientRect();
         const next = namedStars.map((star) => {
@@ -201,13 +193,13 @@ export default function Constellations() {
   }, []);
 
   return (
-    <section className="py-24 relative z-10 bg-cosmic-950/80 border-t border-white/5">
+    <section className="py-24 relative z-10 constellation-map">
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-5 space-y-6">
             <span className="text-xs uppercase tracking-[0.4em] text-gold block">Cosmic Navigator</span>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">Interactive <br />Celestial Map</h2>
-            <p className="text-gray-400 text-sm font-light leading-relaxed">
+            <p className="text-gray-300 text-sm font-light leading-relaxed">
               Drag to orbit the celestial vault, scroll to zoom deep into nebulae, and hover over stellar nodes. Interact with the cosmic geometry to realign the stars.
             </p>
 
@@ -229,7 +221,7 @@ export default function Constellations() {
             </div>
           </div>
 
-          <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border group interactive-canvas-container">
+          <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple group interactive-canvas-container">
             <div ref={containerRef} id="interactive-canvas-container" className="w-full h-full" />
             {!ready && (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">Loading celestial view…</div>
@@ -238,7 +230,7 @@ export default function Constellations() {
               {labels.map((label) => (
                 <span
                   key={label.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium text-white/90 drop-shadow-md"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium text-white/90"
                   style={{ left: `${label.x}px`, top: `${label.y}px`, textShadow: '0 0 6px rgba(0,0,0,0.75)' }}
                 >
                   {label.name}
