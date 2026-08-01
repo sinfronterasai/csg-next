@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --cosmic-950: #03000a;
+    --cosmic-900: #080214;
+    --cosmic-800: #12072B;
+    --cosmic-700: #1A0B36;
+    --cosmic-600: #261047;
+    --cosmic-primary: #8A2BE2;
+    --cosmic-secondary: #DA70D6;
+    --gold: #DFB76C;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--cosmic-950);
+    color: #f3f4f6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Cinzel', serif;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: rgba(13, 6, 30, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(223, 183, 108, 0.15);
+  }
+}
