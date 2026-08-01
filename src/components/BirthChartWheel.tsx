@@ -182,13 +182,13 @@ export default function BirthChartWheel({ chartData, birthInfo, interactive = fa
       </div>
 
       {viewMode === 'wheel' ? (
-        <svg ref={svgRef} viewBox="0 0 1000 800" className="w-full h-auto max-h-[350px] mx-auto">
+        <div className="max-w-md mx-auto"><svg ref={svgRef} viewBox="0 0 1000 800" className="w-full h-auto">
           <circle cx={centerX} cy={centerY} r={outerRadius} fill="none" stroke="rgba(223,183,108,0.25)" strokeWidth="1" />
           <circle cx={centerX} cy={centerY} r={zodiacRadius} fill="none" stroke="rgba(223,183,108,0.35)" strokeWidth="1" />
           <circle cx={centerX} cy={centerY} r={planetRadius} fill="none" stroke="rgba(223,183,108,0.25)" strokeWidth="1" />
           <circle cx={centerX} cy={centerY} r={innerRadius} fill="none" stroke="rgba(223,183,108,0.2)" strokeWidth="1" />
           {renderZodiacWheel()}
-          {renderPlanets()}
+          {renderPlanets()}</svg></div>
         </svg>
       ) : (
         <div className="space-y-3 text-sm text-gray-300">
