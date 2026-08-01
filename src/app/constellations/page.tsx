@@ -1,27 +1,42 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Constellations() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const THREE_CDN = (window as any).THREE;
-    const OrbitControls = (window as any).THREE?.OrbitControls;
-    if (!THREE_CDN || !OrbitControls) {
-      console.warn('Three.js is not loaded yet');
-      return;
-    }
+    const waitForThree = () => {
+      const THREE_CDN = (window as any).THREE;
+      const OrbitControls = (window as any).THREE?.OrbitControls;
+      if (!THREE_CDN || !OrbitControls) {
+        setTimeout(() => waitForThree(), 50);
+        return;
+      }
+      initScene(container, THREE_CDN, OrbitControls);
+    };
+
+    waitForThree();
+
+    return () => {
+      setReady(false);
+    };
+  }, []);
+
+  const initScene = (container: HTMLDivElement, THREE_CDN: any, OrbitControls: any) => {
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 500;
 
     const scene = new THREE_CDN.Scene();
-    const camera = new THREE_CDN.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const camera = new THREE_CDN.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.z = 10;
 
     const renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
@@ -105,18 +120,23 @@ export default function Constellations() {
     animate();
 
     const handleResize = () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
+      const w = container.clientWidth || width;
+      const h = container.clientHeight || height;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
+
+    setReady(true);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       renderer.dispose();
+      setReady(false);
     };
-  }, []);
+  };
 
   return (
     <section className="py-24 relative z-10 bg-cosmic-950/80 border-t border-white/5">
@@ -149,6 +169,9 @@ export default function Constellations() {
 
           <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border group interactive-canvas-container">
             <div ref={containerRef} id="interactive-canvas-container" className="w-full h-full" />
+            {!ready && (
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">Loading celestial view…</div>
+            )}
             <div className="absolute bottom-6 left-6 pointer-events-none glass-panel px-4 py-2.5 rounded-full border-white/5 flex items-center space-x-3 text-xs tracking-wider">
               <i className="fa-solid fa-hand-pointer text-gold animate-bounce"></i>
               <span className="text-gray-300">Left Click + Drag to rotate celestial sphere</span>
