@@ -2,8 +2,6 @@
 // birth-chart computes it live; my-chart loads the same normalized shape from storage.
 'use client';
 
-import pkg from 'circular-natal-horoscope-js';
-const { Origin, Horoscope } = pkg;
 import {
   SIGNS, getSign, getPlanet, getHouse, signFromLongitude, dignityFor, formatDegree, SignKey,
 } from './astrology';
@@ -134,13 +132,16 @@ function buildHouse(raw: any, num: number): HousePlacement {
   };
 }
 
-export function computeChart(input: {
+export async function computeChart(input: {
+
   name: string;
   date: string;       // yyyy-mm-dd
   time?: string;      // HH:mm
   location: string;
   unknownTime?: boolean;
-}): ChartData {
+}): Promise<ChartData> {
+  const pkg = await import('circular-natal-horoscope-js');
+  const { Origin, Horoscope } = pkg as any;
   const [year, month, day] = input.date.split('-').map(Number);
   const [h, mi] = (input.time || '12:00').split(':').map(Number);
   const { lat, lon } = geocode(input.location);

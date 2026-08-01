@@ -15,8 +15,8 @@ export default function BirthChart() {
     setLoading(true);
     setResult(null);
     // small delay to show the "aligning" state; computation itself is synchronous
-    setTimeout(() => {
-      const chart = computeChart({
+    setTimeout(async () => {
+      const chart = await computeChart({
         name: formData.name,
         date: formData.date,
         time: formData.time,

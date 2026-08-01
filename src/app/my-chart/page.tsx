@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
-import { computeChart } from '../../lib/chartEngine';
+import { computeChart, type ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
 
 export default function MyChart() {
@@ -10,13 +10,14 @@ export default function MyChart() {
   // that /birth-chart produces, so the viewer is always identical and accurate.
   // In production this comes from the user's stored record; here we materialize it
   // from the saved birth inputs to prove the shared pipeline.
-  const savedChart = useMemo(
-    () => computeChart({ name: 'Alex', date: '1990-01-01', time: '12:00', location: 'New York, NY' }),
-    []
-  );
+  const [savedChart, setSavedChart] = useState<ChartData | null>(null);
+  useEffect(() => {
+    computeChart({ name: 'Alex', date: '1990-01-01', time: '12:00', location: 'New York, NY' })
+      .then(setSavedChart);
+  }, []);
 
-  const coreSign = getSign(savedChart.sun.sign);
-  const emoSign = getSign(savedChart.moon.sign);
+  const coreSign = savedChart ? getSign(savedChart.sun.sign) : null;
+  const emoSign = savedChart ? getSign(savedChart.moon.sign) : null;
 
   return (
     <section className="py-24 relative z-10 constellation-map">
@@ -28,6 +29,8 @@ export default function MyChart() {
         </div>
 
         <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 max-w-2xl mx-auto">
+          {!savedChart && <div className="text-center text-gray-400 py-12">Aligning celestial bodies...</div>}
+          {savedChart && (
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="glass-panel-light p-4 rounded-2xl">
               <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
@@ -42,6 +45,7 @@ export default function MyChart() {
           </div>
 
           <BirthChartWheel chartData={savedChart} interactive />
+          )}
         </div>
       </div>
     </section>
