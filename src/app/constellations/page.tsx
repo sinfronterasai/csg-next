@@ -2,6 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+type Vector3 = { x: number; y: number; z: number };
+
+const STAR_CATALOG: { name: string; position: Vector3; color?: string }[] = [
+  { name: 'Sirius', position: { x: 3.2, y: 1.1, z: -2.4 }, color: '#a3d1ff' },
+  { name: 'Betelgeuse', position: { x: -3.8, y: 2.6, z: -1.2 }, color: '#ffaa77' },
+  { name: 'Rigel', position: { x: -3.1, y: -2.4, z: -0.8 }, color: '#c8e4ff' },
+  { name: 'Aldebaran', position: { x: 2.4, y: -3.0, z: -1.6 }, color: '#ffb382' },
+  { name: 'Polaris', position: { x: 0.05, y: 4.0, z: -0.9 }, color: '#e8f2ff' },
+  { name: 'Vega', position: { x: 1.8, y: 3.4, z: -2.0 }, color: '#c9e4ff' },
+  { name: 'Antares', position: { x: -1.9, y: -3.3, z: -1.4 }, color: '#ff9e75' },
+  { name: 'Capella', position: { x: 4.1, y: 2.8, z: -1.1 }, color: '#fff0d0' },
+];
+
 function waitForSize(container: HTMLDivElement) {
   return new Promise<{ width: number; height: number }>((resolve) => {
     const measure = () => {
@@ -20,6 +33,7 @@ function waitForSize(container: HTMLDivElement) {
 export default function Constellations() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [labels, setLabels] = useState<Array<{ name: string; x: number; y: number }>>([]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -106,6 +120,32 @@ export default function Constellations() {
       const bgPoints = new THREE_CDN.Points(bgStarGeo, bgStarMat);
       scene.add(bgPoints);
 
+      const namedStarGroup = new THREE_CDN.Group();
+      scene.add(namedStarGroup);
+
+      const namedStars = STAR_CATALOG.map((star) => {
+        const geometry = new THREE_CDN.SphereGeometry(0.08, 16, 16);
+        const material = new THREE_CDN.MeshBasicMaterial({ color: star.color || '#ffffff' });
+        const mesh = new THREE_CDN.Mesh(geometry, material);
+        mesh.position.set(star.position.x, star.position.y, star.position.z);
+        namedStarGroup.add(mesh);
+        return { name: star.name, mesh };
+      });
+
+      const tempV = new THREE_CDN.Vector3();
+
+      const updateLabels = () => {
+        const rect = container.getBoundingClientRect();
+        const next = namedStars.map((star) => {
+          tempV.set(star.mesh.position.x, star.mesh.position.y, star.mesh.position.z);
+          tempV.project(camera);
+          const x = (tempV.x * 0.5 + 0.5) * rect.width;
+          const y = (-(tempV.y * 0.5) + 0.5) * rect.height;
+          return { name: star.name, x, y };
+        });
+        setLabels(next);
+      };
+
       let rotationSpeed = 0.002;
       const speedSlider = document.getElementById('star-speed') as HTMLInputElement | null;
       const toggleBtn = document.getElementById('toggle-lines') as HTMLButtonElement | null;
@@ -122,8 +162,10 @@ export default function Constellations() {
         requestAnimationFrame(animate);
         starNodes.rotation.y += rotationSpeed;
         constellationLines.rotation.y += rotationSpeed;
+        namedStarGroup.rotation.y += rotationSpeed;
         controls.update();
         renderer.render(scene, camera);
+        updateLabels();
       }
       animate();
 
@@ -192,6 +234,17 @@ export default function Constellations() {
             {!ready && (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">Loading celestial view…</div>
             )}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {labels.map((label) => (
+                <span
+                  key={label.name}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium text-white/90 drop-shadow-md"
+                  style={{ left: `${label.x}px`, top: `${label.y}px`, textShadow: '0 0 6px rgba(0,0,0,0.75)' }}
+                >
+                  {label.name}
+                </span>
+              ))}
+            </div>
             <div className="absolute bottom-6 left-6 pointer-events-none glass-panel px-4 py-2.5 rounded-full border-white/5 flex items-center space-x-3 text-xs tracking-wider">
               <i className="fa-solid fa-hand-pointer text-gold animate-bounce"></i>
               <span className="text-gray-300">Left Click + Drag to rotate celestial sphere</span>
