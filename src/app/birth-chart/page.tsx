@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import BirthChartWheel from '@/components/BirthChartWheel';
+import BirthChartWheel from '../../components/BirthChartWheel';
 
 export default function BirthChart() {
   const [formData, setFormData] = useState({ name: '', date: '', time: '', location: '' });

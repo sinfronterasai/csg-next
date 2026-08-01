@@ -69,6 +69,7 @@ export default function BirthChartWheel({ chartData, birthInfo, interactive = fa
     canvas.width = 1400;
     canvas.height = 1000;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     const img = new Image();
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
