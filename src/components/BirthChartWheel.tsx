@@ -189,7 +189,6 @@ export default function BirthChartWheel({ chartData, birthInfo, interactive = fa
           <circle cx={centerX} cy={centerY} r={innerRadius} fill="none" stroke="rgba(223,183,108,0.2)" strokeWidth="1" />
           {renderZodiacWheel()}
           {renderPlanets()}</svg></div>
-        </svg>
       ) : (
         <div className="space-y-3 text-sm text-gray-300">
           {chartData?.planets && Object.entries(chartData.planets).map(([planet, data]: [string, any]) => {
