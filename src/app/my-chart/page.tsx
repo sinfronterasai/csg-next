@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
 import { computeChart, type ChartData } from '../../lib/chartEngine';
-import { getSign, formatDegree } from '../../lib/astrology';
+import { getSign } from '../../lib/astrology';
 
 export default function MyChart() {
   // Single source of truth: the saved chart is normalized into the same ChartData shape
@@ -31,20 +31,22 @@ export default function MyChart() {
         <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 max-w-2xl mx-auto">
           {!savedChart && <div className="text-center text-gray-400 py-12">Aligning celestial bodies...</div>}
           {savedChart && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="glass-panel-light p-4 rounded-2xl">
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
-              <span className="text-base font-serif text-white block mt-1">{savedChart.sun.label} in {savedChart.sun.signLabel}</span>
-              <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
-            </div>
-            <div className="glass-panel-light p-4 rounded-2xl">
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
-              <span className="text-base font-serif text-white block mt-1">{savedChart.moon.label} in {savedChart.moon.signLabel}</span>
-              <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
-            </div>
-          </div>
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="glass-panel-light p-4 rounded-2xl">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
+                  <span className="text-base font-serif text-white block mt-1">{savedChart.sun.label} in {savedChart.sun.signLabel}</span>
+                  <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
+                </div>
+                <div className="glass-panel-light p-4 rounded-2xl">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
+                  <span className="text-base font-serif text-white block mt-1">{savedChart.moon.label} in {savedChart.moon.signLabel}</span>
+                  <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
+                </div>
+              </div>
 
-          <BirthChartWheel chartData={savedChart} interactive />
+              <BirthChartWheel chartData={savedChart} interactive />
+            </>
           )}
         </div>
       </div>
