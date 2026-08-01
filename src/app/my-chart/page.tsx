@@ -1,19 +1,22 @@
 'use client';
 
-import BirthChartWheel from '@/components/BirthChartWheel';
+import { useMemo } from 'react';
+import BirthChartWheel from '../../components/BirthChartWheel';
+import { computeChart } from '../../lib/chartEngine';
+import { getSign, formatDegree } from '../../lib/astrology';
 
 export default function MyChart() {
-  const demoChart = {
-    planets: {
-      sun: { longitude: 45, retrograde: false },
-      moon: { longitude: 120, retrograde: false },
-      mercury: { longitude: 78, retrograde: true },
-    },
-    dignities: {
-      sun: 'domicile',
-      moon: 'exaltation',
-    },
-  };
+  // Single source of truth: the saved chart is normalized into the same ChartData shape
+  // that /birth-chart produces, so the viewer is always identical and accurate.
+  // In production this comes from the user's stored record; here we materialize it
+  // from the saved birth inputs to prove the shared pipeline.
+  const savedChart = useMemo(
+    () => computeChart({ name: 'Alex', date: '1990-01-01', time: '12:00', location: 'New York, NY' }),
+    []
+  );
+
+  const coreSign = getSign(savedChart.sun.sign);
+  const emoSign = getSign(savedChart.moon.sign);
 
   return (
     <section className="py-24 relative z-10 constellation-map">
@@ -25,7 +28,20 @@ export default function MyChart() {
         </div>
 
         <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 max-w-2xl mx-auto">
-          <BirthChartWheel chartData={demoChart} birthInfo={{ name: 'Demo Saved Chart', date: '1990-01-01', time: '12:00', location: 'New York, NY' }} interactive />
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="glass-panel-light p-4 rounded-2xl">
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
+              <span className="text-base font-serif text-white block mt-1">{savedChart.sun.label} in {savedChart.sun.signLabel}</span>
+              <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
+            </div>
+            <div className="glass-panel-light p-4 rounded-2xl">
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
+              <span className="text-base font-serif text-white block mt-1">{savedChart.moon.label} in {savedChart.moon.signLabel}</span>
+              <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
+            </div>
+          </div>
+
+          <BirthChartWheel chartData={savedChart} interactive />
         </div>
       </div>
     </section>
