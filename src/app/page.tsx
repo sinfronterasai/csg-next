@@ -6,7 +6,7 @@ import About from '../components/About';
 import Services from '../components/Services';
 import Newsletter from '../components/Newsletter';
 import Footer from '../components/Footer';
-import { computeChart } from '../lib/chartEngine';
+import type { ChartData } from '../lib/chartEngine';
 import { getSign } from '../lib/astrology';
 
 export default function Home() {
@@ -18,8 +18,16 @@ export default function Home() {
     const pad = (n: number) => String(n).padStart(2, '0');
     const date = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
     const time = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
-    computeChart({ name: 'The Sky', date, time, location: 'Greenwich, UK' })
-      .then((c) => setTransit({ sun: c.sun.signLabel, moon: c.moon.signLabel, asc: c.ascendant.signLabel }))
+    fetch('/api/chart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'The Sky', date, time, location: 'Greenwich, UK' }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c: ChartData | null) => {
+        if (c) setTransit({ sun: c.sun.signLabel, moon: c.moon.signLabel, asc: c.ascendant.signLabel });
+        else setTransit({ sun: '—', moon: '—', asc: '—' });
+      })
       .catch(() => setTransit({ sun: '—', moon: '—', asc: '—' }));
   }, []);
 

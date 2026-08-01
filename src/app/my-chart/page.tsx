@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
-import { computeChart, type ChartData } from '../../lib/chartEngine';
+import type { ChartData } from '../../lib/chartEngine';
 import { getSign } from '../../lib/astrology';
 
 export default function MyChart() {
@@ -11,9 +11,16 @@ export default function MyChart() {
   // In production this comes from the user's stored record; here we materialize it
   // from the saved birth inputs to prove the shared pipeline.
   const [savedChart, setSavedChart] = useState<ChartData | null>(null);
+  // Single source of truth: the saved chart is produced by the SAME engine as /birth-chart
+  // (via /api/chart). In production this would POST the user's stored birth record.
   useEffect(() => {
-    computeChart({ name: 'Alex', date: '1990-01-01', time: '12:00', location: 'New York, NY' })
-      .then(setSavedChart);
+    fetch('/api/chart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Alex', date: '1990-01-01', time: '12:00', location: 'New York, NY' }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c) => setSavedChart(c as ChartData));
   }, []);
 
   const coreSign = savedChart ? getSign(savedChart.sun.sign) : null;

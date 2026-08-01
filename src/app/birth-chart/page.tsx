@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
-import { computeChart, type ChartData } from '../../lib/chartEngine';
+import type { ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
 
 export default function BirthChart() {
@@ -16,16 +16,27 @@ export default function BirthChart() {
     setResult(null);
     // small delay to show the "aligning" state; computation itself is synchronous
     setTimeout(async () => {
-      const chart = await computeChart({
-        name: formData.name,
-        date: formData.date,
-        time: formData.time,
-        location: formData.location,
-        unknownTime: formData.unknownTime,
-      });
-      setResult(chart);
-      setLoading(false);
-    }, 500);
+      try {
+        const res = await fetch('/api/chart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            date: formData.date,
+            time: formData.time,
+            location: formData.location,
+            unknownTime: formData.unknownTime,
+          }),
+        });
+        if (!res.ok) throw new Error('chart request failed');
+        const chart: ChartData = await res.json();
+        setResult(chart);
+      } catch {
+        setResult(null);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
   };
 
   const reset = () => {

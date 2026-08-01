@@ -9,10 +9,12 @@
     "verify": "bash scripts/verify-local-build.sh"
   },
   "dependencies": {
-    "circular-natal-horoscope-js": "^1.1.0",
+    "@fusionstrings/swiss-eph": "^0.1.1",
+    "astronomia": "^4.2.0",
     "next": "15.0.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
     "@types/node": "20.19.43",
