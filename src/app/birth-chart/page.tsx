@@ -154,12 +154,47 @@ export default function BirthChart() {
                       <h4 className="text-2xl font-serif text-white">{result.name}</h4>
                       <span className="text-xs text-gold tracking-wider uppercase">NATAL COSMIC CONFIGURATION</span>
                     </div>
-                    <i className="fa-solid fa-bahai text-gold text-3xl"></i>
+                    <i className="fa-solid fa-bahai text-gold text-3xl animate-spin-slow"></i>
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="glass-panel-light p-4 rounded-2xl">
+                      <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
+                      <span className="text-base font-serif text-white block mt-1">Sun in Taurus</span>
+                      <span className="text-xs text-gold">Earth • Fixed</span>
+                    </div>
+                    <div className="glass-panel-light p-4 rounded-2xl">
+                      <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
+                      <span className="text-base font-serif text-white block mt-1">Moon in Leo</span>
+                      <span className="text-xs text-gold">Fire • Fixed</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center max-w-sm mx-auto">
                     <BirthChartWheel chartData={result.chart} birthInfo={result.birthInfo} interactive />
                   </div>
+
+                  <div className="space-y-3">
+                    <span className="text-xs text-gold tracking-wider uppercase block">Major House Placements</span>
+                    <div className="space-y-2 text-sm text-gray-300">
+                      <div className="flex justify-between border-b border-white/5 py-1">
+                        <span>Ascendant (1st House)</span>
+                        <span className="font-serif text-white">Libra</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 py-1">
+                        <span>Midheaven (10th House)</span>
+                        <span className="font-serif text-white">Cancer</span>
+                      </div>
+                      <div className="flex justify-between border-b border-white/5 py-1">
+                        <span>North Node</span>
+                        <span className="font-serif text-white">Aries (7th House)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-400 leading-relaxed italic border-l-2 border-gold pl-4">
+                    "A harmonious blending of earthy Taurus stability with the expressive confidence of a Leo Moon. Your soul points toward asserting individual destiny through leadership in relationships."
+                  </p>
 
                   <button onClick={reset} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Cast Another Chart</button>
                 </div>
