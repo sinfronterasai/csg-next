@@ -2,6 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+function waitForSize(container: HTMLDivElement) {
+  return new Promise<{ width: number; height: number }>((resolve) => {
+    const measure = () => {
+      const width = container.clientWidth || 800;
+      const height = container.clientHeight || 500;
+      if (width > 0 && height > 0) {
+        resolve({ width, height });
+      } else {
+        requestAnimationFrame(measure);
+      }
+    };
+    measure();
+  });
+}
+
 export default function Constellations() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
@@ -10,133 +25,138 @@ export default function Constellations() {
     const container = containerRef.current;
     if (!container) return;
 
-    const waitForThree = () => {
+    let cancelled = false;
+
+    const boot = async () => {
       const THREE_CDN = (window as any).THREE;
       const OrbitControls = (window as any).THREE?.OrbitControls;
+
       if (!THREE_CDN || !OrbitControls) {
-        setTimeout(() => waitForThree(), 50);
+        setTimeout(boot, 50);
         return;
       }
-      initScene(container, THREE_CDN, OrbitControls);
-    };
 
-    waitForThree();
+      const { width, height } = await waitForSize(container);
+      if (cancelled) return;
 
-    return () => {
-      setReady(false);
-    };
-  }, []);
+      const scene = new THREE_CDN.Scene();
+      const camera = new THREE_CDN.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.z = 10;
 
-  const initScene = (container: HTMLDivElement, THREE_CDN: any, OrbitControls: any) => {
-    const width = container.clientWidth || 800;
-    const height = container.clientHeight || 500;
+      const renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
 
-    const scene = new THREE_CDN.Scene();
-    const camera = new THREE_CDN.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.z = 10;
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enableZoom = true;
+      controls.maxDistance = 20;
+      controls.minDistance = 4;
 
-    const renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+      const numNodes = 120;
+      const nodePos: number[] = [];
+      const nodeGeo = new THREE_CDN.BufferGeometry();
+      for (let i = 0; i < numNodes; i++) {
+        const u = Math.random();
+        const v = Math.random();
+        const theta = u * 2.0 * Math.PI;
+        const phi = Math.acos(2.0 * v - 1);
+        const r = 4.5;
+        nodePos.push(
+          r * Math.sin(phi) * Math.cos(theta),
+          r * Math.sin(phi) * Math.sin(theta),
+          r * Math.cos(phi)
+        );
+      }
+      const nodePosArray = new Float32Array(nodePos);
+      nodeGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-    controls.maxDistance = 20;
-    controls.minDistance = 4;
+      const nodeMat = new THREE_CDN.PointsMaterial({ color: 0xDFB76C, size: 0.12, transparent: true, opacity: 0.9 });
+      const starNodes = new THREE_CDN.Points(nodeGeo, nodeMat);
+      scene.add(starNodes);
 
-    const numNodes = 120;
-    const nodePos: number[] = [];
-    const nodeGeo = new THREE_CDN.BufferGeometry();
-    for (let i = 0; i < numNodes; i++) {
-      const u = Math.random();
-      const v = Math.random();
-      const theta = u * 2.0 * Math.PI;
-      const phi = Math.acos(2.0 * v - 1);
-      const r = 4.5;
-      nodePos.push(
-        r * Math.sin(phi) * Math.cos(theta),
-        r * Math.sin(phi) * Math.sin(theta),
-        r * Math.cos(phi)
-      );
-    }
-    const nodePosArray = new Float32Array(nodePos);
-    nodeGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
-
-    const nodeMat = new THREE_CDN.PointsMaterial({ color: 0xDFB76C, size: 0.12, transparent: true, opacity: 0.9 });
-    const starNodes = new THREE_CDN.Points(nodeGeo, nodeMat);
-    scene.add(starNodes);
-
-    const lineGeo = new THREE_CDN.BufferGeometry();
-    const lineIndices: number[] = [];
-    for (let i = 0; i < numNodes; i++) {
-      const p1 = new THREE_CDN.Vector3(nodePosArray[i * 3], nodePosArray[i * 3 + 1], nodePosArray[i * 3 + 2]);
-      for (let j = i + 1; j < numNodes; j++) {
-        const p2 = new THREE_CDN.Vector3(nodePosArray[j * 3], nodePosArray[j * 3 + 1], nodePosArray[j * 3 + 2]);
-        const dist = p1.distanceTo(p2);
-        if (dist < 1.6 && Math.random() > 0.4) {
-          lineIndices.push(i, j);
+      const lineGeo = new THREE_CDN.BufferGeometry();
+      const lineIndices: number[] = [];
+      for (let i = 0; i < numNodes; i++) {
+        const p1 = new THREE_CDN.Vector3(nodePosArray[i * 3], nodePosArray[i * 3 + 1], nodePosArray[i * 3 + 2]);
+        for (let j = i + 1; j < numNodes; j++) {
+          const p2 = new THREE_CDN.Vector3(nodePosArray[j * 3], nodePosArray[j * 3 + 1], nodePosArray[j * 3 + 2]);
+          const dist = p1.distanceTo(p2);
+          if (dist < 1.6 && Math.random() > 0.4) {
+            lineIndices.push(i, j);
+          }
         }
       }
-    }
-    lineGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
-    lineGeo.setIndex(lineIndices);
-    const lineMat = new THREE_CDN.LineBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.25 });
-    const constellationLines = new THREE_CDN.LineSegments(lineGeo, lineMat);
-    scene.add(constellationLines);
+      lineGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
+      lineGeo.setIndex(lineIndices);
+      const lineMat = new THREE_CDN.LineBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.25 });
+      const constellationLines = new THREE_CDN.LineSegments(lineGeo, lineMat);
+      scene.add(constellationLines);
 
-    const bgStarGeo = new THREE_CDN.BufferGeometry();
-    const bgStars = 800;
-    const bgStarPos: number[] = [];
-    for (let i = 0; i < bgStars; i++) {
-      bgStarPos.push((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
-    }
-    bgStarGeo.setAttribute('position', new THREE_CDN.Float32BufferAttribute(bgStarPos, 3));
-    const bgStarMat = new THREE_CDN.PointsMaterial({ color: 0xffffff, size: 0.03, transparent: true, opacity: 0.4 });
-    const bgPoints = new THREE_CDN.Points(bgStarGeo, bgStarMat);
-    scene.add(bgPoints);
+      const bgStarGeo = new THREE_CDN.BufferGeometry();
+      const bgStars = 800;
+      const bgStarPos: number[] = [];
+      for (let i = 0; i < bgStars; i++) {
+        bgStarPos.push((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
+      }
+      bgStarGeo.setAttribute('position', new THREE_CDN.Float32BufferAttribute(bgStarPos, 3));
+      const bgStarMat = new THREE_CDN.PointsMaterial({ color: 0xffffff, size: 0.03, transparent: true, opacity: 0.4 });
+      const bgPoints = new THREE_CDN.Points(bgStarGeo, bgStarMat);
+      scene.add(bgPoints);
 
-    let rotationSpeed = 0.002;
-    const speedSlider = document.getElementById('star-speed') as HTMLInputElement | null;
-    const toggleBtn = document.getElementById('toggle-lines') as HTMLButtonElement | null;
+      let rotationSpeed = 0.002;
+      const speedSlider = document.getElementById('star-speed') as HTMLInputElement | null;
+      const toggleBtn = document.getElementById('toggle-lines') as HTMLButtonElement | null;
 
-    speedSlider?.addEventListener('input', (e) => {
-      rotationSpeed = ((e.target as HTMLInputElement).valueAsNumber / 100) * 0.01;
-    });
-    toggleBtn?.addEventListener('click', () => {
-      constellationLines.visible = !constellationLines.visible;
-      if (toggleBtn) toggleBtn.innerText = constellationLines.visible ? 'Hide Lines' : 'Show Lines';
-    });
+      speedSlider?.addEventListener('input', (e) => {
+        rotationSpeed = ((e.target as HTMLInputElement).valueAsNumber / 100) * 0.01;
+      });
+      toggleBtn?.addEventListener('click', () => {
+        constellationLines.visible = !constellationLines.visible;
+        if (toggleBtn) toggleBtn.innerText = constellationLines.visible ? 'Hide Lines' : 'Show Lines';
+      });
 
-    function animate() {
-      requestAnimationFrame(animate);
-      starNodes.rotation.y += rotationSpeed;
-      constellationLines.rotation.y += rotationSpeed;
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
+      function animate() {
+        requestAnimationFrame(animate);
+        starNodes.rotation.y += rotationSpeed;
+        constellationLines.rotation.y += rotationSpeed;
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
 
-    const handleResize = () => {
-      const w = container.clientWidth || width;
-      const h = container.clientHeight || height;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      const resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const w = entry.contentRect.width || width;
+        const h = entry.contentRect.height || height;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+      resizeObserver.observe(container);
+
+      setReady(true);
+
+      return () => {
+        cancelled = true;
+        resizeObserver.disconnect();
+        if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+        renderer.dispose();
+        setReady(false);
+      };
     };
-    window.addEventListener('resize', handleResize);
 
-    setReady(true);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
-      renderer.dispose();
-      setReady(false);
+    let cleanup: (() => void) | undefined;
+    const maybeCleanup = async () => {
+      if (cleanup) cleanup();
+      cleanup = await boot();
     };
-  };
+
+    maybeCleanup();
+  }, []);
 
   return (
     <section className="py-24 relative z-10 bg-cosmic-950/80 border-t border-white/5">
