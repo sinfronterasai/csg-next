@@ -17,7 +17,7 @@ export default function Services() {
             </div>
             <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
               <span className="font-serif text-gold">$49</span>
-              <a href="#" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
+              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
             </div>
           </div>
 
@@ -29,7 +29,7 @@ export default function Services() {
             </div>
             <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
               <span className="font-serif text-gold">$65</span>
-              <a href="#" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
+              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
             </div>
           </div>
 
@@ -41,7 +41,7 @@ export default function Services() {
             </div>
             <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
               <span className="font-serif text-gold">$55</span>
-              <a href="#" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
+              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
             </div>
           </div>
 
@@ -53,7 +53,7 @@ export default function Services() {
             </div>
             <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
               <span className="font-serif text-gold">$120</span>
-              <a href="#" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Book Live <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
+              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Book Live <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
             </div>
           </div>
         </div>

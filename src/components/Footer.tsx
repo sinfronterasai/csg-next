@@ -20,9 +20,9 @@ export default function Footer() {
             <h4 className="font-serif text-white tracking-widest uppercase mb-4">Navigations</h4>
             <ul className="space-y-2">
               <li><a href="#about" className="hover:text-white transition-colors">Cosmos Mechanics</a></li>
-              <li><a href="#zodiac" className="hover:text-white transition-colors">The 12 Signs</a></li>
-              <li><a href="#interactive-map" className="hover:text-white transition-colors">Star Map Explorer</a></li>
-              <li><a href="#birthchart" className="hover:text-white transition-colors">Transit Calculator</a></li>
+              <li><a href="#zodiac-explorer" className="hover:text-white transition-colors">The 12 Signs</a></li>
+              <li><a href="/constellations" className="hover:text-white transition-colors">Star Map Explorer</a></li>
+              <li><a href="/birth-chart" className="hover:text-white transition-colors">Transit Calculator</a></li>
             </ul>
           </div>
           <div>
