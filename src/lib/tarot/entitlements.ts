@@ -40,11 +40,11 @@ export function buildEntitlement(tier: Tier | null): Entitlement {
 }
 
 /** Resolve a user's effective tier from the users table (subscription_tier). */
-export async function getEntitlement(userId: number): Promise<Entitlement> {
+export async function getEntitlement(userId: number | string): Promise<Entitlement> {
   try {
     const { rows } = await query(
       `SELECT subscription_tier FROM users WHERE id = $1`,
-      [userId],
+      [Number(userId)],
     );
     const raw = rows[0]?.subscription_tier;
     const tier: Tier | null =
