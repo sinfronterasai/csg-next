@@ -6,30 +6,36 @@
     "dev": "next dev -H 0.0.0.0 -p 5000",
     "build": "rm -rf .next && next build",
     "start": "next start -p 10000",
-    "verify": "bash scripts/verify-local-build.sh"
+    "verify": "bash scripts/verify-local-build.sh",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@fusionstrings/swiss-eph": "^0.1.1",
     "astronomia": "^4.2.0",
     "bcryptjs": "^2.4.3",
+    "groq-sdk": "^0.7.0",
     "jsonwebtoken": "^9.0.2",
     "next": "15.0.0",
     "pg": "^8.11.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tz-lookup": "^6.1.25",
-    "groq-sdk": "^0.7.0"
+    "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "20.19.43",
     "@types/pg": "^8.20.3",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.x",
     "autoprefixer": "^10.5.4",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.5.25",
     "tailwindcss": "^3.4.19",
+    "ts-jest": "^29.4.12",
     "typescript": "^5.9.3"
   }
 }
