@@ -1,4 +1,5 @@
 /** @type {import('jest').Config} */
+process.env.NODE_ENV = 'test';
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests', '<rootDir>/src'],

@@ -14,6 +14,7 @@
     "@fusionstrings/swiss-eph": "^0.1.1",
     "astronomia": "^4.2.0",
     "bcryptjs": "^2.4.3",
+    "framer-motion": "^11.18.2",
     "groq-sdk": "^0.7.0",
     "jsonwebtoken": "^9.0.2",
     "next": "15.0.0",
@@ -23,6 +24,8 @@
     "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
