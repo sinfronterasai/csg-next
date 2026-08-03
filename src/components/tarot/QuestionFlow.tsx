@@ -51,8 +51,8 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto rounded-2xl border border-gold/20 bg-cosmic-900/60 p-6 backdrop-blur">
-      <h2 className="text-xl font-semibold text-gold">Ask your question</h2>
+    <div className="glass-panel glow-border w-full max-w-xl mx-auto rounded-2xl p-6">
+      <h2 className="font-serif text-xl font-semibold text-gold glow-text-gold">Ask your question</h2>
       <p className="mt-1 text-sm text-cosmic-200/80">
         We will recommend the spread that fits your situation.
       </p>
@@ -88,7 +88,7 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
         type="button"
         onClick={submit}
         disabled={loading}
-        className="mt-5 w-full rounded-lg bg-gold/90 px-4 py-2 font-medium text-cosmic-950 hover:bg-gold disabled:opacity-50"
+        className="mt-5 w-full rounded-lg bg-gold/90 px-4 py-2 font-medium text-cosmic-950 hover:bg-gold disabled:opacity-50 glow-text-gold"
       >
         {loading ? "Reading the cards..." : "Recommend a spread"}
       </button>

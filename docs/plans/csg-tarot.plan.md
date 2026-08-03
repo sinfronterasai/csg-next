@@ -174,3 +174,60 @@ Extend ReadingView; add export. Test export returns PDF for pass users only. Com
 
 ## Execution handoff
 Paths verified against csg-next (2026-08-03). Run `/tdd-workflow docs/plans/csg-tarot.plan.md`. Task 0 (test tooling) MUST complete before any other TDD cycle.
+
+---
+
+## Addendum: Resolved Tier Model (2026-08-03)
+
+The original spec had an internal contradiction (free tier listed both premium and
+free spreads). Resolved to a **subscription-only** model (no pay-as-you-go):
+
+- **Free** — One Card, Past · Present · Future (MVP); Daily Love (V2).
+- **Premium — $4.99/mo** — Celtic Cross, Relationship Dynamics, Shadow Work,
+  Decision Matrix, Career Crossroads, Soul Purpose. MVP uses Celtic Cross +
+  Relationship Dynamics + Career Crossroads.
+- **Premium Plus — $9.99/mo** — Tarot + Birth Chart, Tarot + Transit, Year Ahead,
+  Soulmate Spread; PDF export + reflection journal.
+
+`users.subscription_tier` (already in the DB) is the source of truth; entitlements
+fail-safe to `free` on unknown/garbage/missing values (never over-grant).
+
+### Re-grounding notes (csg-next vs original plan)
+- Paths `app/` → `src/`; Prisma → raw `pg` (`src/lib/db.ts`).
+- `readings` table already existed; extended with `spread_id` + `category` (additive,
+  indexed) rather than recreated.
+- Astrology overlay reads the user's primary `birth_charts` row (object-shaped
+  `chart_data`), not transit computation at request time.
+
+## Status (all tasks RED→GREEN, checkpoint-committed to feat/tarot-plan)
+
+| Task | Result | Evidence |
+|---|---|---|
+| 0 test runner | done | `npx jest` runs 78 tests |
+| 2 deck | done | 5 tests, 78 cards ported from legacy |
+| 3 spreads | done | 6 tests, 5 MVP spreads + tiers |
+| 4 readings table | done | live DDL (additive cols + indexes) |
+| 5 store | done | 4 tests vs dev DB, ownership enforced |
+| 6 entitlements | done | 7 tests, fail-safe to free |
+| 7 GET /api/tarot/spreads | done | curl anon + premium user 133 |
+| 8 recommend | done | 8 tests, deterministic |
+| 9 recommend API + UI | done | curl POST verified |
+| 10 draw | done | 7 tests, seeded mulberry32 |
+| 11 CardDeck/Reveal | done | 2 jsdom renders, framer-motion |
+| 12 prompt | done | 4 tests |
+| 13 astrology overlay | done | 6 tests + live user 3 |
+| 14 generate API | done | curl 502 (no GROQ key) + 403 gate |
+| 15 ReadingView/page | done | GET /tarot 200 |
+| 16 history | done | GET /api/tarot/history 401/200 |
+| 17 gate E2E | done | anon→403, premium→502 (gate passed) |
+| 18 pricing UI | done | GET /tarot/pricing 200 |
+| 19 styling | done | Cosmic Minimalism utilities applied |
+| 20 PDF + reflection | done | PATCH reflection 200 + persisted |
+
+### Known limitations (not faked)
+- **Real Groq reading not produced in this env** (GROQ_API_KEY absent). Generation
+  path unit-tested; route returns honest 502 when Groq unavailable. Needs the key
+  in the deploy env to produce live interpretations.
+- **Billing/checkout not built** in csg-next (Stripe keys present, no
+  /api/billing/checkout). Pricing CTA defers to that workstream.
+- **next 15.0.0 CVE-2025-66478** flagged by npm — patch before DNS swap.
