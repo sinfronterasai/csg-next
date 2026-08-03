@@ -3,8 +3,8 @@ import { spreadTierMet, type Tier } from '@/lib/tarot/entitlements';
 export interface RecommendInput {
   question: string;
   category?: string | null;
-  /** Caller's effective tier; null = anonymous. */
-  tier: Tier | null;
+  /** Caller's effective tier; null/undefined = anonymous. */
+  tier?: Tier | null;
 }
 
 export interface RecommendResult {
@@ -36,6 +36,7 @@ function categoryHint(cat?: string | null): 'love' | 'career' | 'decision' | nul
  * falls back to the best available free spread (never over-grants).
  */
 export function recommendSpread(input: RecommendInput): RecommendResult {
+  const tier = input.tier ?? null;
   const q = (input.question || '').trim();
   const hint = categoryHint(input.category);
 
@@ -70,7 +71,7 @@ export function recommendSpread(input: RecommendInput): RecommendResult {
 
   // If the caller can access the ideal spread, recommend it.
   const idealTier: Tier = ideal === 'celtic_cross' || ideal === 'relationship_dynamics' || ideal === 'career_crossroads' ? 'premium' : 'free';
-  if (spreadTierMet(idealTier, input.tier)) {
+  if (spreadTierMet(idealTier, tier)) {
     return { spreadId: ideal, reason: reasonIdeal, fallback: false };
   }
 
