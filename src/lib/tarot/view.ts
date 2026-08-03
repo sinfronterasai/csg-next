@@ -14,6 +14,7 @@ export interface ApiReading {
   interpretation: string;
   astrology: { summary: string; transits?: string } | null;
   readingId: number | null;
+  reflection?: string | null;
 }
 
 export interface ReadingCardView {
@@ -31,6 +32,7 @@ export interface ReadingViewModel {
   interpretation: string;
   astrology: { summary: string; transits?: string } | null;
   readingId: number | null;
+  reflection?: string | null;
 }
 
 /** Map an API reading response into a flat, render-ready view model. */
@@ -41,6 +43,7 @@ export function buildReadingView(api: ApiReading): ReadingViewModel {
     interpretation: api.interpretation,
     astrology: api.astrology ?? null,
     readingId: api.readingId ?? null,
+    reflection: api.reflection ?? null,
     cards: (api.drawn || []).map((d) => ({
       name: d.name,
       reversed: d.reversed,

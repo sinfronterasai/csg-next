@@ -9,3 +9,6 @@ CREATE INDEX IF NOT EXISTS idx_readings_user_created
 
 CREATE INDEX IF NOT EXISTS idx_readings_tarot_spread
   ON readings (type, spread_id) WHERE type = 'tarot';
+
+-- Task 20: reflection journal on readings
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS reflection text;

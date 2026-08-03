@@ -22,6 +22,7 @@ export interface ReadingRecord {
   cards: { name: string; reversed: boolean; image?: string }[];
   interpretation: string;
   astrology: Record<string, unknown> | null;
+  reflection: string | null;
   createdAt: string;
 }
 
@@ -56,7 +57,7 @@ export async function saveReading(input: SaveReadingInput): Promise<ReadingRecor
 
 export async function listReadings(userId: number): Promise<ReadingRecord[]> {
   const { rows } = await query(
-    `SELECT id, user_id, spread_id, question, category, created_at, result
+    `SELECT id, user_id, spread_id, question, category, created_at, result, reflection
        FROM readings
       WHERE user_id = $1 AND type = $2
       ORDER BY created_at DESC`,
@@ -67,10 +68,21 @@ export async function listReadings(userId: number): Promise<ReadingRecord[]> {
 
 export async function getReading(id: number, userId: number): Promise<ReadingRecord | null> {
   const { rows } = await query(
-    `SELECT id, user_id, spread_id, question, category, created_at, result
+    `SELECT id, user_id, spread_id, question, category, created_at, result, reflection
        FROM readings
       WHERE id = $1 AND user_id = $2 AND type = $3`,
     [id, userId, READING_TYPE],
+  );
+  if (!rows[0]) return null;
+  return hydrateRow(rows[0]);
+}
+
+export async function updateReflection(id: number, userId: number, reflection: string): Promise<ReadingRecord | null> {
+  const { rows } = await query(
+    `UPDATE readings SET reflection = $1
+       WHERE id = $2 AND user_id = $3 AND type = $4
+     RETURNING id, user_id, spread_id, question, category, created_at, result, reflection`,
+    [reflection, id, userId, READING_TYPE],
   );
   if (!rows[0]) return null;
   return hydrateRow(rows[0]);
@@ -92,6 +104,7 @@ function hydrateRow(r: any): ReadingRecord {
     cards: result.cards ?? [],
     interpretation: result.interpretation ?? '',
     astrology: result.astrology ?? null,
+    reflection: r.reflection ?? null,
     createdAt: String(r.created_at),
   };
 }
@@ -107,6 +120,7 @@ function hydrate(row: any, input: SaveReadingInput): ReadingRecord {
     cards: input.cards,
     interpretation: input.interpretation,
     astrology: input.astrology ?? null,
+    reflection: null,
     createdAt: String(row.created_at),
   };
 }
