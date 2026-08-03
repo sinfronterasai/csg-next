@@ -5,7 +5,7 @@ import { updateReflection } from "@/lib/tarot/store";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -13,7 +13,8 @@ export async function PATCH(
   const decoded = verifyToken(token);
   if (!decoded) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const id = Number(params.id);
+  const { id: idStr } = await params;
+  const id = Number(idStr);
   if (!Number.isFinite(id)) return NextResponse.json({ error: "Bad id." }, { status: 400 });
 
   const body = await request.json().catch(() => ({}));
