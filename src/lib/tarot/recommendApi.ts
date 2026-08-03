@@ -2,6 +2,8 @@ import { recommendSpread, type RecommendInput, type RecommendResult } from '@/li
 import { getEntitlement } from '@/lib/tarot/entitlements';
 import { getSpread } from '@/lib/tarot/spreads';
 
+export type Recommendation = RecommendResult & { spreadName: string };
+
 export interface RecommendApiResponse {
   recommendation: RecommendResult & { spreadName: string };
   tier: string;
