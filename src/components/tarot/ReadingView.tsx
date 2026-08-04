@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReadingViewModel } from "@/lib/tarot/view";
 import { exportReadingPdf } from "@/lib/tarot/pdf";
+import CardDeck from "./CardDeck";
 
 export default function ReadingView({ reading }: { reading: ReadingViewModel }) {
   const [reflection, setReflection] = useState(reading.reflection ?? "");
@@ -28,17 +29,7 @@ export default function ReadingView({ reading }: { reading: ReadingViewModel }) 
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {reading.cards.map((c, i) => (
-          <div key={i} className="glass-panel rounded-xl p-4">
-            <p className="text-xs uppercase tracking-wide text-cosmic-300/70">{c.positionLabel}</p>
-            <p className="mt-1 text-lg font-medium text-gold">
-              {c.name} {c.reversed ? "(Reversed)" : ""}
-            </p>
-            <p className="mt-1 text-sm text-cosmic-100/90">{c.meaning}</p>
-          </div>
-        ))}
-      </div>
+      <CardDeck spreadId={reading.spreadId} drawn={reading.drawn} />
 
       <div className="glass-panel glow-border mt-8 rounded-2xl p-6">
         <h3 className="text-lg font-semibold text-gold">Your Reading</h3>
