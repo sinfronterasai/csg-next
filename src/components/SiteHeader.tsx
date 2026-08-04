@@ -20,6 +20,7 @@ export default function SiteHeader() {
         <nav className="hidden md:flex items-center space-x-8 text-sm tracking-widest">
           <a href="/constellations" className="text-gray-300 hover:text-gold transition-colors duration-300">Constellations</a>
           <a href="/birth-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">Birth Chart</a>
+          <a href="/tarot" className="text-gray-300 hover:text-gold transition-colors duration-300">Tarot</a>
           <a href="/my-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">My Chart</a>
         </nav>
 
@@ -39,6 +40,7 @@ export default function SiteHeader() {
         <div className="md:hidden mt-3 mx-2 glass-panel rounded-3xl p-6 flex flex-col space-y-4 text-center tracking-widest transition-all duration-300">
           <a href="/constellations" className="text-gray-300 hover:text-gold py-2 border-b border-white/5">Constellations</a>
           <a href="/birth-chart" className="text-gray-300 hover:text-gold py-2 border-b border-white/5">Birth Chart</a>
+          <a href="/tarot" className="text-gray-300 hover:text-gold py-2 border-b border-white/5">Tarot</a>
           <a href="/my-chart" className="text-gray-300 hover:text-gold py-2 border-b border-white/5">My Chart</a>
           <a href="/birth-chart" className="bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white py-3 rounded-full text-xs uppercase font-semibold">Calculate Chart</a>
         </div>

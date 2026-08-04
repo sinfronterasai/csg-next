@@ -23,6 +23,8 @@ export default function Footer() {
               <li><a href="#zodiac-explorer" className="hover:text-white transition-colors">The 12 Signs</a></li>
               <li><a href="/constellations" className="hover:text-white transition-colors">Star Map Explorer</a></li>
               <li><a href="/birth-chart" className="hover:text-white transition-colors">Transit Calculator</a></li>
+              <li><a href="/tarot" className="hover:text-white transition-colors">Tarot Reading</a></li>
+              <li><a href="/reports" className="hover:text-white transition-colors">Reports</a></li>
             </ul>
           </div>
           <div>
