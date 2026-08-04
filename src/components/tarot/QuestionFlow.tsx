@@ -70,6 +70,7 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
           <button
             key={c.value}
             type="button"
+            aria-pressed={category === c.value}
             onClick={() => setCategory(c.value)}
             className={`rounded-full px-3 py-1 text-sm border ${
               category === c.value
