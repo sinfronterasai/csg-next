@@ -21,17 +21,15 @@ export default function CardReveal({
         animate={{ rotateY: revealed ? 0 : 180 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {/* Back of card (shown before reveal) */}
-        <div className="absolute inset-0 [backface-visibility:hidden]">
+        <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <img
             src={CARD_BACK_URL}
             alt="Card back"
             className="h-full w-full rounded-xl border border-gold/30 object-contain"
           />
         </div>
-        {/* Front of card */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gold/40 bg-cosmic-900 p-2 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gold/40 bg-cosmic-900 p-2 text-center [backface-visibility:hidden]"
         >
           <img
             src={card.artRef}
