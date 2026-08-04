@@ -16,7 +16,7 @@ const CATEGORIES = [
   { value: "general", label: "General" },
 ];
 
-export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: Recommendation) => void }) {
+export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: Recommendation, question: string) => void }) {
   const [question, setQuestion] = useState("");
   const [category, setCategory] = useState<string>("general");
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
         return;
       }
       setRec(data.recommendation);
-      onRecommended(data.recommendation);
+      onRecommended(data.recommendation, question);
     } catch {
       setError("Network error. Please try again.");
     } finally {

@@ -17,7 +17,7 @@ export default function TarotExperience() {
   const [step, setStep] = useState<Step>({ phase: "ask" });
   const [seed] = useState(() => Math.random().toString(36).slice(2));
 
-  async function onRecommended(rec: Recommendation) {
+  async function onRecommended(rec: Recommendation, question: string) {
     setStep({ phase: "draw", recommendation: rec });
     try {
       const res = await fetch("/api/tarot/generate", {
@@ -25,7 +25,7 @@ export default function TarotExperience() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spreadId: rec.spreadId,
-          question: (window as any).__tarotQuestion || "",
+          question,
           seed,
         }),
       });
@@ -45,7 +45,7 @@ export default function TarotExperience() {
     <div className="py-8">
       {step.phase === "ask" && (
         <>
-          <QuestionFlow onRecommended={(rec) => { (window as any).__tarotQuestion = (document.getElementById("q") as HTMLTextAreaElement)?.value || ""; onRecommended(rec); }} />
+          <QuestionFlow onRecommended={(rec, q) => onRecommended(rec, q)} />
           {step.error && <p className="mt-4 text-center text-sm text-red-400">{step.error}</p>}
         </>
       )}
