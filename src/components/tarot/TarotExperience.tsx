@@ -8,7 +8,6 @@ import ReadingView from "./ReadingView";
 
 const QUICK_ACTIONS = [
   { label: "Ask the Cards", href: "/tarot" },
-  { label: "Daily Reading", href: "/tarot/daily" },
   { label: "Browse Spreads", href: "/tarot/spreads" },
   { label: "My History", href: "/tarot/history" },
 ];

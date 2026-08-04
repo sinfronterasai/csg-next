@@ -31,15 +31,16 @@ beforeEach(() => {
 });
 
 describe('Tarot guided-entry landing', () => {
-  it('renders a hero headline and four quick-action buttons', () => {
+  it('renders a hero headline and MVP quick actions (no Daily link)', () => {
     render(<TarotExperience />);
     // Hero headline from spec S10.1
     expect(screen.getByText(/what is calling for your attention/i)).toBeInTheDocument();
     // Quick actions: Ask the Cards / Daily / Browse / History
     expect(screen.getByText(/ask the cards/i)).toBeInTheDocument();
-    expect(screen.getByText(/daily reading/i)).toBeInTheDocument();
     expect(screen.getByText(/browse spreads/i)).toBeInTheDocument();
     expect(screen.getByText(/my history/i)).toBeInTheDocument();
+    // MVP scope (spec S18) excludes Daily; no broken link to /tarot/daily
+    expect(screen.queryByText(/daily reading/i)).not.toBeInTheDocument();
   });
 
   it('category chips set active state on click (not no-ops)', () => {
