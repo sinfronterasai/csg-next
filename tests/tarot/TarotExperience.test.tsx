@@ -37,6 +37,16 @@ describe('TarotExperience question threading', () => {
     fireEvent.change(textarea, { target: { value: 'Will I find love this year?' } });
     fireEvent.click(screen.getByText(/recommend a spread/i));
 
+    // Task 2: draw no longer auto-fires on recommend; the user accepts the
+    // recommendation (or picks a different spread). The typed question must
+    // still thread through to /api/tarot/generate.
+    const findByText = (re: RegExp) => screen.getByText(re);
+
+    await waitFor(() => {
+      expect(findByText(/start reading/i)).toBeTruthy();
+    });
+    fireEvent.click(screen.getByText(/start reading/i));
+
     await waitFor(() => {
       const calls = ((global as any).fetch as jest.Mock).mock.calls;
       const gen = calls.find((c: any) => String(c[0]).includes('/api/tarot/generate'));

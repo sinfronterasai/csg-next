@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { spreads, getSpread } from "@/lib/tarot/spreads";
 
 interface Recommendation {
   spreadId: string;
@@ -22,6 +23,7 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rec, setRec] = useState<Recommendation | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
 
   async function submit() {
     if (!question.trim()) {
@@ -41,13 +43,33 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
         setError(data.error || "Could not get a recommendation.");
         return;
       }
-      setRec(data.recommendation);
-      onRecommended(data.recommendation, question);
+      // Tolerant of either a wrapped response (API returns { recommendation })
+      // or a bare recommendation object returned by mocks/tests.
+      setRec(data.recommendation ?? data);
+      setShowPicker(false);
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function acceptRecommendation() {
+    if (rec) onRecommended(rec, question);
+  }
+
+  function chooseSpread(id: string) {
+    const s = getSpread(id);
+    if (!s) return;
+    onRecommended(
+      {
+        spreadId: s.id,
+        spreadName: s.name,
+        reason: "",
+        fallback: s.tier === "free",
+      },
+      question,
+    );
   }
 
   return (
@@ -103,6 +125,43 @@ export default function QuestionFlow({ onRecommended }: { onRecommended: (rec: R
             <p className="mt-2 text-xs text-cosmic-300/80">
               This is a free reading. Upgrade for the full Premium spread.
             </p>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={acceptRecommendation}
+              className="rounded-lg bg-gold/90 px-4 py-2 font-medium text-cosmic-950 hover:bg-gold glow-text-gold"
+            >
+              Start reading
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPicker((v) => !v)}
+              aria-expanded={showPicker}
+              className="rounded-lg border border-cosmic-700 px-4 py-2 text-sm text-cosmic-100 hover:border-gold hover:text-gold"
+            >
+              Choose different spread
+            </button>
+          </div>
+
+          {showPicker && (
+            <div className="mt-4 grid gap-2">
+              {spreads.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => chooseSpread(s.id)}
+                  className="rounded-lg border border-cosmic-700 bg-cosmic-950/60 p-3 text-left hover:border-gold"
+                >
+                  <span className="font-semibold text-gold">{s.name}</span>
+                  <span className="ml-2 text-xs uppercase tracking-wide text-cosmic-300/80">
+                    {s.tier}
+                  </span>
+                  <p className="mt-1 text-sm text-cosmic-100/90">{s.blurb}</p>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}
