@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { TarotCard } from "@/lib/tarot/deck";
+import { CARD_BACK_URL } from "@/lib/tarot/deck";
 
 export default function CardReveal({
   card,
@@ -21,10 +22,12 @@ export default function CardReveal({
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         {/* Back of card (shown before reveal) */}
-        <div
-          className="absolute inset-0 flex items-center justify-center rounded-xl border border-gold/30 bg-cosmic-950 text-gold [backface-visibility:hidden]"
-        >
-          <span className="text-2xl">&#10022;</span>
+        <div className="absolute inset-0 [backface-visibility:hidden]">
+          <img
+            src={CARD_BACK_URL}
+            alt="Card back"
+            className="h-full w-full rounded-xl border border-gold/30 object-contain"
+          />
         </div>
         {/* Front of card */}
         <div

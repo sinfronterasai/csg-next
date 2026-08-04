@@ -9,6 +9,10 @@ export interface TarotCard {
   artRef: string;
 }
 
+/** Self-hosted card-back image, served from /public/tarot/.
+ *  Overwrite public/tarot/card-back.png with your real art (same filename). */
+export const CARD_BACK_URL = "/tarot/card-back.png";
+
 export const deck: TarotCard[] = [
   { id: 0, name: "The Fool", suit: "major", upright: "New beginnings, innocence, spontaneity, free spirit", reversed: "Recklessness, taken advantage of, inconsideration", artRef: "https://raw.githubusercontent.com/lowlifescumm/tarot/master/img/big/maj00.jpg" },
   { id: 1, name: "The Magician", suit: "major", upright: "Manifestation, resourcefulness, power, inspired action", reversed: "Manipulation, poor planning, untapped talents", artRef: "https://raw.githubusercontent.com/lowlifescumm/tarot/master/img/big/maj01.jpg" },
