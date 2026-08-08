@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { query } from '@/lib/db';
 
 const secret = process.env.STRIPE_SECRET_KEY;
-const stripe = secret ? new Stripe(secret) : null;
+const stripe: any = secret ? new Stripe(secret) : null;
 
 export type Tier = 'free' | 'premium' | 'premium_plus';
 

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid or unsupported tier.' }, { status: 400 });
   }
 
-  const user = await getUserById(Number(decoded.userId));
+  const user = await getUserById(String(decoded.userId));
   if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
   try {
