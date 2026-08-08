@@ -14,7 +14,7 @@ export default function CardReveal({
   revealed: boolean;
 }) {
   return (
-    <div className="relative h-48 w-32 [perspective:1000px]">
+    <div className="relative h-56 w-40 [perspective:1000px]">
       <motion.div
         className="relative h-full w-full [transform-style:preserve-3d]"
         initial={false}
@@ -29,17 +29,17 @@ export default function CardReveal({
           />
         </div>
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gold/40 bg-cosmic-900 p-2 text-center [backface-visibility:hidden]"
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gold/40 bg-cosmic-900 p-1.5 text-center [backface-visibility:hidden]"
         >
           <img
             src={card.artRef}
             alt={card.name}
-            className="mb-2 h-24 w-16 rounded object-cover"
+            className="mb-1.5 min-h-0 w-full flex-1 rounded object-cover"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />
-          <p className="text-xs font-medium text-gold">{card.name}</p>
+          <p className="text-sm font-medium text-gold">{card.name}</p>
           {reversed && <p className="text-[10px] text-cosmic-300">Reversed</p>}
         </div>
       </motion.div>
