@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fusionstrings/swiss-eph": "^0.1.1",
+    "@types/stripe": "^8.0.416",
     "astronomia": "^4.2.0",
     "bcryptjs": "^2.4.3",
     "framer-motion": "^11.18.2",
@@ -21,6 +22,7 @@
     "pg": "^8.11.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "stripe": "^22.4.0",
     "tz-lookup": "^6.1.25"
   },
   "devDependencies": {

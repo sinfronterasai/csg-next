@@ -7,11 +7,24 @@ import type { Tier } from "@/lib/tarot/spreads";
 export default function TarotPricing() {
   const [selected, setSelected] = useState<Tier | null>(null);
 
-  function handleSelect(tier: Tier) {
+  async function handleSelect(tier: Tier) {
     setSelected(tier);
-    // Billing integration (Stripe Checkout) is a separate workstream. The keys
-    // exist in env but the /api/billing/checkout route is not built yet, so we
-    // surface the intent honestly instead of faking a redirect.
+    if (tier === 'free') return;
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Checkout failed:', data.error);
+      }
+    } catch (e) {
+      console.error('Checkout request failed', e);
+    }
   }
 
   return (
