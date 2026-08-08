@@ -30,7 +30,6 @@ export async function POST(request: Request) {
     });
     return res;
   } catch (err: any) {
-    const detail = String((err && err.message) || err).replace(/postgres:\/\/[^@]*@/g, 'postgres://***@');
-    return NextResponse.json({ error: 'diag', detail }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to login' }, { status: 500 });
   }
 }
