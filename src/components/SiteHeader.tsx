@@ -20,6 +20,7 @@ export default function SiteHeader() {
   const navLinks = (
     <>
       <a href="/constellations" className="text-gray-300 hover:text-gold transition-colors duration-300">Constellations</a>
+      <a href="/blog" className="text-gray-300 hover:text-gold transition-colors duration-300">Blog</a>
       <a href="/birth-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">Birth Chart</a>
       <a href="/tarot" className="text-gray-300 hover:text-gold transition-colors duration-300">Tarot</a>
       <a href="/my-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">My Chart</a>

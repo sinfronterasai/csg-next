@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fusionstrings/swiss-eph": "^0.1.1",
+    "@sanity/client": "^6.29.1",
     "@types/stripe": "^8.0.416",
     "astronomia": "^4.2.0",
     "bcryptjs": "^2.4.3",
