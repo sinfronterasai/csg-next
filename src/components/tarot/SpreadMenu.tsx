@@ -9,8 +9,8 @@ import ReadingView from "./ReadingView";
 
 type Phase =
   | { kind: "menu" }
-  | { kind: "modal"; spread: Spread; error?: string | null }
-  | { kind: "drawing"; spread: Spread }
+  | { kind: "modal"; spread: Spread; question: string; error?: string | null }
+  | { kind: "drawing"; spread: Spread; question: string }
   | { kind: "reading"; view: ReadingViewModel }
   | { kind: "upgrade"; spread: Spread };
 
@@ -24,7 +24,7 @@ export default function SpreadMenu() {
   const [seed] = useState(() => Math.random().toString(36).slice(2));
 
   async function draw(spread: Spread, question: string) {
-    setPhase({ kind: "drawing", spread });
+    setPhase({ kind: "drawing", spread, question });
     try {
       const res = await fetch("/api/tarot/generate", {
         method: "POST",
@@ -38,14 +38,14 @@ export default function SpreadMenu() {
       }
       const data = await res.json();
       if (!res.ok) {
-        // Re-open the modal with the error instead of a dead screen.
-        setPhase({ kind: "modal", spread, error: data?.error || "Could not draw your reading." });
+        // Re-open the modal, preserving the typed question + surfacing the error.
+        setPhase({ kind: "modal", spread, question, error: data?.error || "Could not draw your reading." });
         return;
       }
       const view = buildReadingView(data as ApiReading);
       setPhase({ kind: "reading", view });
     } catch {
-      setPhase({ kind: "modal", spread, error: "Network error. Please try again." });
+      setPhase({ kind: "modal", spread, question, error: "Network error. Please try again." });
     }
   }
 
@@ -55,7 +55,7 @@ export default function SpreadMenu() {
       void draw(spread, spread.fixedQuestion);
       return;
     }
-    setPhase({ kind: "modal", spread });
+    setPhase({ kind: "modal", spread, question: "" });
   }
 
   if (phase.kind === "reading") {
@@ -63,11 +63,18 @@ export default function SpreadMenu() {
       <div>
         <ReadingView reading={phase.view} />
         <div className="mx-auto mt-8 flex max-w-3xl items-center justify-center gap-4 text-sm">
-          <Link href="/tarot" className="text-gold underline-offset-4 hover:underline">
+          <button
+            type="button"
+            onClick={() => setPhase({ kind: "menu" })}
+            className="inline-flex min-h-[44px] items-center text-gold underline-offset-4 hover:underline"
+          >
             New reading
-          </Link>
+          </button>
           <span className="text-cosmic-500">·</span>
-          <Link href="/tarot/history" className="text-gold underline-offset-4 hover:underline">
+          <Link
+            href="/tarot/history"
+            className="inline-flex min-h-[44px] items-center text-gold underline-offset-4 hover:underline"
+          >
             My readings
           </Link>
         </div>
@@ -79,6 +86,7 @@ export default function SpreadMenu() {
     return (
       <QuestionModal
         spread={phase.spread}
+        initialQuestion={phase.question}
         error={phase.error ?? null}
         submitting={false}
         onClose={() => setPhase({ kind: "menu" })}
@@ -133,7 +141,10 @@ export default function SpreadMenu() {
       </div>
 
       <p className="mt-8 text-center text-sm text-cosmic-300/80">
-        <Link href="/tarot/history" className="text-gold underline-offset-4 hover:underline">
+        <Link
+          href="/tarot/history"
+          className="inline-flex min-h-[44px] items-center justify-center text-gold underline-offset-4 hover:underline"
+        >
           My readings
         </Link>
       </p>

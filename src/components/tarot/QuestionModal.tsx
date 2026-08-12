@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Spread } from "@/lib/tarot/spreads";
 
 const EXAMPLES: Record<string, string[]> = {
@@ -28,6 +28,8 @@ const EXAMPLES: Record<string, string[]> = {
 
 interface Props {
   spread: Spread;
+  /** Pre-fill the textarea (e.g. when reopening after a failed draw). */
+  initialQuestion?: string;
   /** True once a draw attempt returned 403 UPGRADE_REQUIRED. */
   upgrade?: boolean;
   /** Non-upgrade API failure message to surface. */
@@ -37,10 +39,66 @@ interface Props {
   onClose: () => void;
 }
 
-export default function QuestionModal({ spread, upgrade, error, submitting, onSubmit, onClose }: Props) {
-  const [question, setQuestion] = useState("");
+export default function QuestionModal({
+  spread,
+  initialQuestion = "",
+  upgrade,
+  error,
+  submitting,
+  onSubmit,
+  onClose,
+}: Props) {
+  const [question, setQuestion] = useState(initialQuestion);
   const [validation, setValidation] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
   const examples = EXAMPLES[spread.id];
+
+  // Focus management: move focus into the dialog on open, trap Tab, restore on close.
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusable = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    // Move focus to the first focusable element inside the dialog.
+    const first = focusable()[0];
+    (first ?? dialog).focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const els = focusable();
+      if (els.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const firstEl = els[0];
+      const lastEl = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    }
+
+    dialog.addEventListener("keydown", onKeyDown);
+    return () => {
+      dialog.removeEventListener("keydown", onKeyDown);
+      // Restore focus to the element that opened the dialog.
+      previouslyFocused.current?.focus?.();
+    };
+  }, [onClose]);
 
   function handleSubmit() {
     if (!question.trim()) {
@@ -53,10 +111,12 @@ export default function QuestionModal({ spread, upgrade, error, submitting, onSu
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end justify-center bg-cosmic-950/80 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`${spread.name} question`}
+      tabIndex={-1}
     >
       <div className="glass-panel glow-border w-full max-w-md rounded-t-2xl border-cosmic-700 bg-cosmic-950 p-6 sm:rounded-2xl">
         <div className="flex items-start justify-between gap-4">
