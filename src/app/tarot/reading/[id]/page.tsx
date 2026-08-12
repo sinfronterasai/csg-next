@@ -61,9 +61,11 @@ export default function ReadingDetailPage() {
           {reading.interpretation}
         </section>
 
-        <p className="mt-8 text-center text-sm text-cosmic-400">
-          <a href="/tarot/history" className="text-gold underline-offset-4 hover:underline">Back to history</a>
-        </p>
+        <div className="mt-8 flex items-center justify-center gap-4 text-sm">
+          <a href="/tarot" className="text-gold underline-offset-4 hover:underline">New reading</a>
+          <span className="text-cosmic-500">·</span>
+          <a href="/tarot/history" className="text-gold underline-offset-4 hover:underline">My readings</a>
+        </div>
       </div>
     </main>
   );
