@@ -21,9 +21,12 @@ function cardCountLabel(spread: Spread): string {
 
 export default function SpreadMenu() {
   const [phase, setPhase] = useState<Phase>({ kind: "menu" });
-  const [seed] = useState(() => Math.random().toString(36).slice(2));
 
   async function draw(spread: Spread, question: string) {
+    // Fresh seed per draw so repeat readings vary (the previous "New reading"
+    // Link remounted the page -> new seed; the button only changes phase, so we
+    // must rotate the seed here instead of once per mount).
+    const seed = Math.random().toString(36).slice(2);
     setPhase({ kind: "drawing", spread, question });
     try {
       const res = await fetch("/api/tarot/generate", {

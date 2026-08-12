@@ -52,9 +52,14 @@ export default function QuestionModal({
   const [validation, setValidation] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const examples = EXAMPLES[spread.id];
 
   // Focus management: move focus into the dialog on open, trap Tab, restore on close.
+  // Runs once per mount; onClose is read via a ref so parent re-renders with a fresh
+  // onClose identity do not tear down and re-run this effect (which would flicker focus
+  // and capture a stale restore target).
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement | null;
     const dialog = dialogRef.current;
@@ -72,7 +77,7 @@ export default function QuestionModal({
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -98,7 +103,7 @@ export default function QuestionModal({
       // Restore focus to the element that opened the dialog.
       previouslyFocused.current?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
   function handleSubmit() {
     if (!question.trim()) {
