@@ -21,18 +21,23 @@ describe('QuestionModal onClose stability', () => {
       );
     }
     // Spy on focus so we can count effect-driven focus() calls (open moves focus in).
+    // No manual openBtn.focus() here: otherwise the spy count is already >=1 before the
+    // modal mounts, so the test could pass even if the mount effect never ran. With no
+    // manual focus, any focus() after open comes solely from the modal's mount effect.
     const focusSpy = jest.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function () {});
     render(<Harness />);
-    const openBtn = screen.getByText('open');
-    openBtn.focus();
-    fireEvent.click(openBtn);
-    const callsAfterOpen = focusSpy.mock.calls.length;
-    expect(callsAfterOpen).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText('open'));
+    // The dialog must actually be mounted, or the focus assertion is meaningless.
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    // Baseline established AFTER mount: a focus() call proves the mount effect ran.
+    const callsAfterMount = focusSpy.mock.calls.length;
+    expect(callsAfterMount).toBeGreaterThan(0);
     // Parent re-renders with a fresh onClose identity (the reported re-run trigger).
     fireEvent.click(screen.getByText('rerender'));
     const callsAfterRerender = focusSpy.mock.calls.length;
     // Effect must NOT re-run: no new focus() call from the cleanup/restore cycle.
-    expect(callsAfterRerender).toBe(callsAfterOpen);
+    expect(callsAfterRerender).toBe(callsAfterMount);
     focusSpy.mockRestore();
   });
 
