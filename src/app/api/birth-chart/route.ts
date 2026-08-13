@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { computeChart } from '@/lib/chartEngine';
+import { computeChart, geocode } from '@/lib/chartEngine';
 
 export async function GET() {
   try {
@@ -51,16 +51,21 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
     const { name, date, time, location, latitude, longitude, timezone } = body;
-    if (!date || !time || !location || latitude === undefined || longitude === undefined) {
-      return NextResponse.json({ error: 'Missing required fields', details: 'date, time, location, latitude, longitude are required' }, { status: 400 });
+    if (!date || !time || !location) {
+      return NextResponse.json({ error: 'Missing required fields', details: 'date, time, location are required' }, { status: 400 });
     }
+    // Geocode the location into lat/long when the caller didn't supply them
+    // (the birth-chart page computes client-side and relies on the engine's geocoder).
+    const geo = latitude !== undefined && longitude !== undefined
+      ? { lat: latitude, lon: longitude }
+      : geocode(location);
     const chart = await computeChart({ name: name || '', date, time: time || '12:00', location, unknownTime: false });
     const { rows } = await query(
       `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
        RETURNING id`,
       [
-        decoded.userId, date, time, timezone || 'UTC', location, latitude, longitude,
+        decoded.userId, date, time, timezone || 'UTC', location, geo.lat, geo.lon,
         JSON.stringify({ planets: chart.planets }),
         JSON.stringify(chart.houses),
         JSON.stringify(chart.ascendant),
