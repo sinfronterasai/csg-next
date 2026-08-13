@@ -100,7 +100,7 @@ export async function POST(request: Request) {
         result: {
           title,
           text,
-          generatedFor: partner ? 'partner' : 'self',
+          generatedFor: type === 'synastry' && partner ? 'partner' : 'self',
           pricePaid,
         },
       });

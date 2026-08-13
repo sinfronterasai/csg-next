@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { verifyToken, getUserById } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
 
 export interface AuthedUser {
@@ -23,26 +23,28 @@ export async function requireAuth(): Promise<
   if (!token) return { ok: false, status: 401, body: { error: 'Authentication required' } };
   const decoded = verifyToken(token);
   if (!decoded) return { ok: false, status: 401, body: { error: 'Authentication required' } };
-  const row = await getUserById(decoded.userId);
-  if (!row) return { ok: false, status: 401, body: { error: 'User not found' } };
 
   const userId = Number(decoded.userId);
-  const extra = await query(
-    `SELECT display_name, horoscope_sign, patterns_opt_in, subscription_tier
+  // Single round-trip: load all profile columns from the one users row.
+  const { rows } = await query(
+    `SELECT email, first_name, last_name, role,
+            display_name, horoscope_sign, patterns_opt_in, subscription_tier
        FROM users WHERE id = $1`,
     [userId],
   );
-  const e = extra.rows[0] || {};
+  const row = rows[0];
+  if (!row) return { ok: false, status: 401, body: { error: 'User not found' } };
+
   const user: AuthedUser = {
     id: userId,
     email: row.email,
     first_name: row.first_name ?? null,
     last_name: row.last_name ?? null,
     role: row.role,
-    display_name: e.display_name ?? null,
-    horoscope_sign: e.horoscope_sign ?? null,
-    patterns_opt_in: e.patterns_opt_in !== false,
-    subscription_tier: e.subscription_tier ?? null,
+    display_name: row.display_name ?? null,
+    horoscope_sign: row.horoscope_sign ?? null,
+    patterns_opt_in: row.patterns_opt_in !== false,
+    subscription_tier: row.subscription_tier ?? null,
   };
   return { ok: true, userId, user };
 }

@@ -24,6 +24,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, reflection: row.reflection });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to update reflection' }, { status: 500 });
+    console.error('[profile/reflection]', err);
+    return NextResponse.json({ error: 'Failed to update reflection' }, { status: 500 });
   }
 }

@@ -33,6 +33,26 @@ export default function SettingsTab({ user: initialUser }: { user: User }) {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Seed from /api/profile (returns display_name, horoscope_sign, patterns_opt_in),
+  // which /api/auth/user omits — otherwise saving would wipe a previously set value.
+  useEffect(() => {
+    fetch('/api/profile')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d?.user) return;
+        if (d.user.display_name !== undefined && d.user.display_name !== null) {
+          setDisplayName(d.user.display_name);
+        }
+        if (d.user.horoscope_sign !== undefined && d.user.horoscope_sign !== null) {
+          setHoroscopeSign(d.user.horoscope_sign);
+        }
+        if (typeof d.user.patterns_opt_in === 'boolean') {
+          setPatternsOptIn(d.user.patterns_opt_in);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   async function saveSettings() {
     setSaving(true);
     setSaved(false);
@@ -140,6 +160,9 @@ export default function SettingsTab({ user: initialUser }: { user: User }) {
               <p className="text-xs text-cosmic-300">Allow pattern analysis across your readings</p>
             </div>
             <button
+              role="switch"
+              aria-checked={patternsOptIn}
+              aria-label="Allow pattern analysis across your readings"
               onClick={() => setPatternsOptIn(!patternsOptIn)}
               className={`relative w-12 h-6 rounded-full transition ${
                 patternsOptIn ? 'bg-gradient-to-r from-cosmic-primary to-cosmic-secondary' : 'bg-cosmic-700'

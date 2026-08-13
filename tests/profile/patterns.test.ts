@@ -73,10 +73,10 @@ describe('recurring tarot cards', () => {
     expect(cards.find((c) => c.card === 'The Star')).toBeUndefined();
   });
 
-  it('returns a reflective prompt for known cards', () => {
+  it('returns a reflective prompt for known cards as a data map', () => {
     const r = computePatterns([], {});
-    expect(r.reflectionPromptFor('The Tower')).toMatch(/Tower/);
-    expect(r.reflectionPromptFor('Unknown Card')).toBeNull();
+    expect(r.reflectionPrompts['The Tower']).toMatch(/Tower/);
+    expect(r.reflectionPrompts['Unknown Card']).toBeUndefined();
   });
 });
 

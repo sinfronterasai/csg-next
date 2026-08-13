@@ -15,6 +15,11 @@ paths=$(grep -rhoE '(href=|router\.push\()"/[a-zA-Z0-9_/?=&.-]+"' src 2>/dev/nul
         | grep -vE '\?tab=' \
         | sort -u)
 
+if [ -z "$paths" ]; then
+  echo "FAIL: no internal link targets extracted — sweep checked nothing."
+  exit 1
+fi
+
 fail=0
 echo "=== Route sweep against $BASE ==="
 for p in $paths; do

@@ -19,7 +19,7 @@ interface PatternsData {
   elementBalance: Record<string, number>;
   timingClusters: Array<{ window: string; detail: string; count: number }>;
   reportMotifs: Array<{ motif: string; count: number }>;
-  reflectionPromptFor: (card: string) => string | null;
+  reflectionPrompts: Record<string, string>;
 }
 
 export default function PatternsTab() {
@@ -129,9 +129,9 @@ export default function PatternsTab() {
                     </p>
                   )}
                 </div>
-                {patterns.reflectionPromptFor(c.card) && (
+                {patterns.reflectionPrompts[c.card] && (
                   <p className="mt-3 text-sm text-cosmic-300 italic border-l-2 border-gold/30 pl-3">
-                    {patterns.reflectionPromptFor(c.card)}
+                    {patterns.reflectionPrompts[c.card]}
                   </p>
                 )}
               </div>

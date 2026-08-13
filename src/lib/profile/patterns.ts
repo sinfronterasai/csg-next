@@ -78,6 +78,9 @@ const REFLECTION_PROMPTS: Record<string, string> = {
   'Ten of Cups': 'When the Ten of Cups appears, what fullness are you already holding?',
 };
 
+// Serializable form of the prompts (functions are dropped by JSON.stringify).
+export const REFLECTION_PROMPTS_MAP: Record<string, string> = REFLECTION_PROMPTS;
+
 function inWindow(dateIso: string, start: string, end: string): boolean {
   if (!dateIso) return false;
   const d = dateIso.slice(0, 10);
@@ -203,7 +206,7 @@ export interface PatternsResult {
   elementBalance: Record<string, number>;
   timingClusters: TimingCluster[];
   reportMotifs: ReportMotif[];
-  reflectionPromptFor(card: string): string | null;
+  reflectionPrompts: Record<string, string>;
 }
 
 export function computePatterns(
@@ -214,7 +217,7 @@ export function computePatterns(
     (opts.patternsOptIn ?? true) &&
     readings.length >= MIN_READINGS_FOR_PATTERNS;
 
-  const base: Omit<PatternsResult, 'eligible' | 'totalReadings' | 'reflectionPromptFor'> = {
+  const base: Omit<PatternsResult, 'eligible' | 'totalReadings' | 'reflectionPrompts'> = {
     recurringCards: computeRecurringCards(readings),
     recurringThemes: computeRecurringThemes(readings),
     signResonance: computeSignResonance(readings, opts.horoscopeSign),
@@ -227,8 +230,6 @@ export function computePatterns(
     ...base,
     eligible,
     totalReadings: readings.length,
-    reflectionPromptFor(card: string) {
-      return REFLECTION_PROMPTS[card] || null;
-    },
+    reflectionPrompts: REFLECTION_PROMPTS,
   };
 }

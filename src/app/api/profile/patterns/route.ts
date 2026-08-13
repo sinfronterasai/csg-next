@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken, getUserById } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
+import { query } from '@/lib/db';
 import { listReadingsByType } from '@/lib/profile/store';
-import { buildEntitlement, getEntitlement } from '@/lib/tarot/entitlements';
+import { getEntitlement } from '@/lib/tarot/entitlements';
 import { computePatterns } from '@/lib/profile/patterns';
 
 export async function GET() {
@@ -12,7 +13,14 @@ export async function GET() {
     if (!token) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const decoded = verifyToken(token);
     if (!decoded) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const user = await getUserById(decoded.userId);
+
+    // Load the profile columns we need (single round-trip; getUserById omits them).
+    const { rows } = await query(
+      `SELECT role, subscription_tier, horoscope_sign, patterns_opt_in
+         FROM users WHERE id = $1`,
+      [Number(decoded.userId)],
+    );
+    const user = rows[0];
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
     // Cosmic Pass gate. Free tier cannot view Patterns.
@@ -38,6 +46,7 @@ export async function GET() {
 
     return NextResponse.json({ patterns });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to compute patterns' }, { status: 500 });
+    console.error('[profile/patterns]', err);
+    return NextResponse.json({ error: 'Failed to compute patterns' }, { status: 500 });
   }
 }
