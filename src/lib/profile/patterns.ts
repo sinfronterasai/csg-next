@@ -169,9 +169,10 @@ export function computeTimingClusters(readings: UniversalReadingRecord[]): Timin
   for (const r of readings) {
     for (const m of TRANSIT_MARKERS) {
       if (inWindow(r.createdAt, m.start, m.end)) {
-        const existing = clusters.get(m.label);
+        const key = `${m.label} ${m.start}`;
+        const existing = clusters.get(key);
         if (existing) existing.count += 1;
-        else clusters.set(m.label, { window: m.window, detail: m.label, count: 1 });
+        else clusters.set(key, { window: m.window, detail: m.label, count: 1 });
       }
     }
   }
@@ -191,7 +192,9 @@ export function computeReportMotifs(readings: UniversalReadingRecord[]): ReportM
     .toLowerCase();
   const found: ReportMotif[] = [];
   for (const motif of REPORT_MOTIF_WORDS) {
-    const count = text.split(motif).length - 1;
+    // Whole-word match so 'interest' cannot fabricate a 'rest' insight.
+    const re = new RegExp(`\\b${motif}\\b`, 'g');
+    const count = (text.match(re) || []).length;
     if (count > 0) found.push({ motif, count });
   }
   return found.sort((a, b) => b.count - a.count);
@@ -213,21 +216,31 @@ export function computePatterns(
   readings: UniversalReadingRecord[],
   opts: { horoscopeSign?: string | null; patternsOptIn?: boolean } = {},
 ): PatternsResult {
-  const eligible =
-    (opts.patternsOptIn ?? true) &&
-    readings.length >= MIN_READINGS_FOR_PATTERNS;
+  const optedIn = opts.patternsOptIn ?? true;
+  const eligible = optedIn && readings.length >= MIN_READINGS_FOR_PATTERNS;
 
-  const base: Omit<PatternsResult, 'eligible' | 'totalReadings' | 'reflectionPrompts'> = {
+  if (!optedIn) {
+    // Enforce opt-out before computing or returning any aggregates (#214).
+    return {
+      eligible: false,
+      totalReadings: 0,
+      recurringCards: [],
+      recurringThemes: [],
+      signResonance: [],
+      elementBalance: { Fire: 0, Earth: 0, Air: 0, Water: 0 },
+      timingClusters: [],
+      reportMotifs: [],
+      reflectionPrompts: {},
+    };
+  }
+
+  return {
     recurringCards: computeRecurringCards(readings),
     recurringThemes: computeRecurringThemes(readings),
     signResonance: computeSignResonance(readings, opts.horoscopeSign),
     elementBalance: computeElementBalance(readings, opts.horoscopeSign),
     timingClusters: computeTimingClusters(readings),
     reportMotifs: computeReportMotifs(readings),
-  };
-
-  return {
-    ...base,
     eligible,
     totalReadings: readings.length,
     reflectionPrompts: REFLECTION_PROMPTS,

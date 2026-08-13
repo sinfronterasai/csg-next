@@ -25,7 +25,8 @@ interface PatternsData {
 export default function PatternsTab() {
   const [patterns, setPatterns] = useState<PatternsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<'upgrade' | 'auth' | null>(null);
+  const [error, setError] = useState<'upgrade' | 'auth' | 'fail' | null>(null);
+  const [optedOut, setOptedOut] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -35,12 +36,18 @@ export default function PatternsTab() {
         if (res.ok) {
           const data = await res.json();
           setPatterns(data.patterns);
+          const p = data.patterns;
+          if (p && !p.eligible && p.totalReadings >= 3) {
+            setOptedOut(true);
+          }
         } else if (res.status === 403) {
           const data = await res.json();
           setError('upgrade');
           setMessage(data.message || 'Upgrade to Cosmic Pass to reveal patterns.');
         } else if (res.status === 401) {
           setError('auth');
+        } else if (res.status === 500) {
+          setError('fail');
         }
       } catch {}
       setLoading(false);
@@ -79,6 +86,28 @@ export default function PatternsTab() {
         >
           Upgrade Now
         </Link>
+      </div>
+    );
+  }
+
+  if (error === 'fail') {
+    return (
+      <div className="glass-panel glow-border rounded-2xl p-12 text-center">
+        <i className="fa-solid fa-triangle-exclamation text-6xl text-gold mb-6"></i>
+        <h3 className="font-serif text-2xl font-bold text-gold mb-3">Patterns Unavailable</h3>
+        <p className="text-cosmic-200">Something went wrong loading your patterns. Try again shortly.</p>
+      </div>
+    );
+  }
+
+  if (optedOut) {
+    return (
+      <div className="glass-panel glow-border rounded-2xl p-12 text-center">
+        <i className="fa-solid fa-toggle-off text-6xl text-gold mb-6"></i>
+        <h3 className="font-serif text-2xl font-bold text-gold mb-3">Patterns Disabled</h3>
+        <p className="text-cosmic-200">
+          You have enough readings, but pattern analysis is turned off. Enable it in Settings to reveal your patterns.
+        </p>
       </div>
     );
   }

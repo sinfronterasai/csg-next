@@ -7,6 +7,7 @@ export async function GET() {
     if (!r.ok) return NextResponse.json(r.body, { status: r.status });
     return NextResponse.json({ user: r.user });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to load profile' }, { status: 500 });
+    console.error('[profile]', err);
+    return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
   }
 }

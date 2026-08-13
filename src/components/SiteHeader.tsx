@@ -20,10 +20,18 @@ export default function SiteHeader() {
   }, []);
 
   function logout() {
-    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
-      router.push('/');
-      router.refresh();
-    });
+    fetch('/api/auth/logout', { method: 'POST' })
+      .then((res) => {
+        if (res.ok) {
+          setAuthed(false);
+          setOpen(false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        router.push('/');
+        router.refresh();
+      });
   }
 
   const navLinks = (

@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       readingId = row.id;
     } catch (err) {
       console.error('[reports/generate] failed to persist report:', err);
-      // Still return success — generation worked, persistence is best-effort
+      return NextResponse.json({ error: 'Report generated but could not be saved to your journal. Please try again.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, type, text, readingId });

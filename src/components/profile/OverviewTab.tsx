@@ -8,6 +8,8 @@ interface User {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   display_name: string | null;
 }
 
@@ -25,7 +27,7 @@ interface Props {
 
 export default function OverviewTab({ user, onNavigate }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [tier, setTier] = useState<'free' | 'cosmic'>('free');
+  const [tier, setTier] = useState<'free' | 'cosmic' | 'unknown'>('unknown');
 
   useEffect(() => {
     (async () => {
@@ -42,12 +44,15 @@ export default function OverviewTab({ user, onNavigate }: Props) {
           setTier('cosmic');
         } else if (patternsRes.status === 403) {
           setTier('free');
+        } else {
+          // 401/500: unknown, not a false 'free' upgrade CTA
+          setTier('unknown');
         }
       } catch {}
     })();
   }, []);
 
-  const greeting = user.first_name || 'Cosmic traveler';
+  const greeting = user.firstName || user.first_name || 'Cosmic traveler';
 
   return (
     <div className="space-y-8">
@@ -59,6 +64,10 @@ export default function OverviewTab({ user, onNavigate }: Props) {
           {tier === 'cosmic' ? (
             <span className="rounded-full border border-gold bg-gradient-to-r from-cosmic-primary/20 to-cosmic-secondary/20 px-4 py-1 text-xs uppercase tracking-widest text-gold">
               <i className="fa-solid fa-star mr-2"></i>Cosmic Pass
+            </span>
+          ) : tier === 'unknown' ? (
+            <span className="rounded-full border border-cosmic-700 px-4 py-1 text-xs uppercase tracking-widest text-cosmic-300">
+              Membership
             </span>
           ) : (
             <Link

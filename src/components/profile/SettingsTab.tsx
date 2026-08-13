@@ -8,6 +8,8 @@ interface User {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   display_name: string | null;
   horoscope_sign: string | null;
   patterns_opt_in: boolean;
@@ -66,7 +68,16 @@ export default function SettingsTab({ user: initialUser }: { user: User }) {
           patterns_opt_in: patternsOptIn,
         }),
       });
-      if (res.ok) setSaved(true);
+      if (res.ok) {
+        setSaved(true);
+        // Reseed from the profile endpoint so re-opening Settings shows persisted values.
+        const d = await (await fetch('/api/profile')).json().catch(() => null);
+        if (d?.user) {
+          if (d.user.display_name !== undefined && d.user.display_name !== null) setDisplayName(d.user.display_name);
+          if (d.user.horoscope_sign !== undefined && d.user.horoscope_sign !== null) setHoroscopeSign(d.user.horoscope_sign);
+          if (typeof d.user.patterns_opt_in === 'boolean') setPatternsOptIn(d.user.patterns_opt_in);
+        }
+      }
     } catch {}
     setSaving(false);
     setTimeout(() => setSaved(false), 2000);
@@ -201,7 +212,7 @@ export default function SettingsTab({ user: initialUser }: { user: User }) {
             type="password"
             value={nextPassword}
             onChange={(e) => setNextPassword(e.target.value)}
-            placeholder="New password (min 8 characters)"
+            placeholder="New password (min 8 characters)" minLength={8}
             className="w-full rounded-lg bg-cosmic-950/80 border border-cosmic-700 p-3 text-cosmic-100 placeholder-cosmic-500 focus:border-gold focus:outline-none"
           />
           {passwordMsg && (

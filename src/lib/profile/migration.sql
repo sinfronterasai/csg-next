@@ -10,7 +10,7 @@ ALTER TABLE readings
   ADD COLUMN IF NOT EXISTS price_paid numeric(10,2),
   ADD COLUMN IF NOT EXISTS partner_label character varying;
 
-CREATE INDEX IF NOT EXISTS idx_readings_user_type ON readings(user_id, type);
+CREATE INDEX IF NOT EXISTS idx_readings_user_type ON readings(user_id, type) WITH (concurrently=true);
 
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS display_name character varying,
