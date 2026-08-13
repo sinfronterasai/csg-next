@@ -28,7 +28,7 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      router.push('/account');
+      router.push('/profile');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
