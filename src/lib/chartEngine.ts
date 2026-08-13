@@ -62,7 +62,7 @@ export interface ChartData {
 }
 
 // planet key -> Swiss Ephemeris body constant + our astrology.ts key
-const PLANET_BODIES: { key: string; se: number }[] = [
+export const PLANET_BODIES: { key: string; se: number }[] = [
   { key: 'sun', se: Constants.SE_SUN },
   { key: 'moon', se: Constants.SE_MOON },
   { key: 'mercury', se: Constants.SE_MERCURY },
@@ -79,7 +79,7 @@ const PLANET_BODIES: { key: string; se: number }[] = [
 
 // Swiss Ephemeris WASM is loaded once and reused across charts.
 let ephPromise: Promise<SwissEph> | null = null;
-function getEph(): Promise<SwissEph> {
+export function getEph(): Promise<SwissEph> {
   if (!ephPromise) {
     const wasmBytes = readFileSync(join(process.cwd(), 'node_modules/@fusionstrings/swiss-eph/wasm/swiss_eph.wasm'));
     ephPromise = load(wasmBytes as unknown as Uint8Array);
@@ -103,10 +103,10 @@ function localToJulianDay(year: number, month: number, day: number, hour: number
   return jd;
 }
 
-function normDeg(d: number): number { return ((d % 360) + 360) % 360; }
+export function normDeg(d: number): number { return ((d % 360) + 360) % 360; }
 
 // Determine which house a longitude falls in, given the 12 cusp longitudes (cusps[1..12]).
-function houseForLongitude(longitude: number, cusps: number[]): number | null {
+export function houseForLongitude(longitude: number, cusps: number[]): number | null {
   const L = normDeg(longitude);
   for (let i = 1; i <= 12; i++) {
     const start = normDeg(cusps[i]);
@@ -147,7 +147,7 @@ export function geocode(location: string): { lat: number; lon: number } {
 }
 
 export async function computeChart(input: {
-  name: string;
+  name?: string;      // optional; defaults when chart is computed from saved data
   date: string;       // yyyy-mm-dd
   time?: string;      // HH:mm
   location: string;
