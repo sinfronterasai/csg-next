@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { computePatterns, MIN_READINGS_FOR_PATTERNS } from '@/lib/profile/patterns';
 
 interface PatternsData {
   eligible: boolean;
@@ -17,9 +18,10 @@ interface PatternsData {
   recurringThemes: Array<{ theme: string; count: number }>;
   signResonance: Array<{ sign: string; appearances: number }>;
   elementBalance: Record<string, number>;
-  timingClusters: Array<{ window: string; detail: string; count: number }>;
+  timingClusters: Array<{ id: string; window: string; detail: string; count: number }>;
   reportMotifs: Array<{ motif: string; count: number }>;
   reflectionPrompts: Record<string, string>;
+  optedOut?: boolean;
 }
 
 export default function PatternsTab() {
@@ -36,8 +38,14 @@ export default function PatternsTab() {
         if (res.ok) {
           const data = await res.json();
           setPatterns(data.patterns);
-          const p = data.patterns;
-          if (p && !p.eligible && p.totalReadings >= 3) {
+          // Prefer the explicit optedOut flag; fall back to reading-count heuristic if absent.
+          if (data.patterns?.optedOut === true) {
+            setOptedOut(true);
+          } else if (
+            data.patterns &&
+            !data.patterns.eligible &&
+            data.patterns.totalReadings >= MIN_READINGS_FOR_PATTERNS
+          ) {
             setOptedOut(true);
           }
         } else if (res.status === 403) {
@@ -214,7 +222,7 @@ export default function PatternsTab() {
         <PatternSection title="Timing Clusters" icon="fa-clock">
           <div className="space-y-3">
             {patterns.timingClusters.map((t) => (
-              <div key={t.detail} className="glass-panel rounded-xl p-4">
+              <div key={t.id} className="glass-panel rounded-xl p-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-serif text-lg text-gold">{t.detail}</span>
                   <span className="text-cosmic-200">{t.count} readings</span>

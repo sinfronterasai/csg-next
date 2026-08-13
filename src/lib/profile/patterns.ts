@@ -4,7 +4,7 @@ import type { UniversalReadingRecord } from './store';
 // Frames everything as reflection ("you may notice"), never prediction.
 // Pure functions: no DB, no side effects — easy to unit test.
 
-const MIN_READINGS_FOR_PATTERNS = 3;
+export const MIN_READINGS_FOR_PATTERNS = 3;
 
 export interface RecurringCard {
   card: string;
@@ -26,6 +26,7 @@ export interface SignResonance {
 }
 
 export interface TimingCluster {
+  id: string;
   window: string;
   detail: string;
   count: number;
@@ -172,7 +173,7 @@ export function computeTimingClusters(readings: UniversalReadingRecord[]): Timin
         const key = `${m.label} ${m.start}`;
         const existing = clusters.get(key);
         if (existing) existing.count += 1;
-        else clusters.set(key, { window: m.window, detail: m.label, count: 1 });
+        else clusters.set(key, { id: key, window: m.window, detail: m.label, count: 1 });
       }
     }
   }
@@ -210,6 +211,7 @@ export interface PatternsResult {
   timingClusters: TimingCluster[];
   reportMotifs: ReportMotif[];
   reflectionPrompts: Record<string, string>;
+  optedOut: boolean;
 }
 
 export function computePatterns(
@@ -231,6 +233,7 @@ export function computePatterns(
       timingClusters: [],
       reportMotifs: [],
       reflectionPrompts: {},
+      optedOut: true,
     };
   }
 
@@ -244,5 +247,6 @@ export function computePatterns(
     eligible,
     totalReadings: readings.length,
     reflectionPrompts: REFLECTION_PROMPTS,
+    optedOut: false,
   };
 }

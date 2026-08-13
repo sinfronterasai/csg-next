@@ -68,16 +68,7 @@ export default function SettingsTab({ user: initialUser }: { user: User }) {
           patterns_opt_in: patternsOptIn,
         }),
       });
-      if (res.ok) {
-        setSaved(true);
-        // Reseed from the profile endpoint so re-opening Settings shows persisted values.
-        const d = await (await fetch('/api/profile')).json().catch(() => null);
-        if (d?.user) {
-          if (d.user.display_name !== undefined && d.user.display_name !== null) setDisplayName(d.user.display_name);
-          if (d.user.horoscope_sign !== undefined && d.user.horoscope_sign !== null) setHoroscopeSign(d.user.horoscope_sign);
-          if (typeof d.user.patterns_opt_in === 'boolean') setPatternsOptIn(d.user.patterns_opt_in);
-        }
-      }
+      if (res.ok) setSaved(true);
     } catch {}
     setSaving(false);
     setTimeout(() => setSaved(false), 2000);

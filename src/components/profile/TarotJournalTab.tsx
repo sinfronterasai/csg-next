@@ -12,24 +12,23 @@ interface TarotItem {
 export default function TarotJournalTab() {
   const [items, setItems] = useState<TarotItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<'load' | 'auth' | null>(null);
 
   useEffect(() => {
     (async () => {
-      setError(false);
+      setError(null);
       try {
         const res = await fetch('/api/tarot/history');
         if (res.status === 401) {
-          // session expired — surface a sign-in state rather than "no readings"
-          setError(true);
+          setError('auth');
         } else if (res.ok) {
           const data = await res.json();
           setItems(data.items || []);
         } else {
-          setError(true);
+          setError('load');
         }
       } catch {
-        setError(true);
+        setError('load');
       }
       setLoading(false);
     })();
@@ -42,7 +41,11 @@ export default function TarotJournalTab() {
       <i className="fa-solid fa-triangle-exclamation text-6xl text-gold mb-6"></i>
       <h3 className="font-serif text-2xl font-bold text-gold mb-3">Couldn’t Load Journal</h3>
       <p className="text-cosmic-200 mb-6">Something went wrong fetching your readings.</p>
-      <Link href="/login" className="inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-8 py-3 rounded-full uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition">Sign In</Link>
+      {error === 'auth' ? (
+        <Link href="/login" className="inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-8 py-3 rounded-full uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition">Sign In</Link>
+      ) : (
+        <button onClick={() => { setError(null); setLoading(true); fetch('/api/tarot/history').then((r) => { if (r.ok) r.json().then((d) => setItems(d.items || [])); setLoading(false); }).catch(() => setLoading(false)); }} className="inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-8 py-3 rounded-full uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition">Retry</button>
+      )}
     </div>
   );
 

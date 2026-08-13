@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Report {
   id: number;
@@ -13,26 +14,30 @@ interface Report {
 export default function ReportsTab() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<'load' | 'auth' | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      setError(false);
-      try {
-        const res = await fetch('/api/profile/reports');
-        if (res.ok) {
-          const data = await res.json();
-          setReports(data.reports || []);
-        } else {
-          setError(true);
-        }
-      } catch {
-        setError(true);
+  async function loadReports() {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/reports');
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data.reports || []);
+      } else if (res.status === 401) {
+        setError('auth');
+      } else {
+        setError('load');
       }
+    } catch {
+      setError('load');
+    } finally {
       setLoading(false);
-    })();
-  }, []);
+    }
+  }
+
+  useEffect(() => { loadReports(); }, []);
 
   if (loading) return <div className="text-center text-cosmic-300 py-12">Loading…</div>;
 
@@ -40,7 +45,12 @@ export default function ReportsTab() {
     <div className="glass-panel glow-border rounded-2xl p-12 text-center">
       <i className="fa-solid fa-triangle-exclamation text-6xl text-gold mb-6"></i>
       <h3 className="font-serif text-2xl font-bold text-gold mb-3">Couldn’t Load Reports</h3>
-      <p className="text-cosmic-200">Something went wrong fetching your reports.</p>
+      <p className="text-cosmic-200 mb-6">Something went wrong fetching your reports.</p>
+      {error === 'auth' ? (
+        <Link href="/login" className="inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-8 py-3 rounded-full uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition">Sign In</Link>
+      ) : (
+        <button onClick={loadReports} className="inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-8 py-3 rounded-full uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition">Retry</button>
+      )}
     </div>
   );
 

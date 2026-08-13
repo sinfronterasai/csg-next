@@ -3,6 +3,11 @@ import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { query } from '@/lib/db';
 
+const SIGNS = new Set([
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+]);
+
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -24,13 +29,19 @@ export async function PATCH(request: Request) {
     let idx = 1;
 
     if (body.display_name !== undefined) {
+      if (typeof body.display_name !== 'string' && body.display_name !== null) {
+        return NextResponse.json({ error: 'display_name must be a string or null' }, { status: 400 });
+      }
       updates.push(`display_name = $${idx++}`);
-      params.push(typeof body.display_name === 'string' ? body.display_name : null);
+      params.push(body.display_name);
     }
     // Persist horoscope_sign (column added in migration.sql).
     if (body.horoscope_sign !== undefined) {
+      if (body.horoscope_sign !== null && (typeof body.horoscope_sign !== 'string' || !SIGNS.has(body.horoscope_sign))) {
+        return NextResponse.json({ error: 'horoscope_sign must be a valid sign or null' }, { status: 400 });
+      }
       updates.push(`horoscope_sign = $${idx++}`);
-      params.push(typeof body.horoscope_sign === 'string' ? body.horoscope_sign : null);
+      params.push(body.horoscope_sign);
     }
     // Require an explicit boolean; reject anything else to avoid a DB 500.
     if (body.patterns_opt_in !== undefined) {

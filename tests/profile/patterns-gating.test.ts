@@ -36,3 +36,24 @@ describe('patterns opt-out + false-insight guards', () => {
     expect(rest?.count).toBe(1);
   });
 });
+
+describe('patterns timing-cluster keys + optedOut flag', () => {
+  it('returns a stable id per window so React keys do not collide', () => {
+    // Two readings in different Mercury Retrograde windows must yield two clusters with distinct ids.
+    const a = { id: 1, userId: 1, type: 'tarot' as const, title: null, question: 'q', category: null,
+      scope: null, periodStart: null, periodEnd: null, pricePaid: null, partnerLabel: null,
+      result: {}, reflection: null, createdAt: '2026-01-28T10:00:00Z' };
+    const b = { id: 2, userId: 1, type: 'tarot' as const, title: null, question: 'q', category: null,
+      scope: null, periodStart: null, periodEnd: null, pricePaid: null, partnerLabel: null,
+      result: {}, reflection: null, createdAt: '2026-05-20T10:00:00Z' };
+    const p = computePatterns([a, b, ...recs(3)], { patternsOptIn: true });
+    const ids = p.timingClusters.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('exposes optedOut:true (client-distinguishable) without exposing reading count', () => {
+    const p = computePatterns(recs(5), { patternsOptIn: false });
+    expect(p.optedOut).toBe(true);
+    expect(p.totalReadings).toBe(0);
+  });
+});

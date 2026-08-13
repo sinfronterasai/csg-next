@@ -20,9 +20,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
     const rawId = body.id;
-    const id = Number.isInteger(rawId) && (rawId as number) > 0 ? (rawId as number) : NaN;
+    const id = typeof rawId === 'number' && Number.isSafeInteger(rawId) && rawId > 0 ? rawId : NaN;
     if (!Number.isFinite(id)) {
-      return NextResponse.json({ error: 'id must be a positive integer' }, { status: 400 });
+      return NextResponse.json({ error: 'id must be a positive safe integer' }, { status: 400 });
     }
     const rawRef = body.reflection;
     if (typeof rawRef !== 'string') {

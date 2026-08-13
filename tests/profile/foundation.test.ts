@@ -5,7 +5,7 @@ describe('Cosmic Profile Hub foundation', () => {
   it('migration.sql is idempotent (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS)', () => {
     const sql = readFileSync(join(__dirname, '../../src/lib/profile/migration.sql'), 'utf8');
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS');
-    expect(sql).toContain('CREATE INDEX IF NOT EXISTS');
+    expect(sql).toContain('CREATE INDEX CONCURRENTLY IF NOT EXISTS');
   });
 
   it('profile store exposes the unified reading API', () => {
