@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SiteHeader() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
 
@@ -16,6 +18,13 @@ export default function SiteHeader() {
       }
     })();
   }, []);
+
+  function logout() {
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+      router.push('/');
+      router.refresh();
+    });
+  }
 
   const navLinks = (
     <>
@@ -47,7 +56,10 @@ export default function SiteHeader() {
           {authed === null ? (
             <span className="text-xs uppercase tracking-widest text-gray-400">…</span>
           ) : authed ? (
-            <a href="/account" className="text-sm uppercase tracking-widest text-gold hover:text-white transition-colors duration-300">Account</a>
+            <>
+              <a href="/profile" className="text-sm uppercase tracking-widest text-gray-300 hover:text-gold transition-colors duration-300">My Profile</a>
+              <button onClick={logout} className="text-sm uppercase tracking-widest border border-gold rounded-full px-4 py-1.5 text-gold hover:text-white transition-colors duration-300">Sign Out</button>
+            </>
           ) : (
             <>
               <a href="/login" className="text-sm uppercase tracking-widest text-gray-300 hover:text-gold transition-colors duration-300">Login</a>
@@ -68,7 +80,10 @@ export default function SiteHeader() {
         <div className="md:hidden mt-3 mx-2 glass-panel rounded-3xl p-6 flex flex-col space-y-4 text-center tracking-widest transition-all duration-300">
           {navLinks}
           {authed ? (
-            <a href="/account" className="bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white py-3 rounded-full text-xs uppercase font-semibold">Account</a>
+            <>
+              <a href="/profile" className="bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white py-3 rounded-full text-xs uppercase font-semibold">My Profile</a>
+              <button onClick={logout} className="border border-gold text-gold hover:text-white py-3 rounded-full text-xs uppercase font-semibold transition-colors duration-300">Sign Out</button>
+            </>
           ) : (
             <>
               <a href="/login" className="text-gray-300 hover:text-gold py-2 border-b border-white/5">Login</a>

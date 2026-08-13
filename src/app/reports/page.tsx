@@ -12,7 +12,7 @@ const PRODUCTS = [
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
-  const [result, setResult] = useState<{ type: string; text: string } | null>(null);
+  const [result, setResult] = useState<{ type: string; text: string; readingId?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
 
@@ -35,7 +35,7 @@ export default function Reports() {
         }
         return;
       }
-      setResult({ type: id, text: data.text });
+      setResult({ type: id, text: data.text, readingId: data.readingId });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
     } finally {
@@ -117,6 +117,13 @@ export default function Reports() {
           <div className="mt-10 max-w-3xl mx-auto glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
             <h3 className="text-2xl font-serif text-gold mb-4 capitalize">{result.type} Report</h3>
             <div className="prose prose-invert max-w-none text-gray-200 leading-relaxed whitespace-pre-wrap">{result.text}</div>
+            {result.readingId && (
+              <div className="mt-6 pt-6 border-t border-gold/10 text-center">
+                <Link href="/profile?tab=reports" className="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest rounded-full uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] transform hover:-translate-y-0.5">
+                  View in Library
+                </Link>
+              </div>
+            )}
           </div>
         )}
 

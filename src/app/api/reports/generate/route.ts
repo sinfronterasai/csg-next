@@ -3,6 +3,19 @@ import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { generateText, GROQ_MODEL } from '@/lib/groq';
+import { saveUniversalReading } from '@/lib/profile/store';
+
+const REPORT_NAMES: Record<string, string> = {
+  transit: 'Yearly Transit Forecast',
+  synastry: 'Synastry Love Report',
+  vocation: 'Vocation and Wealth Map',
+};
+
+const REPORT_PRICES: Record<string, number> = {
+  transit: 49,
+  synastry: 65,
+  vocation: 55,
+};
 
 async function getSavedChart(userId: string) {
   const { rows } = await query(
@@ -71,7 +84,33 @@ export async function POST(request: Request) {
     }
 
     const text = await generateText(prompt, { systemPrompt: SYSTEM, model: GROQ_MODEL, max_tokens: 2000 });
-    return NextResponse.json({ success: true, type, text });
+
+    // Persist the report to the unified readings journal
+    let readingId: number | undefined;
+    try {
+      const title = REPORT_NAMES[type] || `${type} report`;
+      const pricePaid = REPORT_PRICES[type] || 0;
+      const row = await saveUniversalReading({
+        userId: Number(decoded.userId),
+        type: 'report',
+        title,
+        question: `${title} report`,
+        pricePaid,
+        partnerLabel: type === 'synastry' && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
+        result: {
+          title,
+          text,
+          generatedFor: partner ? 'partner' : 'self',
+          pricePaid,
+        },
+      });
+      readingId = row.id;
+    } catch (err) {
+      console.error('[reports/generate] failed to persist report:', err);
+      // Still return success — generation worked, persistence is best-effort
+    }
+
+    return NextResponse.json({ success: true, type, text, readingId });
   } catch (err: any) {
     const msg = err?.message || 'Report generation failed';
     return NextResponse.json({ error: msg }, { status: 500 });
