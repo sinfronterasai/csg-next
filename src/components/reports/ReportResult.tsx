@@ -3,27 +3,47 @@
 // `sections` rendered as expandable details. No markdown dump. Matches the
 // aistro summary-first pattern in the report product design (PART 2).
 
+import { useState } from 'react';
 import type { ReportType, ReportRow, ReportSection } from '@/lib/reportEngine';
-
-const TYPE_LABEL: Record<ReportType, string> = {
-  natal: 'Natal Birth Chart Report',
-  transit: 'Yearly Transit Forecast',
-  synastry: 'Synastry Love Report',
-  vocation: 'Vocation and Wealth Map',
-};
+import { exportReportPdf } from '@/lib/reportPdf';
 
 export default function ReportResult({
   type,
+  title,
   overview,
   sections,
+  shareUrl,
 }: {
   type: ReportType;
+  title?: string;
   overview: ReportRow[];
   sections: ReportSection[];
+  shareUrl?: string;
 }) {
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
+
+  const handleShare = async () => {
+    const url = shareUrl || (typeof window !== 'undefined' ? window.location.origin + '/reports' : 'https://cosmicspiritguide.com/reports');
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: title || 'Cosmic Spirit Guide Report', url });
+        setShareState('shared');
+      } catch {
+        /* user cancelled */
+      }
+      return;
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2000);
+    }
+  };
+
+  const heading = title || (type ? ({ natal: 'Natal Birth Chart Report', transit: 'Yearly Transit Forecast', synastry: 'Synastry Love Report', vocation: 'Vocation and Wealth Map' } as Record<ReportType, string>)[type] : 'Report');
   return (
     <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
-      <h3 className="text-2xl font-serif text-gold mb-1 capitalize">{TYPE_LABEL[type]}</h3>
+      <h3 className="text-2xl font-serif text-gold mb-1 capitalize">{heading}</h3>
       <p className="text-xs uppercase tracking-[0.3em] text-gold/60 mb-6">Your Celestial Dossier</p>
 
       {/* Layer 1: overview table — always visible */}
@@ -67,6 +87,24 @@ export default function ReportResult({
             </div>
           </details>
         ))}
+      </div>
+
+      {/* Action row: PDF + Share (design PART 3 #4) */}
+      <div className="mt-6 pt-6 border-t border-gold/10 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => exportReportPdf({ type, title: heading, overview, sections })}
+          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)]"
+        >
+          Download PDF
+        </button>
+        <button
+          type="button"
+          onClick={handleShare}
+          className="px-5 py-2.5 rounded-full border border-gold/40 text-gold font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:bg-gold/10"
+        >
+          {shareState === 'copied' ? 'Link Copied' : shareState === 'shared' ? 'Shared' : 'Share'}
+        </button>
       </div>
     </div>
   );
