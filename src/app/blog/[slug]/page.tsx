@@ -5,7 +5,7 @@ import { fetchPostBySlug, fetchAllPostSlugs } from "@/lib/blog/queries";
 import { transformPost } from "@/lib/blog/transform";
 import PortableText from "@/components/blog/PortableText";
 import { SITE_BASE_URL } from "@/lib/seo";
-import { buildBreadcrumbList } from "@/lib/blog/breadcrumb";
+import { buildBreadcrumbList, escapeJsonLd } from "@/lib/blog/breadcrumb";
 
 export async function generateStaticParams() {
   // Brand-new blog: only the latest article is published for now.
@@ -111,14 +111,16 @@ export default async function BlogPostPage({
   // structured data matches what the pipeline produced instead of rebuilding it.
   const jsonLdBlocks: string[] = [jsonLd];
   if (post.seo.faqSchema) {
-    jsonLdBlocks.push(post.seo.faqSchema);
+    // CMS-provided JSON; escape before injecting via dangerouslySetInnerHTML
+    // so a title/answer containing "</script>" cannot break out of the block.
+    jsonLdBlocks.push(escapeJsonLd(post.seo.faqSchema));
   }
   const breadcrumbJson = buildBreadcrumbList([
     { name: "Home", path: "/" },
     { name: "Blog", path: "/blog" },
     { name: post.title, path: `/blog/${post.slug}` },
   ]);
-  jsonLdBlocks.push(breadcrumbJson);
+  jsonLdBlocks.push(escapeJsonLd(breadcrumbJson));
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">

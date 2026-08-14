@@ -50,16 +50,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     const body = await request.json();
-    const { name, date, time, location, latitude, longitude, timezone } = body;
-    if (!date || !time || !location) {
-      return NextResponse.json({ error: 'Missing required fields', details: 'date, time, location are required' }, { status: 400 });
+    const { name, date, time, location, latitude, longitude, timezone, unknownTime } = body;
+    if (!date || !location) {
+      return NextResponse.json({ error: 'Missing required fields', details: 'date and location are required' }, { status: 400 });
     }
-    // Geocode the location into lat/long when the caller didn't supply them
-    // (the birth-chart page computes client-side and relies on the engine's geocoder).
-    const geo = latitude !== undefined && longitude !== undefined
-      ? { lat: latitude, lon: longitude }
-      : geocode(location);
-    const chart = await computeChart({ name: name || '', date, time: time || '12:00', location, unknownTime: false });
+    if (!unknownTime && !time) {
+      return NextResponse.json({ error: 'Missing required fields', details: 'time is required unless unknownTime is set' }, { status: 400 });
+    }
+    // Geocode the location into lat/long when the caller didn't supply them.
+    // Refuse to persist a silently-wrong fallback: if geocode returns the Paris
+    // default for an unknown location, require the caller to pass real coords.
+    let geo: { lat: number; lon: number } | null = null;
+    if (latitude !== undefined && longitude !== undefined) {
+      geo = { lat: latitude, lon: longitude };
+    } else {
+      const resolved = geocode(location);
+      const isFallback = resolved.lat === 48.8566 && resolved.lon === 2.3522;
+      if (!isFallback) geo = resolved;
+    }
+    if (!geo) {
+      return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for the given location. Try "City, Country" or "lat,lon".' }, { status: 400 });
+    }
+    const chart = await computeChart({ name: name || '', date, time: time || '12:00', location, unknownTime: Boolean(unknownTime) });
     const { rows } = await query(
       `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
@@ -73,7 +85,20 @@ export async function POST(request: Request) {
         name || 'Primary Chart',
       ],
     );
-    return NextResponse.json({ success: true, chartId: rows[0].id, chart });
+    // Build a complete ChartData-shaped response so consumers (birth-chart
+    // result view, /my-chart, ChartsTab) get the same shape computeChart yields.
+    const chartData = {
+      name: name || '',
+      birth: { date, time: time || '12:00', location, latitude: geo.lat, longitude: geo.lon, unknownTime: Boolean(unknownTime) },
+      planets: chart.planets,
+      angles: chart.angles,
+      houses: chart.houses,
+      ascendant: chart.ascendant,
+      midheaven: chart.midheaven,
+      sun: chart.sun,
+      moon: chart.moon,
+    };
+    return NextResponse.json({ success: true, chartId: rows[0].id, chart: chartData });
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to save birth chart', details: err?.message }, { status: 500 });
   }

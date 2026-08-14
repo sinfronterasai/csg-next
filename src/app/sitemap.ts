@@ -23,12 +23,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let blogPages: MetadataRoute.Sitemap = [];
   try {
     const slugs = await fetchAllPostSlugs();
-    blogPages = slugs.map((slug) => ({
-      url: `${SITE_BASE_URL}/blog/${slug}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    }));
+    blogPages = (slugs || [])
+      .filter((slug): slug is string => typeof slug === "string" && slug.length > 0)
+      .map((slug) => ({
+        url: `${SITE_BASE_URL}/blog/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      }));
   } catch (err) {
     console.error("[sitemap] blog posts failed:", err);
   }

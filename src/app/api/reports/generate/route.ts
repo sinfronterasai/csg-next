@@ -114,7 +114,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Report generated but could not be saved to your journal. Please try again.' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, type, text, readingId });
+    return NextResponse.json({
+      success: true,
+      type,
+      title: report.title,
+      text,
+      overview: report.overview,
+      sections: report.sections,
+      readingId,
+    });
   } catch (err: any) {
     const msg = err?.message || 'Report generation failed';
     return NextResponse.json({ error: msg }, { status: 500 });

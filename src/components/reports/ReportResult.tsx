@@ -4,8 +4,10 @@
 // aistro summary-first pattern in the report product design (PART 2).
 
 import { useState } from 'react';
+import Link from 'next/link';
 import type { ReportType, ReportRow, ReportSection } from '@/lib/reportEngine';
 import { exportReportPdf } from '@/lib/reportPdf';
+import { renderMarkdown } from '@/lib/markdown';
 
 export default function ReportResult({
   type,
@@ -13,12 +15,14 @@ export default function ReportResult({
   overview,
   sections,
   shareUrl,
+  readingId,
 }: {
   type: ReportType;
   title?: string;
   overview: ReportRow[];
   sections: ReportSection[];
   shareUrl?: string;
+  readingId?: number;
 }) {
   const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
 
@@ -34,9 +38,13 @@ export default function ReportResult({
       return;
     }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
-      setShareState('copied');
-      setTimeout(() => setShareState('idle'), 2000);
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareState('copied');
+        setTimeout(() => setShareState('idle'), 2000);
+      } catch {
+        setShareState('idle');
+      }
     }
   };
 
@@ -83,7 +91,7 @@ export default function ReportResult({
               <span className="text-gold/50 text-sm group-open:rotate-45 transition-transform">+</span>
             </summary>
             <div className="px-5 pb-5 text-gray-200 leading-relaxed prose-invert max-w-none">
-              {s.body}
+              {renderMarkdown(s.body)}
             </div>
           </details>
         ))}
@@ -105,6 +113,14 @@ export default function ReportResult({
         >
           {shareState === 'copied' ? 'Link Copied' : shareState === 'shared' ? 'Shared' : 'Share'}
         </button>
+        {readingId ? (
+          <Link
+            href={`/profile?tab=reports`}
+            className="px-5 py-2.5 rounded-full border border-gold/40 text-gold font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:bg-gold/10"
+          >
+            View in Library
+          </Link>
+        ) : null}
       </div>
     </div>
   );
