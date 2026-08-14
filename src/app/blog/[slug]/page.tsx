@@ -5,6 +5,7 @@ import { fetchPostBySlug, fetchAllPostSlugs } from "@/lib/blog/queries";
 import { transformPost } from "@/lib/blog/transform";
 import PortableText from "@/components/blog/PortableText";
 import { SITE_BASE_URL } from "@/lib/seo";
+import { buildBreadcrumbList } from "@/lib/blog/breadcrumb";
 
 export async function generateStaticParams() {
   // Brand-new blog: only the latest article is published for now.
@@ -106,12 +107,28 @@ export default async function BlogPostPage({
         mainEntityOfPage: `${SITE_BASE_URL}/blog/${post.slug}`,
       });
 
+  // Merge Master-generated FAQPage schema (faqSchema) if present, so the
+  // structured data matches what the pipeline produced instead of rebuilding it.
+  const jsonLdBlocks: string[] = [jsonLd];
+  if (post.seo.faqSchema) {
+    jsonLdBlocks.push(post.seo.faqSchema);
+  }
+  const breadcrumbJson = buildBreadcrumbList([
+    { name: "Home", path: "/" },
+    { name: "Blog", path: "/blog" },
+    { name: post.title, path: `/blog/${post.slug}` },
+  ]);
+  jsonLdBlocks.push(breadcrumbJson);
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd }}
-      />
+      {jsonLdBlocks.map((block, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: block }}
+        />
+      ))}
 
       <article>
         <header className="mb-8">

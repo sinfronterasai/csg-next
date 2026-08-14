@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { deck } from "@/lib/tarot/deck";
 import { slugify, SITE_BASE_URL } from "@/lib/seo";
+import { fetchAllPostSlugs } from "@/lib/blog/queries";
 
 const staticRoutes = ["", "/tarot", "/birth-chart", "/constellations", "/my-chart", "/reports", "/blog"];
 
@@ -21,18 +22,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let blogPages: MetadataRoute.Sitemap = [];
   try {
-    const { fetchLatestPost } = await import("@/lib/blog/queries");
-    const latest = await fetchLatestPost();
-    if (latest?.slug?.current) {
-      blogPages = [{
-        url: `${SITE_BASE_URL}/blog/${latest.slug.current}`,
-        lastModified: new Date(),
-        changeFrequency: "weekly",
-        priority: 0.8,
-      }];
-    }
+    const slugs = await fetchAllPostSlugs();
+    blogPages = slugs.map((slug) => ({
+      url: `${SITE_BASE_URL}/blog/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
   } catch (err) {
-    console.error("[sitemap] latest blog post failed:", err);
+    console.error("[sitemap] blog posts failed:", err);
   }
 
   return [...staticPages, ...cardPages, ...blogPages];
