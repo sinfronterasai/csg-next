@@ -53,7 +53,7 @@ export const POST_BY_SLUG_QUERY = `*[_type == "blogPost" && slug.current == $slu
   geoCiteSources
 }`;
 
-export const ALL_POST_SLUGS_QUERY = `*[_type == "blogPost" && status == "published"].slug.current`;
+export const ALL_POST_SLUGS_QUERY = `*[_type == "blogPost" && status == "published" && defined(slug.current)].slug.current`;
 
 export async function fetchPublishedPosts() {
   return sanityClient.fetch(POSTS_LIST_QUERY);

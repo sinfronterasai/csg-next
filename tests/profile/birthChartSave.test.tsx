@@ -6,12 +6,23 @@ import BirthChartPage from "@/app/birth-chart/page";
 // (save) hits /api/birth-chart with the birth payload.
 const computeChart = {
   name: "Alex",
-  sun: { sign: "gemini", signLabel: "Gemini" },
-  moon: { sign: "pisces", signLabel: "Pisces" },
-  ascendant: { signLabel: "Leo", longitude: 120 },
-  midheaven: { signLabel: "Taurus", longitude: 30 },
-  planets: [],
-  houses: [],
+  birth: { date: "1990-06-15", time: "12:00", location: "Paris, France", latitude: 48.8566, longitude: 2.3522, unknownTime: false },
+  planets: [
+    { key: "sun", label: "Sun", glyph: "☉", longitude: 84.3, degreeInSign: 24.3, sign: "gemini", signLabel: "Gemini", signGlyph: "♊", house: 10, retrograde: false, dignity: null, description: "" },
+    { key: "moon", label: "Moon", glyph: "☽", longitude: 344.3, degreeInSign: 14.3, sign: "pisces", signLabel: "Pisces", signGlyph: "♓", house: 7, retrograde: false, dignity: null, description: "" },
+  ],
+  angles: [
+    { key: "asc", label: "Ascendant", longitude: 120, sign: "leo", signLabel: "Leo", signGlyph: "♌", degreeInSign: 0 },
+    { key: "mc", label: "Midheaven", longitude: 30, sign: "taurus", signLabel: "Taurus", signGlyph: "♉", degreeInSign: 0 },
+  ],
+  houses: [
+    { num: 1, label: "1st House", area: "Self", cuspLongitude: 120, sign: "leo", signLabel: "Leo", signGlyph: "♌", description: "" },
+    { num: 2, label: "2nd House", area: "Resources", cuspLongitude: 150, sign: "virgo", signLabel: "Virgo", signGlyph: "♍", description: "" },
+  ],
+  ascendant: { key: "asc", label: "Ascendant", longitude: 120, sign: "leo", signLabel: "Leo", signGlyph: "♌", degreeInSign: 0 },
+  midheaven: { key: "mc", label: "Midheaven", longitude: 30, sign: "taurus", signLabel: "Taurus", signGlyph: "♉", degreeInSign: 0 },
+  sun: { key: "sun", label: "Sun", glyph: "☉", longitude: 84.3, degreeInSign: 24.3, sign: "gemini", signLabel: "Gemini", signGlyph: "♊", house: 10, retrograde: false, dignity: null, description: "" },
+  moon: { key: "moon", label: "Moon", glyph: "☽", longitude: 344.3, degreeInSign: 14.3, sign: "pisces", signLabel: "Pisces", signGlyph: "♓", house: 7, retrograde: false, dignity: null, description: "" },
 };
 
 describe("Birth chart create flow persists to profile", () => {

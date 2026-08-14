@@ -15,9 +15,9 @@ const sections: ReportSection[] = [
 describe("ReportResult structured rendering", () => {
   it("renders the Layer-1 overview table with labels and values", () => {
     render(<ReportResult type="natal" overview={overview} sections={sections} />);
-    expect(screen.getByText("Sun")).toBeTruthy();
+    expect(screen.getAllByText("Sun").length).toBeGreaterThan(0);
     expect(screen.getByText(/Gemini @ 84°3'/)).toBeTruthy();
-    expect(screen.getByText("Moon")).toBeTruthy();
+    expect(screen.getAllByText("Moon").length).toBeGreaterThan(0);
   });
 
   it("renders each Layer-2 section as an expandable heading", () => {
@@ -26,9 +26,13 @@ describe("ReportResult structured rendering", () => {
     expect(screen.getByText("How to Read This Chart")).toBeTruthy();
   });
 
-  it("does NOT dump raw markdown (no '# ' heading syntax) into the DOM", () => {
+  it("does NOT dump raw markdown (bold markers rendered, not literal '**')", () => {
     const { container } = render(<ReportResult type="natal" overview={overview} sections={sections} />);
-    expect(container.textContent).not.toContain("# Natal Birth Chart Report");
+    // The section body is "**Sun** in Gemini." — the "**" must be rendered as
+    // <strong>, never present as literal asterisks in the DOM text.
+    expect(container.textContent).not.toContain("**");
+    expect(container.textContent).toContain("Sun");
+    expect(container.querySelector("strong")).toBeTruthy();
   });
 
   it("shows PDF and Share action buttons", () => {

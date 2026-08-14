@@ -64,6 +64,7 @@ export interface Aspect {
   natalKey: string;        // natal planet key or 'asc' | 'mc'
   natalLabel: string;
   aspectType: AspectType;
+  label: string;           // human label, e.g. "Trine" (from ASPECT_LABEL)
   orb: number;             // degrees, positive
   transitLongitude: number;
   natalLongitude: number;
@@ -124,6 +125,7 @@ export function findAspects(
             natalKey: n.key,
             natalLabel: n.label,
             aspectType: def.type,
+            label: ASPECT_LABEL[def.type],
             orb: +error.toFixed(2),
             transitLongitude: t.longitude,
             natalLongitude: n.longitude,

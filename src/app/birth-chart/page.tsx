@@ -15,6 +15,7 @@ export default function BirthChart() {
     e.preventDefault();
     setLoading(true);
     setResult(null);
+    setSavedToProfile(null);
     // small delay to show the "aligning" state; computation itself is synchronous
     setTimeout(async () => {
       try {
@@ -43,6 +44,7 @@ export default function BirthChart() {
               date: formData.date,
               time: formData.time,
               location: formData.location,
+              unknownTime: formData.unknownTime,
               latitude: undefined,
               longitude: undefined,
             }),
@@ -61,6 +63,7 @@ export default function BirthChart() {
 
   const reset = () => {
     setResult(null);
+    setSavedToProfile(null);
     setFormData({ name: '', date: '', time: '', location: '', unknownTime: false });
   };
 
@@ -117,7 +120,7 @@ export default function BirthChart() {
             </div>
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center space-x-4 text-xs text-gray-400">
               <i className="fa-solid fa-shield-halved text-gold"></i>
-              <span>Your chart is saved to your profile so every report can reuse it.</span>
+              <span>If you are signed in, your chart is saved to your profile so every report can reuse it.</span>
             </div>
           </div>
 

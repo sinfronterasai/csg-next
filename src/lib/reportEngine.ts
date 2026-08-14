@@ -161,7 +161,7 @@ export async function buildTransitReport(input: {
     name: 'n', date: input.natal.date, time: input.natal.time, location: input.natal.location, unknownTime: input.natal.unknownTime,
   });
   const natalPts = chart.planets.map(planetToLongitude)
-    .concat([
+    .concat(input.natal.unknownTime ? [] : [
       { key: 'asc', label: 'Ascendant', longitude: chart.ascendant.longitude, house: 1 },
       { key: 'mc', label: 'Midheaven', longitude: chart.midheaven.longitude, house: 10 },
     ]);
@@ -176,6 +176,7 @@ export async function buildTransitReport(input: {
   const monthData: { month: string; aspects: Aspect[]; topTopic: Topic; topScore: number }[] = [];
   for (let m = 0; m < 12; m++) {
     const d = new Date(start);
+    d.setUTCDate(1); // avoid overflow on 29-31 that skips shorter months
     d.setUTCMonth(d.getUTCMonth() + m);
     const jd = dateToJulianDay(d);
     const bodies = await computeTransitBodies(jd);
@@ -185,7 +186,8 @@ export async function buildTransitReport(input: {
     let topTopic: Topic = 'growth';
     let topScore = 0;
     for (const t of TOPICS) {
-      const sc = seededScore(`${seed}:${m}:${t}`, 40, 100);
+      const monthKey = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+      const sc = seededScore(`${seed}:${monthKey}:${t}`, 40, 100);
       if (sc > topScore) { topScore = sc; topTopic = t; }
     }
     monthData.push({ month: `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`, aspects, topTopic, topScore });
@@ -205,7 +207,7 @@ export async function buildTransitReport(input: {
     const aspectLines = md.aspects.length
       ? md.aspects
           .slice(0, 4)
-          .map((a) => `- **${a.transitLabel}** ${a.transitGlyph} **${a.aspectType}** ${a.natalLabel}${a.house ? ` (House ${a.house})` : ''} — orb ${a.orb}°`)
+          .map((a) => `- **${a.transitLabel}** ${a.transitGlyph} **${a.label}** ${a.natalLabel}${a.house ? ` (House ${a.house})` : ''} — orb ${a.orb}°`)
           .join('\n')
       : '- No major planetary aspects this month; a period to consolidate gains.';
     sections.push({
@@ -249,8 +251,14 @@ export async function buildSynastryReport(input: {
 
   // For each synastry planet pair, overlay partner planet onto self's chart:
   // aspect partner-body to self's natal points in the overlay set.
-  const partnerBodies: TransitBody[] = await computeTransitBodies(dateToJulianDay(new Date(`${input.partner.date}T12:00:00Z`)));
-  // partnerBodies are at partner's birth in tropical coords -> use as the "transit" set
+  // Build the overlay from the partner's actual computed chart (uses real
+  // birth time, includes node/asc/angles) instead of a fixed UTC noon.
+  const partnerBodies: TransitBody[] = [
+    ...partnerChart.planets.map(planetToLongitude),
+    { key: 'asc', label: 'Ascendant', longitude: partnerChart.ascendant.longitude, house: 1 },
+    { key: 'mc', label: 'Midheaven', longitude: partnerChart.midheaven.longitude, house: 10 },
+    { key: 'node', label: 'North Node', longitude: partnerChart.planets.find(p => p.key === 'northnode')?.longitude ?? 0, house: null },
+  ] as TransitBody[];
   const overlayPts = selfPts.filter((p) => SYNASTRY_PLANETS.includes(p.key as any));
   const aspects = findAspects(partnerBodies, overlayPts).sort((a, b) => a.orb - b.orb);
 
@@ -275,7 +283,7 @@ export async function buildSynastryReport(input: {
       heading: 'The Overlays',
       body: aspects.length
         ? aspects.map((a) =>
-            `- **${a.transitLabel}** ${a.transitGlyph} **${a.aspectType}** your **${a.natalLabel}** (orb ${a.orb}°): ` +
+            `- **${a.transitLabel}** ${a.transitGlyph} **${a.label}** your **${a.natalLabel}** (orb ${a.orb}°): ` +
             `${a.aspectType === 'trine' || a.aspectType === 'sextile' ? 'flowing, supportive energy' : a.aspectType === 'square' || a.aspectType === 'opposition' ? 'a friction zone to bridge with awareness' : 'a potent point of contact'}.`)
           .join('\n')
         : '- The core overlays show wide orbs this pair; the connection expresses subtly and grows with attention.',
@@ -312,6 +320,7 @@ export async function buildVocationReport(input: {
   const mc = chart.midheaven;
   const mcSign = getSign(mc.sign)!;
   const secondHouse = chart.houses.find((h) => h.num === 2);
+  const sixthHouse = chart.houses.find((h) => h.num === 6);
   const tenthHouse = chart.houses.find((h) => h.num === 10);
   const saturn = chart.planets.find((p) => p.key === 'saturn')!;
   const jupiter = chart.planets.find((p) => p.key === 'jupiter')!;
@@ -324,6 +333,7 @@ export async function buildVocationReport(input: {
     { label: 'Vocation Archetype', value: archetype, note: mcSign.element },
     { label: 'Money Style', value: wealthStyle, note: secondHouse?.signLabel ?? '' },
     { label: 'Public Role', value: `${tenthHouse ? tenthHouse.signLabel : mcSign.label} 10th-house energy`, note: '' },
+    { label: 'Work Style', value: `${sixthHouse ? sixthHouse.signLabel + '-flavored daily work' : 'service-driven'}`, note: sixthHouse?.signLabel ?? '' },
     { label: 'Structure (Saturn)', value: `${saturn.signGlyph} ${saturn.signLabel}`, note: saturn.retrograde ? 'Retrograde' : '' },
     { label: 'Expansion (Jupiter)', value: `${jupiter.signGlyph} ${jupiter.signLabel}`, note: '' },
     { label: 'Best Launch Window', value: `Month +${timing} (next 24)`, note: '' },
@@ -341,6 +351,12 @@ export async function buildVocationReport(input: {
       body:
         `Your 2nd house sits in **${secondHouse?.signLabel ?? 'mixed'}**, shaping how you value and build ` +
         `resources. ${secondHouse?.description ?? ''}`,
+    },
+    {
+      heading: 'Daily Work and Service',
+      body:
+        `Your 6th house sits in **${sixthHouse?.signLabel ?? 'mixed'}**, coloring how you show up in ` +
+        `daily work, health, and service. ${sixthHouse?.description ?? 'A routine built around meaningful tasks fuels you.'}`,
     },
     {
       heading: 'Leadership Style',

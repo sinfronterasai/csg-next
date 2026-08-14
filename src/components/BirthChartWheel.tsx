@@ -138,10 +138,17 @@ export default function BirthChartWheel({ chartData, interactive = false }: { ch
   });
 
   const renderHouses = () => chartData.houses.map((h) => {
-    const cusp = h.cuspLongitude;
-    const nextCusp = chartData.houses[(h.num % 12)].cuspLongitude;
-    const mid = (cusp + nextCusp) / 2;
-    const point = getPointOnCircle(innerRadius - 18, mid);
+    // Guard against partial house data (fewer than 12): only draw the
+    // connecting midpoint when the next house is actually present.
+    const next = chartData.houses.find((x) => x.num === (h.num % 12) + 1);
+    let point;
+    if (next) {
+      const cusp = h.cuspLongitude;
+      const mid = (cusp + next.cuspLongitude) / 2;
+      point = getPointOnCircle(innerRadius - 18, mid);
+    } else {
+      point = getPointOnCircle(innerRadius - 18, h.cuspLongitude);
+    }
     const isActive = active?.type === 'house' && active.key === `house-${h.num}`;
     return (
       <g key={h.num} onClick={() => interactive && selectHouse(h)} style={{ cursor: interactive ? 'pointer' : undefined }}>

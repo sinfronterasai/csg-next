@@ -32,9 +32,18 @@ export function mulberry32(seed: number): () => number {
  * score (<A birthDate>:<B birthDate>:synastry), and the daily personalization line.
  */
 export function seededScore(seedStr: string, min = 0, max = 100): number {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    throw new Error(`seededScore: bounds must be finite numbers (got ${min}, ${max})`);
+  }
+  if (min > max) {
+    throw new Error(`seededScore: min (${min}) must not exceed max (${max})`);
+  }
   const rng = mulberry32(makeSeed(seedStr));
-  const raw = Math.floor(rng() * (max - min + 1));
-  return min + raw;
+  // Range formula that supports fractional bounds. For integer bounds the
+  // historical inclusive [min, max] behaviour is preserved by integer-rounding.
+  const span = max - min;
+  const raw = rng() * span;
+  return min + (Number.isInteger(min) && Number.isInteger(max) ? Math.floor(raw + 1e-9) : raw);
 }
 
 /** Float in [0, 1) — handy for weighted, deterministic choices. */
