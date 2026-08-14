@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TabBar, { type TabId } from '@/components/profile/TabBar';
@@ -22,21 +22,27 @@ interface User {
   patterns_opt_in: boolean;
 }
 
+const VALID_TABS = ['overview','charts','reports','tarot','horoscope','patterns','settings'] as const;
+
+// Reads ?tab= and selects the matching tab. Kept separate and wrapped in
+// <Suspense> because useSearchParams() forces a client-render bailout that
+// Next requires to be inside a Suspense boundary at build/prerender time.
+function TabFromQuery({ onTab }: { onTab: (t: TabId) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && (VALID_TABS as readonly string[]).includes(tab)) {
+      onTab(tab as TabId);
+    }
+  }, [searchParams, onTab]);
+  return null;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-
-  // Open the tab named in ?tab= (e.g. /profile?tab=reports from a report's
-  // "View in Library" link) so the link lands on the right section.
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab && ['overview','charts','reports','tarot','horoscope','patterns','settings'].includes(tab)) {
-      setActiveTab(tab as TabId);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -76,6 +82,10 @@ export default function ProfilePage() {
         <h1 className="glow-text-gold font-serif text-center text-4xl font-bold text-gold mb-8">
           Your Cosmic Profile
         </h1>
+
+        <Suspense fallback={null}>
+          <TabFromQuery onTab={setActiveTab} />
+        </Suspense>
 
         <TabBar active={activeTab} onChange={setActiveTab} />
 
