@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { computeChart } from '@/lib/chartEngine';
+import { computeChart, geocode } from '@/lib/chartEngine';
 
 export async function GET() {
   try {
@@ -50,25 +50,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     const body = await request.json();
-    const { name, date, time, location, latitude, longitude, timezone } = body;
-    if (!date || !time || !location || latitude === undefined || longitude === undefined) {
-      return NextResponse.json({ error: 'Missing required fields', details: 'date, time, location, latitude, longitude are required' }, { status: 400 });
+    const { name, date, time, location, latitude, longitude, timezone, unknownTime } = body;
+    if (!date || !location) {
+      return NextResponse.json({ error: 'Missing required fields', details: 'date and location are required' }, { status: 400 });
     }
-    const chart = await computeChart({ name: name || '', date, time: time || '12:00', location, unknownTime: false });
+    if (!unknownTime && !time) {
+      return NextResponse.json({ error: 'Missing required fields', details: 'time is required unless unknownTime is set' }, { status: 400 });
+    }
+    // Geocode the location into lat/long when the caller didn't supply them.
+    // Refuse to persist a silently-wrong fallback: if geocode returns the Paris
+    // default for an unknown location, require the caller to pass real coords.
+    let geo: { lat: number; lon: number } | null = null;
+    if (latitude !== undefined && longitude !== undefined) {
+      geo = { lat: latitude, lon: longitude };
+    } else {
+      // geocode() returns null when it cannot resolve the location (it no longer
+      // falls back to a default city), so a genuine "Paris, France" is accepted
+      // and only truly unknown locations are rejected.
+      geo = geocode(location);
+    }
+    if (!geo) {
+      return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
+    }
+    const unknown = Boolean(unknownTime);
+    const chart = await computeChart({ name: name || '', date, time: unknown ? undefined : (time || '12:00'), location, unknownTime: unknown });
     const { rows } = await query(
-      `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
+      `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary, unknown_time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
        RETURNING id`,
       [
-        decoded.userId, date, time, timezone || 'UTC', location, latitude, longitude,
+        decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
         JSON.stringify({ planets: chart.planets }),
         JSON.stringify(chart.houses),
         JSON.stringify(chart.ascendant),
         JSON.stringify(chart.midheaven),
         name || 'Primary Chart',
+        unknown,
       ],
     );
-    return NextResponse.json({ success: true, chartId: rows[0].id, chart });
+    // Build a complete ChartData-shaped response so consumers (birth-chart
+    // result view, /my-chart, ChartsTab) get the same shape computeChart yields.
+    const chartData = {
+      name: name || '',
+      birth: { date, time: unknown ? '' : (time || ''), location, latitude: geo.lat, longitude: geo.lon, unknownTime: unknown },
+      planets: chart.planets,
+      angles: chart.angles,
+      houses: chart.houses,
+      ascendant: chart.ascendant,
+      midheaven: chart.midheaven,
+      sun: chart.sun,
+      moon: chart.moon,
+    };
+    return NextResponse.json({ success: true, chartId: rows[0].id, chart: chartData });
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to save birth chart', details: err?.message }, { status: 500 });
   }

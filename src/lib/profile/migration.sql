@@ -13,6 +13,9 @@ ALTER TABLE readings
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_user_type ON readings(user_id, type);
 
 ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS display_name character varying,
-  ADD COLUMN IF NOT EXISTS horoscope_sign character varying,
   ADD COLUMN IF NOT EXISTS patterns_opt_in boolean NOT NULL DEFAULT true;
+
+-- Unknown birth time flag, so saved charts survive re-load and later reports
+-- use the same whole-sign (timeless) chart instead of fabricating a time.
+ALTER TABLE natal_charts
+  ADD COLUMN IF NOT EXISTS unknown_time boolean NOT NULL DEFAULT false;

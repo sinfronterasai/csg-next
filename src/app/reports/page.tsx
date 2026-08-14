@@ -16,6 +16,7 @@ export default function Reports() {
   const [result, setResult] = useState<{
     type: string;
     text?: string;
+    title?: string;
     overview?: { glyph?: string; label: string; value: string; note?: string }[];
     sections?: { heading: string; body: string }[];
     readingId?: number;
@@ -44,6 +45,7 @@ export default function Reports() {
       }
       setResult({
         type: id,
+        title: (data as any).title,
         text: data.text,
         overview: (data as any).overview,
         sections: (data as any).sections,
@@ -129,7 +131,14 @@ export default function Reports() {
         {result && (
           result.overview && result.sections ? (
             <div className="mt-10 max-w-3xl mx-auto">
-              <ReportResult type={result.type as any} overview={result.overview} sections={result.sections} />
+              <ReportResult
+                type={result.type as any}
+                title={result.title}
+                overview={result.overview!}
+                sections={result.sections!}
+                readingId={result.readingId}
+                shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
+              />
             </div>
           ) : (
           <div className="mt-10 max-w-3xl mx-auto glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">

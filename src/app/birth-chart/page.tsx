@@ -9,11 +9,13 @@ export default function BirthChart() {
   const [formData, setFormData] = useState({ name: '', date: '', time: '', location: '', unknownTime: false });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ChartData | null>(null);
+  const [savedToProfile, setSavedToProfile] = useState<null | boolean>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
+    setSavedToProfile(null);
     // small delay to show the "aligning" state; computation itself is synchronous
     setTimeout(async () => {
       try {
@@ -31,6 +33,26 @@ export default function BirthChart() {
         if (!res.ok) throw new Error('chart request failed');
         const chart: ChartData = await res.json();
         setResult(chart);
+        // Persist to the user's profile (single source of truth for every report).
+        // Best-effort: if the user isn't signed in we surface a prompt instead of failing.
+        try {
+          const saveRes = await fetch('/api/birth-chart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: formData.name,
+              date: formData.date,
+              time: formData.time,
+              location: formData.location,
+              unknownTime: formData.unknownTime,
+              latitude: undefined,
+              longitude: undefined,
+            }),
+          });
+          setSavedToProfile(saveRes.ok);
+        } catch {
+          setSavedToProfile(false);
+        }
       } catch {
         setResult(null);
       } finally {
@@ -41,6 +63,7 @@ export default function BirthChart() {
 
   const reset = () => {
     setResult(null);
+    setSavedToProfile(null);
     setFormData({ name: '', date: '', time: '', location: '', unknownTime: false });
   };
 
@@ -97,7 +120,7 @@ export default function BirthChart() {
             </div>
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center space-x-4 text-xs text-gray-400">
               <i className="fa-solid fa-shield-halved text-gold"></i>
-              <span>Your data is securely processed locally and never stored.</span>
+              <span>If you are signed in, your chart is saved to your profile so every report can reuse it.</span>
             </div>
           </div>
 
@@ -170,6 +193,12 @@ export default function BirthChart() {
                     </div>
                   </div>
 
+                  {savedToProfile === true && (
+                    <p className="text-xs text-gold tracking-wider uppercase">✓ Saved to your profile</p>
+                  )}
+                  {savedToProfile === false && (
+                    <p className="text-xs text-gray-400 tracking-wider uppercase"><a href="/login" className="text-gold hover:text-white underline">Sign in</a> to save this chart</p>
+                  )}
                   <button onClick={reset} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Cast Another Chart</button>
                 </div>
               )}

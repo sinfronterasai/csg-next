@@ -138,12 +138,15 @@ const CITY_TABLE: Record<string, { lat: number; lon: number }> = {
   'cairo, egypt': { lat: 30.0444, lon: 31.2357 },
 };
 
-export function geocode(location: string): { lat: number; lon: number } {
+// Returns null for an unrecognized location instead of silently falling back
+// to a default city. Callers (the birth-chart API) must reject null so a real
+// "Paris, France" lookup is never confused with an unknown-location fallback.
+export function geocode(location: string): { lat: number; lon: number } | null {
   const key = location.trim().toLowerCase();
   if (CITY_TABLE[key]) return CITY_TABLE[key];
   const m = key.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
   if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
-  return CITY_TABLE['paris, france'];
+  return null;
 }
 
 export async function computeChart(input: {
@@ -154,7 +157,9 @@ export async function computeChart(input: {
   unknownTime?: boolean;
 }): Promise<ChartData> {
   const eph = await getEph();
-  const { lat, lon } = geocode(input.location);
+  const resolved = geocode(input.location);
+  if (!resolved) throw new Error(`geocode: could not resolve location "${input.location}"`);
+  const { lat, lon } = resolved;
   const [year, month, day] = input.date.split('-').map(Number);
   const unknownTime = Boolean(input.unknownTime);
   const hour = unknownTime ? 12 : parseInt((input.time || '12:00').split(':')[0], 10);

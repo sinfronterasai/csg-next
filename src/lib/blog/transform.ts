@@ -52,6 +52,7 @@ export interface BlogPost {
     twitterImage: string | null;
     twitterSite: string | null;
     schemaJson: string | null;
+    faqSchema: string | null;
   };
   geo: {
     about: string | null;
@@ -111,6 +112,7 @@ export function transformPost(raw: any, baseUrl: string): BlogPost {
     twitterImage: raw?.twitterImage ?? raw?.ogImage ?? featuredImage.url,
     twitterSite: raw?.twitterSite ?? null,
     schemaJson: raw?.schemaJson ?? null,
+    faqSchema: raw?.faqSchema ?? null,
   };
 
   const geo = {

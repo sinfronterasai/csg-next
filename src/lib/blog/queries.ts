@@ -9,7 +9,7 @@ export const POSTS_LIST_QUERY = `*[_type == "blogPost" && status == "published"]
   author,
   publishedAt,
   readingTime,
-  "category": category->title,
+  "category": category->name,
   featuredImage
 }`;
 
@@ -25,7 +25,7 @@ export const POST_BY_SLUG_QUERY = `*[_type == "blogPost" && slug.current == $slu
   readingTime,
   wordCount,
   status,
-  "category": category->title,
+  "category": category->name,
   featuredImage,
   content,
   faqSection,
@@ -45,6 +45,7 @@ export const POST_BY_SLUG_QUERY = `*[_type == "blogPost" && slug.current == $slu
   twitterImage,
   twitterSite,
   schemaJson,
+  faqSchema,
   geoAbout,
   geoSummary,
   geoEntityType,
@@ -52,7 +53,7 @@ export const POST_BY_SLUG_QUERY = `*[_type == "blogPost" && slug.current == $slu
   geoCiteSources
 }`;
 
-export const ALL_POST_SLUGS_QUERY = `*[_type == "blogPost" && status == "published"].slug.current`;
+export const ALL_POST_SLUGS_QUERY = `*[_type == "blogPost" && status == "published" && defined(slug.current)].slug.current`;
 
 export async function fetchPublishedPosts() {
   return sanityClient.fetch(POSTS_LIST_QUERY);
@@ -74,7 +75,7 @@ export const LATEST_POST_QUERY = `*[_type == "blogPost" && status == "published"
   readingTime,
   wordCount,
   status,
-  "category": category->title,
+  "category": category->name,
   featuredImage,
   content,
   faqSection,
@@ -94,6 +95,7 @@ export const LATEST_POST_QUERY = `*[_type == "blogPost" && status == "published"
   twitterImage,
   twitterSite,
   schemaJson,
+  faqSchema,
   geoAbout,
   geoSummary,
   geoEntityType,

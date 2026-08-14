@@ -4,6 +4,7 @@ import { fetchLatestPost } from "@/lib/blog/queries";
 import { transformPost } from "@/lib/blog/transform";
 import PortableText from "@/components/blog/PortableText";
 import { SITE_BASE_URL } from "@/lib/seo";
+import { buildBreadcrumbList } from "@/lib/blog/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Cosmic Spirit Guide Blog | Astrology, Rituals & Manifestation",
@@ -48,8 +49,18 @@ export default async function BlogIndexPage() {
 
   const imageFallback = `${post.title} — Cosmic Spirit Guide`;
 
+  const breadcrumbJson = buildBreadcrumbList([
+    { name: "Home", path: "/" },
+    { name: "Blog", path: "/blog" },
+  ]);
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: breadcrumbJson }}
+      />
       <header className="mb-8 text-center">
         <p className="text-sm uppercase tracking-widest text-cosmic-300">The Journal</p>
         <h1 className="glow-text-gold font-serif pt-2 text-4xl font-bold text-gold">

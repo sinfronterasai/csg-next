@@ -5,6 +5,7 @@ import {
 import {
   buildNatalReport, buildTransitReport, buildSynastryReport, buildVocationReport,
 } from '@/lib/reportEngine';
+import { computeChart } from '@/lib/chartEngine';
 
 // Fixed inputs so the suite is deterministic and offline.
 const JOHN = { name: 'John', date: '1990-06-15', time: '12:00', location: 'Paris, France', unknownTime: false };
@@ -59,9 +60,32 @@ describe('transit: aspect engine math', () => {
 
 describe('transit: ephemeris forward-date computation', () => {
   it('computes transit bodies and finds an aspect to natal', async () => {
-    const chart = await buildNatalReport(JOHN);
-    expect(chart.type).toBe('natal');
-    expect(chart.overview.length).toBeGreaterThan(0);
+    // Build a natal chart, then run the real transit pipeline the engine uses.
+    const natal = await buildNatalReport(JOHN);
+    expect(natal.type).toBe('natal');
+    expect(natal.overview.length).toBeGreaterThan(0);
+
+    const transit = await buildTransitReport({ natal: JOHN, fromDate: '2026-01-01' });
+    expect(transit.sections.length).toBe(12);
+    // The first month must have at least one aspect (transit bodies vs natal points).
+    expect(transit.sections[0].body.length).toBeGreaterThan(0);
+    // computeTransitBodies + findAspects are exercised inside buildTransitReport;
+    // assert the aspect math directly too for the flagged coverage gap.
+    const jd = dateToJulianDay(new Date('2026-06-15T12:00:00Z'));
+    const bodies = await computeTransitBodies(jd);
+    expect(bodies.length).toBeGreaterThan(0);
+    // Build real natal points from the engine's own chart (same shape findAspects expects).
+    const chart = await computeChart({ ...JOHN, name: 'John' });
+    const natalPts = chart.planets.map((p) => ({ key: p.key, label: p.label, longitude: p.longitude }))
+      .concat([
+        { key: 'asc', label: 'Ascendant', longitude: chart.ascendant.longitude },
+        { key: 'mc', label: 'Midheaven', longitude: chart.midheaven.longitude },
+      ]);
+    const aspects = findAspects(bodies, natalPts);
+    expect(Array.isArray(aspects)).toBe(true);
+    // The aspect math must actually find overlays: a full transit set against a
+    // complete natal chart yields real aspects (not an empty array).
+    expect(aspects.length).toBeGreaterThan(0);
   });
 
   it('moonPhase returns a fraction in [0,1] and a label', async () => {
