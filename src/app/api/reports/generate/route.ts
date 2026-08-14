@@ -2,20 +2,11 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { generateText, GROQ_MODEL } from '@/lib/groq';
 import { saveUniversalReading } from '@/lib/profile/store';
-
-const REPORT_NAMES: Record<string, string> = {
-  transit: 'Yearly Transit Forecast',
-  synastry: 'Synastry Love Report',
-  vocation: 'Vocation and Wealth Map',
-};
-
-const REPORT_PRICES: Record<string, number> = {
-  transit: 49,
-  synastry: 65,
-  vocation: 55,
-};
+import {
+  buildNatalReport, buildTransitReport, buildSynastryReport, buildVocationReport,
+  type ReportType, REPORT_META,
+} from '@/lib/reportEngine';
 
 async function getSavedChart(userId: string) {
   const { rows } = await query(
@@ -27,23 +18,13 @@ async function getSavedChart(userId: string) {
   const natal = typeof c.natal_positions === 'string' ? JSON.parse(c.natal_positions) : c.natal_positions;
   const houses = typeof c.houses === 'string' ? JSON.parse(c.houses) : c.houses;
   return {
-    birthInfo: { date: c.birth_date, time: c.birth_time, location: c.location_name, latitude: c.latitude, longitude: c.longitude },
+    birthInfo: { date: c.birth_date, time: c.birth_time, location: c.location_name, latitude: c.latitude, longitude: c.longitude, unknownTime: c.unknown_time },
     planets: natal?.planets || [],
     houses: houses || [],
     ascendant: c.ascendant,
     midheaven: c.midheaven,
   };
 }
-
-function chartSummary(chart: any): string {
-  if (!chart) return '';
-  const planets = chart.planets.map((p: any) => `${p.label} in ${p.signLabel}${p.house ? ` (House ${p.house})` : ''}`).join(', ');
-  const asc = chart.ascendant?.signLabel ? `Ascendant in ${chart.ascendant.signLabel}` : '';
-  const mc = chart.midheaven?.signLabel ? `Midheaven in ${chart.midheaven.signLabel}` : '';
-  return `Birth: ${chart.birthInfo.date} ${chart.birthInfo.time} @ ${chart.birthInfo.location}.\nPlanets: ${planets}.\n${asc}. ${mc}.`;
-}
-
-const SYSTEM = 'You are an elite astrologer for Cosmic Spirit Guide. Write in warm, grounded, mystical-but-direct prose. Use Markdown with **bold** for key terms. No HTML. Give specific, actionable insight the reader can use.';
 
 export async function POST(request: Request) {
   try {
@@ -62,34 +43,54 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { type, partner } = body; // type: transit | synastry | vocation
+    const { type: rawType, partner } = body;
+    const type = rawType as ReportType; // type: natal | transit | synastry | vocation
 
     const chart = await getSavedChart(decoded.userId);
     if (!chart) {
       return NextResponse.json({ error: 'Create your birth chart first', requiresBirthChart: true }, { status: 400 });
     }
 
-    let prompt = '';
-    if (type === 'transit') {
-      prompt = `Generate a Yearly Transit Forecast for the coming 12 months.\n\nUser chart:\n${chartSummary(chart)}\n\nCover the major planetary transits affecting this person's Sun, Moon, Ascendant, and angles. Give 3-4 dated periods with concrete guidance. End with a "Power Move" for the year.`;
-    } else if (type === 'vocation') {
-      prompt = `Generate a Vocation & Wealth Map report.\n\nUser chart:\n${chartSummary(chart)}\n\nFocus on the Midheaven (MC), 2nd House (resources), 10th House (career), and Saturn. Identify career strengths, financial patterns, and a concrete next step for professional alignment.`;
-    } else if (type === 'synastry') {
-      if (!partner || !partner.birthDate) {
-        return NextResponse.json({ error: 'Partner birth date required for synastry' }, { status: 400 });
-      }
-      prompt = `Generate a Synastry Love Report comparing two people.\n\nPerson 1 (user) chart:\n${chartSummary(chart)}\n\nPerson 2 (partner): born ${partner.birthDate}${partner.birthTime ? ' at ' + partner.birthTime : ''}${partner.location ? ' in ' + partner.location : ''}.\n\nAnalyze compatibility across communication, emotional connection, passion, and growth edges. Give an overall compatibility read and one concrete relationship practice.`;
-    } else {
+    // Route every report through the single engine (report-design PART 3 #1).
+    const validTypes: ReportType[] = ['natal', 'transit', 'synastry', 'vocation'];
+    if (!validTypes.includes(type)) {
       return NextResponse.json({ error: 'Unknown report type' }, { status: 400 });
     }
 
-    const text = await generateText(prompt, { systemPrompt: SYSTEM, model: GROQ_MODEL, max_tokens: 2000 });
+    let report;
+    try {
+      if (type === 'transit') {
+        report = await buildTransitReport({ natal: chart.birthInfo });
+      } else if (type === 'vocation') {
+        report = await buildVocationReport({ natal: chart.birthInfo });
+      } else if (type === 'synastry') {
+        if (!partner || !partner.birthDate) {
+          return NextResponse.json({ error: 'Partner birth date required for synastry' }, { status: 400 });
+        }
+        report = await buildSynastryReport({
+          self: chart.birthInfo,
+          partner: {
+            date: partner.birthDate,
+            time: partner.birthTime,
+            location: partner.location || chart.birthInfo.location,
+            unknownTime: !partner.birthTime,
+          },
+        });
+      } else {
+        report = await buildNatalReport(chart.birthInfo);
+      }
+    } catch (err) {
+      console.error('[reports/generate] engine failed:', err);
+      return NextResponse.json({ error: 'Report computation failed' }, { status: 500 });
+    }
+
+    const text = report.markdown;
 
     // Persist the report to the unified readings journal
     let readingId: number | undefined;
     try {
-      const title = REPORT_NAMES[type] || `${type} report`;
-      const pricePaid = REPORT_PRICES[type] || 0;
+      const title = REPORT_META[type].title;
+      const pricePaid = REPORT_META[type].price;
       const row = await saveUniversalReading({
         userId: Number(decoded.userId),
         type: 'report',
@@ -100,8 +101,11 @@ export async function POST(request: Request) {
         result: {
           title,
           text,
-          generatedFor: type === 'synastry' && partner ? 'partner' : 'self',
+          reportType: type,
+          generatedFor: report.generatedFor,
           pricePaid,
+          overview: report.overview,
+          sections: report.sections,
         },
       });
       readingId = row.id;

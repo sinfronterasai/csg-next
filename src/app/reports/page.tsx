@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import ReportResult from '@/components/reports/ReportResult';
 
 const PRODUCTS = [
   { id: 'transit', name: 'Yearly Transit Forecast', price: '$49', blurb: 'Map planetary movements relative to your life nodes over the next 12 months.', icon: 'fa-clock-rotate-left' },
@@ -12,7 +13,13 @@ const PRODUCTS = [
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
-  const [result, setResult] = useState<{ type: string; text: string; readingId?: number } | null>(null);
+  const [result, setResult] = useState<{
+    type: string;
+    text?: string;
+    overview?: { glyph?: string; label: string; value: string; note?: string }[];
+    sections?: { heading: string; body: string }[];
+    readingId?: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
 
@@ -35,7 +42,13 @@ export default function Reports() {
         }
         return;
       }
-      setResult({ type: id, text: data.text, readingId: data.readingId });
+      setResult({
+        type: id,
+        text: data.text,
+        overview: (data as any).overview,
+        sections: (data as any).sections,
+        readingId: data.readingId,
+      });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
     } finally {
@@ -114,6 +127,11 @@ export default function Reports() {
         )}
 
         {result && (
+          result.overview && result.sections ? (
+            <div className="mt-10 max-w-3xl mx-auto">
+              <ReportResult type={result.type as any} overview={result.overview} sections={result.sections} />
+            </div>
+          ) : (
           <div className="mt-10 max-w-3xl mx-auto glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
             <h3 className="text-2xl font-serif text-gold mb-4 capitalize">{result.type} Report</h3>
             <div className="prose prose-invert max-w-none text-gray-200 leading-relaxed whitespace-pre-wrap">{result.text}</div>
@@ -125,6 +143,7 @@ export default function Reports() {
               </div>
             )}
           </div>
+          )
         )}
 
         <div className="text-center mt-16">
