@@ -64,32 +64,35 @@ export async function POST(request: Request) {
     if (latitude !== undefined && longitude !== undefined) {
       geo = { lat: latitude, lon: longitude };
     } else {
-      const resolved = geocode(location);
-      const isFallback = resolved.lat === 48.8566 && resolved.lon === 2.3522;
-      if (!isFallback) geo = resolved;
+      // geocode() returns null when it cannot resolve the location (it no longer
+      // falls back to a default city), so a genuine "Paris, France" is accepted
+      // and only truly unknown locations are rejected.
+      geo = geocode(location);
     }
     if (!geo) {
-      return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for the given location. Try "City, Country" or "lat,lon".' }, { status: 400 });
+      return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
     }
-    const chart = await computeChart({ name: name || '', date, time: time || '12:00', location, unknownTime: Boolean(unknownTime) });
+    const unknown = Boolean(unknownTime);
+    const chart = await computeChart({ name: name || '', date, time: unknown ? undefined : (time || '12:00'), location, unknownTime: unknown });
     const { rows } = await query(
-      `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
+      `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary, unknown_time)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
        RETURNING id`,
       [
-        decoded.userId, date, time, timezone || 'UTC', location, geo.lat, geo.lon,
+        decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
         JSON.stringify({ planets: chart.planets }),
         JSON.stringify(chart.houses),
         JSON.stringify(chart.ascendant),
         JSON.stringify(chart.midheaven),
         name || 'Primary Chart',
+        unknown,
       ],
     );
     // Build a complete ChartData-shaped response so consumers (birth-chart
     // result view, /my-chart, ChartsTab) get the same shape computeChart yields.
     const chartData = {
       name: name || '',
-      birth: { date, time: time || '12:00', location, latitude: geo.lat, longitude: geo.lon, unknownTime: Boolean(unknownTime) },
+      birth: { date, time: unknown ? '' : (time || ''), location, latitude: geo.lat, longitude: geo.lon, unknownTime: unknown },
       planets: chart.planets,
       angles: chart.angles,
       houses: chart.houses,

@@ -6,11 +6,14 @@
 import type { ReactNode } from "react";
 
 function renderInline(text: string): ReactNode[] {
-  // Split on **bold** segments.
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  // Split on **bold** and *italic* segments (engine emits both, e.g.
+  // "How to Read This Chart" uses *Sun*/*Moon* for emphasis).
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return parts.map((part, i) => {
-    const m = part.match(/^\*\*([^*]+)\*\*$/);
-    if (m) return <strong key={i}>{m[1]}</strong>;
+    const bold = part.match(/^\*\*([^*]+)\*\*$/);
+    if (bold) return <strong key={i}>{bold[1]}</strong>;
+    const italic = part.match(/^\*([^*]+)\*$/);
+    if (italic) return <em key={i}>{italic[1]}</em>;
     return <span key={i}>{part}</span>;
   });
 }

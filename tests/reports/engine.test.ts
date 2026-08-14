@@ -83,8 +83,9 @@ describe('transit: ephemeris forward-date computation', () => {
       ]);
     const aspects = findAspects(bodies, natalPts);
     expect(Array.isArray(aspects)).toBe(true);
-    // At minimum the Sun transit should aspect some natal point over a year; sanity check non-empty for at least one month
-    expect(aspects.length).toBeGreaterThanOrEqual(0);
+    // The aspect math must actually find overlays: a full transit set against a
+    // complete natal chart yields real aspects (not an empty array).
+    expect(aspects.length).toBeGreaterThan(0);
   });
 
   it('moonPhase returns a fraction in [0,1] and a label', async () => {

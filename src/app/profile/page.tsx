@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TabBar, { type TabId } from '@/components/profile/TabBar';
 import OverviewTab from '@/components/profile/OverviewTab';
@@ -23,9 +24,19 @@ interface User {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+
+  // Open the tab named in ?tab= (e.g. /profile?tab=reports from a report's
+  // "View in Library" link) so the link lands on the right section.
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['overview','charts','reports','tarot','horoscope','patterns','settings'].includes(tab)) {
+      setActiveTab(tab as TabId);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {

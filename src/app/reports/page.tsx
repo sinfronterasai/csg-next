@@ -137,7 +137,7 @@ export default function Reports() {
                 overview={result.overview!}
                 sections={result.sections!}
                 readingId={result.readingId}
-                shareUrl={typeof window !== 'undefined' ? window.location.origin + '/profile?tab=reports' : undefined}
+                shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
               />
             </div>
           ) : (

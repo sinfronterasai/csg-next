@@ -23,7 +23,7 @@ import {
 import {
   getSign, getHouse, getPlanet, signFromLongitude,
 } from '@/lib/astrology';
-import { computeTransitBodies, findAspects, moonPhase, dateToJulianDay, type TransitBody, type Aspect } from '@/lib/transit';
+import { computeTransitBodies, findAspects, moonPhase, dateToJulianDay, type TransitBody, type TransitBodyKey, type Aspect } from '@/lib/transit';
 import { makeSeed, seededScore, seededUnit } from '@/lib/random';
 
 // ---- Shared types ---------------------------------------------------------
@@ -236,6 +236,14 @@ export async function buildTransitReport(input: {
 
 const SYNASTRY_PLANETS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'asc', 'node'] as const;
 
+// Map a chart planet/angle to the TransitBody shape findAspects expects,
+// preserving the glyph (so synastry bullets render the correct symbol).
+function toTransitBody(p: {
+  key: string; label: string; glyph: string; longitude: number; house?: number | null;
+}): TransitBody {
+  return { key: p.key as TransitBodyKey, label: p.label, glyph: p.glyph, longitude: p.longitude, sign: '', signLabel: '', signGlyph: '', degreeInSign: 0, retrograde: false };
+}
+
 export async function buildSynastryReport(input: {
   self: { date: string; time?: string; location: string; unknownTime?: boolean };
   partner: { date: string; time?: string; location: string; unknownTime?: boolean };
@@ -249,16 +257,20 @@ export async function buildSynastryReport(input: {
       { key: 'node', label: 'North Node', longitude: selfChart.planets.find(p => p.key === 'northnode')?.longitude ?? 0, house: null },
     ]);
 
-  // For each synastry planet pair, overlay partner planet onto self's chart:
-  // aspect partner-body to self's natal points in the overlay set.
   // Build the overlay from the partner's actual computed chart (uses real
-  // birth time, includes node/asc/angles) instead of a fixed UTC noon.
+  // birth time), preserving glyphs so the report renders correct symbols.
+  // northnode already appears inside partnerChart.planets, so we do NOT add it
+  // a second time. Asc/Midheaven carry birth-time assumptions, so we omit them
+  // when the partner's time is unknown.
   const partnerBodies: TransitBody[] = [
-    ...partnerChart.planets.map(planetToLongitude),
-    { key: 'asc', label: 'Ascendant', longitude: partnerChart.ascendant.longitude, house: 1 },
-    { key: 'mc', label: 'Midheaven', longitude: partnerChart.midheaven.longitude, house: 10 },
-    { key: 'node', label: 'North Node', longitude: partnerChart.planets.find(p => p.key === 'northnode')?.longitude ?? 0, house: null },
-  ] as TransitBody[];
+    ...partnerChart.planets.map(toTransitBody),
+    ...(input.partner.unknownTime
+      ? []
+      : [
+          toTransitBody({ key: 'asc', label: 'Ascendant', glyph: 'AC', longitude: partnerChart.ascendant.longitude, house: 1 }),
+          toTransitBody({ key: 'mc', label: 'Midheaven', glyph: 'MC', longitude: partnerChart.midheaven.longitude, house: 10 }),
+        ]),
+  ];
   const overlayPts = selfPts.filter((p) => SYNASTRY_PLANETS.includes(p.key as any));
   const aspects = findAspects(partnerBodies, overlayPts).sort((a, b) => a.orb - b.orb);
 

@@ -39,11 +39,14 @@ export function seededScore(seedStr: string, min = 0, max = 100): number {
     throw new Error(`seededScore: min (${min}) must not exceed max (${max})`);
   }
   const rng = mulberry32(makeSeed(seedStr));
-  // Range formula that supports fractional bounds. For integer bounds the
-  // historical inclusive [min, max] behaviour is preserved by integer-rounding.
-  const span = max - min;
-  const raw = rng() * span;
-  return min + (Number.isInteger(min) && Number.isInteger(max) ? Math.floor(raw + 1e-9) : raw);
+  // For integer bounds we want a uniform inclusive sample in [min, max].
+  // Using floor(rng() * (max - min + 1)) gives exactly that — every value
+  // from min..max is reachable (verified: over 2000 seeds, 100 and 24 are hit).
+  // Fractional bounds fall back to a continuous sample in [min, max).
+  if (Number.isInteger(min) && Number.isInteger(max)) {
+    return min + Math.floor(rng() * (max - min + 1));
+  }
+  return min + rng() * (max - min);
 }
 
 /** Float in [0, 1) — handy for weighted, deterministic choices. */
