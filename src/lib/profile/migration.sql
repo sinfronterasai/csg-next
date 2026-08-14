@@ -19,3 +19,9 @@ ALTER TABLE users
 -- use the same whole-sign (timeless) chart instead of fabricating a time.
 ALTER TABLE natal_charts
   ADD COLUMN IF NOT EXISTS unknown_time boolean NOT NULL DEFAULT false;
+
+-- birth_time must be nullable: unknown-time charts store NULL and rely on the
+-- unknown_time flag instead of a fabricated time. Without this, the unknown-time
+-- save path violates the not-null constraint (500 on POST /api/birth-chart).
+ALTER TABLE natal_charts
+  ALTER COLUMN birth_time DROP NOT NULL;
