@@ -1,3 +1,5 @@
+'use client';
+
 // Presentational report renderer. Consumes the structured output of the single
 // report engine (reportEngine.ts): a Layer-1 `overview` table plus Layer-2
 // `sections` rendered as expandable details. No markdown dump. Matches the
@@ -16,6 +18,7 @@ export default function ReportResult({
   sections,
   shareUrl,
   readingId,
+  onShare,
 }: {
   type: ReportType;
   title?: string;
@@ -23,10 +26,15 @@ export default function ReportResult({
   sections: ReportSection[];
   shareUrl?: string;
   readingId?: number;
+  onShare?: () => void;
 }) {
   const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
 
   const handleShare = async () => {
+    if (onShare) {
+      try { await onShare(); setShareState('copied'); setTimeout(() => setShareState('idle'), 2000); } catch { setShareState('idle'); }
+      return;
+    }
     const url = shareUrl || (typeof window !== 'undefined' ? window.location.origin + '/reports' : 'https://cosmicspiritguide.com/reports');
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {

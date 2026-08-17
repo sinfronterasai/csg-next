@@ -158,3 +158,38 @@ function hydrateRow(r: any): UniversalReadingRecord {
     createdAt: String(r.created_at),
   };
 }
+
+/**
+ * Public sharing (feature: /reports/shared/[token]).
+ * A report is shared only through a random uuid, never its sequential integer id,
+ * so a shared link is unguessable and other users' readings stay private.
+ */
+
+/** Mint (or return existing) share_token for a report the user owns. Idempotent. */
+export async function mintShareToken(
+  id: number,
+  userId: number,
+): Promise<string | null> {
+  const { rows } = await query(
+    `UPDATE readings
+        SET share_token = COALESCE(share_token, gen_random_uuid())
+      WHERE id = $1 AND user_id = $2
+     RETURNING share_token`,
+    [id, userId],
+  );
+  return rows[0]?.share_token ?? null;
+}
+
+/** Fetch a reading by its public share_token (no auth). Returns null if absent. */
+export async function getReadingByShareToken(
+  token: string,
+): Promise<UniversalReadingRecord | null> {
+  const { rows } = await query(
+    `SELECT id, user_id, type, title, question, category, scope, period_start, period_end,
+            price_paid, partner_label, result, reflection, created_at
+       FROM readings
+      WHERE share_token = $1`,
+    [token],
+  );
+  return rows[0] ? hydrateRow(rows[0]) : null;
+}

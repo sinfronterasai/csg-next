@@ -13,6 +13,7 @@ const PRODUCTS = [
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [result, setResult] = useState<{
     type: string;
     text?: string;
@@ -20,6 +21,7 @@ export default function Reports() {
     overview?: { glyph?: string; label: string; value: string; note?: string }[];
     sections?: { heading: string; body: string }[];
     readingId?: number;
+    shareUrl?: string | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
@@ -50,11 +52,29 @@ export default function Reports() {
         overview: (data as any).overview,
         sections: (data as any).sections,
         readingId: data.readingId,
+        shareUrl: data.shareUrl ?? null,
       });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
     } finally {
       setLoading(null);
+    }
+  }
+
+
+  async function shareReport(readingId: number) {
+    try {
+      const res = await fetch(`/api/reports/${readingId}/share`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.shareToken) {
+        setError('Could not create a share link. Make sure you are signed in.');
+        return;
+      }
+      const url = `${window.location.origin}/reports/shared/${data.shareToken}`;
+      setShareUrl(url);
+      try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    } catch {
+      setError('Could not create a share link.');
     }
   }
 
@@ -137,7 +157,8 @@ export default function Reports() {
                 overview={result.overview!}
                 sections={result.sections!}
                 readingId={result.readingId}
-                shareUrl={typeof window !== 'undefined' ? window.location.origin : undefined}
+                shareUrl={shareUrl ?? undefined}
+                onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
               />
             </div>
           ) : (

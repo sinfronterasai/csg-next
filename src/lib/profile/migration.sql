@@ -25,3 +25,13 @@ ALTER TABLE natal_charts
 -- save path violates the not-null constraint (500 on POST /api/birth-chart).
 ALTER TABLE natal_charts
   ALTER COLUMN birth_time DROP NOT NULL;
+
+-- Public report sharing (feature: /reports/shared/[token]).
+-- A report is only reachable publicly via this random uuid, never by its
+-- sequential integer id. Without this, sharing by id would let anyone
+-- enumerate the readings table and read other users' private reports.
+ALTER TABLE readings
+  ADD COLUMN IF NOT EXISTS share_token uuid UNIQUE;
+
+-- Index for the public fetch-by-token lookup.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_share_token ON readings(share_token);
