@@ -181,14 +181,20 @@ export async function mintShareToken(
 }
 
 /** Fetch a reading by its public share_token (no auth). Returns null if absent. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getReadingByShareToken(
   token: string,
 ): Promise<UniversalReadingRecord | null> {
+  // Guard first: anything that isn't a uuid-shaped string can never match the
+  // uuid column. Without this, Postgres tries to coerce the literal (e.g. "none")
+  // to uuid and throws, which surfaces as a 500 instead of a clean 404.
+  if (!token || !UUID_RE.test(token)) return null;
   const { rows } = await query(
     `SELECT id, user_id, type, title, question, category, scope, period_start, period_end,
             price_paid, partner_label, result, reflection, created_at
        FROM readings
-      WHERE share_token = $1`,
+      WHERE share_token = $1::uuid`,
     [token],
   );
   return rows[0] ? hydrateRow(rows[0]) : null;

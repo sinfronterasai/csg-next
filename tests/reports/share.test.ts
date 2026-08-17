@@ -48,11 +48,26 @@ describe('public report sharing', () => {
     expect(rec).toBeNull();
   });
 
-  it('SECURITY: the sequential id is never a public handle (lookup by token only)', async () => {
+  it('SECURITY: the sequential id is never a public handle (rejected by uuid guard, no query)', async () => {
+    const rec = await getReadingByShareToken('42');
+    expect(rec).toBeNull();
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('getReadingByShareToken: invalid token handling', () => {
+  beforeEach(() => mockQuery.mockReset());
+
+  it('returns null for a non-uuid token WITHOUT querying the DB (no 500)', async () => {
+    const rec = await getReadingByShareToken('none');
+    expect(rec).toBeNull();
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+
+  it('returns null for a uuid-shaped but absent token (clean 404, no throw)', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
-    await getReadingByShareToken('42');
-    expect(mockQuery.mock.calls[0][1]).toEqual(['42']);
-    expect(mockQuery.mock.calls[0][0]).toContain('share_token = $1');
-    expect(mockQuery.mock.calls[0][0]).not.toContain('WHERE id = $1');
+    const rec = await getReadingByShareToken('ffffffff-ffff-ffff-ffff-ffffffffffff');
+    expect(rec).toBeNull();
+    expect(mockQuery.mock.calls[0][1]).toEqual(['ffffffff-ffff-ffff-ffff-ffffffffffff']);
   });
 });
