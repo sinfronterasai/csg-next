@@ -61,6 +61,7 @@ export interface BlogPost {
     keyEntities: string[];
     citeSources: string[];
   };
+  relatedReading: { slug: string; title: string }[];
 }
 
 function toBlogImage(raw: SanityImageSource | null | undefined, fallback: string): BlogImage {
@@ -141,6 +142,9 @@ export function transformPost(raw: any, baseUrl: string): BlogPost {
     faqSection,
     seo,
     geo,
+    relatedReading: Array.isArray(raw?.relatedReading)
+      ? raw.relatedReading.filter((r: any) => r?.slug).map((r: any) => ({ slug: r.slug, title: r.title || r.slug }))
+      : [],
   };
 }
 

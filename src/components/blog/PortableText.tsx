@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import Link from "next/link";
 import { sanityImageUrl, safeAlt, type SanityImageSource } from "@/lib/sanity/image";
 
 // Renders Sanity Portable Text: block elements (h1/h2/normal) with
@@ -39,11 +40,26 @@ export function PortableText({
         }
 
         if (block?._type === "block") {
+          const markDefs = (block.markDefs ?? []) as any[];
+          const linkDefs: Record<string, any> = {};
+          for (const md of markDefs) {
+            if (md?._type === "link") linkDefs[md._key] = md;
+          }
           const children = (block.children ?? []).map((child: any, ci: number) => {
             const marks = child.marks ?? [];
             let text: ReactElement = <>{child.text}</>;
-            if (marks.includes("strong")) text = <strong className="text-cosmic-100">{text}</strong>;
-            if (marks.includes("em")) text = <em>{text}</em>;
+            for (const m of marks) {
+              if (m === "strong") text = <strong className="text-cosmic-100">{text}</strong>;
+              else if (m === "em") text = <em>{text}</em>;
+              else if (linkDefs[m]) {
+                const def = linkDefs[m];
+                const href: string = def?.href || "#";
+                const cls = "text-gold underline-offset-4 hover:underline";
+                text = href.startsWith("/")
+                  ? <Link href={href} className={cls}>{text}</Link>
+                  : <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>{text}</a>;
+              }
+            }
             return <span key={ci}>{text}</span>;
           });
 

@@ -8,13 +8,12 @@ import { SITE_BASE_URL } from "@/lib/seo";
 import { buildBreadcrumbList, escapeJsonLd } from "@/lib/blog/breadcrumb";
 
 export async function generateStaticParams() {
-  // Brand-new blog: only the latest article is published for now.
+  // Pre-build every published article so each is reachable by its slug.
   try {
-    const { fetchLatestPost } = await import("@/lib/blog/queries");
-    const latest = await fetchLatestPost();
-    if (latest?.slug?.current) return [{ slug: latest.slug.current }];
+    const slugs = await fetchAllPostSlugs();
+    return (slugs || []).map((slug: string) => ({ slug }));
   } catch {
-    // ignore - will render on demand
+    // ignore - pages will render on demand
   }
   return [];
 }
@@ -183,6 +182,21 @@ export default async function BlogPostPage({
           </section>
         ) : null}
       </article>
+
+      {post.relatedReading && post.relatedReading.length > 0 ? (
+        <section className="mt-12 rounded-2xl border border-gold/20 bg-cosmic-900/40 p-6">
+          <h2 className="font-serif mb-4 text-2xl font-semibold text-gold">Related Reading</h2>
+          <ul className="space-y-2">
+            {post.relatedReading.map((r, i) => (
+              <li key={i}>
+                <Link href={`/blog/${r.slug}`} className="text-gold underline-offset-4 hover:underline">
+                  {r.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="mt-12 border-t border-white/10 pt-6 text-center">
         <Link href="/blog" className="text-gold underline-offset-4 hover:underline">
