@@ -25,11 +25,27 @@ export async function GET() {
     const c = rows[0];
     const natal = typeof c.natal_positions === 'string' ? JSON.parse(c.natal_positions) : c.natal_positions;
     const houses = typeof c.houses === 'string' ? JSON.parse(c.houses) : c.houses;
+    const planets: any[] = natal?.planets || [];
+    const ascendant = typeof c.ascendant === 'string' ? JSON.parse(c.ascendant) : c.ascendant;
+    const midheaven = typeof c.midheaven === 'string' ? JSON.parse(c.midheaven) : c.midheaven;
+    // Reconstruct a full ChartData shape (matches computeChart output) so the
+    // saved-chart viewer (/my-chart -> BirthChartWheel) gets sun/moon/birth too.
     const chartData = {
-      planets: natal?.planets || [],
+      name: c.chart_name || 'Natal Map',
+      birth: {
+        date: c.birth_date,
+        time: c.unknown_time ? '' : (c.birth_time || ''),
+        location: c.location_name,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        unknownTime: Boolean(c.unknown_time),
+      },
+      planets,
       houses: houses || [],
-      ascendant: c.ascendant,
-      midheaven: c.midheaven,
+      ascendant,
+      midheaven,
+      sun: planets.find((p: any) => p.key === 'sun') || null,
+      moon: planets.find((p: any) => p.key === 'moon') || null,
     };
     const birthInfo = { date: c.birth_date, time: c.birth_time, location: c.location_name, latitude: c.latitude, longitude: c.longitude };
     return NextResponse.json({ hasChart: true, chart: chartData, birthInfo, chartId: c.id });
