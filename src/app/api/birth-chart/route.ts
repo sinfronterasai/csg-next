@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { computeChart, geocode } from '@/lib/chartEngine';
+import { computeChart, geocodeLocation } from '@/lib/chartEngine';
 
 export async function GET() {
   try {
@@ -60,14 +60,13 @@ export async function POST(request: Request) {
     // Geocode the location into lat/long when the caller didn't supply them.
     // Refuse to persist a silently-wrong fallback: if geocode returns the Paris
     // default for an unknown location, require the caller to pass real coords.
-    let geo: { lat: number; lon: number } | null = null;
+    let geo: { lat: number; lon: number; timezone: string } | null = null;
     if (latitude !== undefined && longitude !== undefined) {
-      geo = { lat: latitude, lon: longitude };
+      geo = { lat: latitude, lon: longitude, timezone: timezone || 'UTC' };
     } else {
-      // geocode() returns null when it cannot resolve the location (it no longer
-      // falls back to a default city), so a genuine "Paris, France" is accepted
-      // and only truly unknown locations are rejected.
-      geo = geocode(location);
+      // geocodeLocation() resolves via Open-Meteo (keyless) and returns a
+      // timezone too; null only on empty/unresolvable input.
+      geo = await geocodeLocation(location);
     }
     if (!geo) {
       return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
