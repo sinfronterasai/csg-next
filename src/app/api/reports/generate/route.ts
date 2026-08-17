@@ -17,8 +17,12 @@ async function getSavedChart(userId: string) {
   const c = rows[0];
   const natal = typeof c.natal_positions === 'string' ? JSON.parse(c.natal_positions) : c.natal_positions;
   const houses = typeof c.houses === 'string' ? JSON.parse(c.houses) : c.houses;
+  // pg returns DATE/TIME columns as JS Date objects; computeChart needs a
+  // 'YYYY-MM-DD' string, so coerce before handing off (else date.split crashes).
+  const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
+  const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
   return {
-    birthInfo: { date: c.birth_date, time: c.birth_time, location: c.location_name, latitude: c.latitude, longitude: c.longitude, unknownTime: c.unknown_time },
+    birthInfo: { date: toDateStr(c.birth_date), time: toTimeStr(c.birth_time), location: c.location_name, latitude: c.latitude, longitude: c.longitude, unknownTime: c.unknown_time },
     planets: natal?.planets || [],
     houses: houses || [],
     ascendant: c.ascendant,

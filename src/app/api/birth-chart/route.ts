@@ -47,7 +47,10 @@ export async function GET() {
       sun: planets.find((p: any) => p.key === 'sun') || null,
       moon: planets.find((p: any) => p.key === 'moon') || null,
     };
-    const birthInfo = { date: c.birth_date, time: c.birth_time, location: c.location_name, latitude: c.latitude, longitude: c.longitude };
+    // pg returns DATE/TIME as JS Date objects; the client/engine expect strings.
+    const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
+    const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
+    const birthInfo = { date: toDateStr(c.birth_date), time: toTimeStr(c.birth_time), location: c.location_name, latitude: c.latitude, longitude: c.longitude };
     return NextResponse.json({ hasChart: true, chart: chartData, birthInfo, chartId: c.id });
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to fetch birth chart', details: err?.message }, { status: 500 });
