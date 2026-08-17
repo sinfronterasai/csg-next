@@ -29,7 +29,7 @@ describe("Birth chart create flow persists to profile", () => {
   it("POSTs the computed chart to /api/birth-chart (save) after computing", async () => {
     const calls: { url: string; body: any }[] = [];
     (global as any).fetch = jest.fn(async (url: string, init?: any) => {
-      calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined });
+      calls.push({ url, method: init?.method || 'GET', body: init?.body ? JSON.parse(init.body) : undefined });
       if (url === "/api/chart") {
         return { ok: true, json: async () => computeChart } as any;
       }
@@ -51,7 +51,7 @@ describe("Birth chart create flow persists to profile", () => {
     fireEvent.click(screen.getByText("Cast Celestial Chart"));
 
     await waitFor(() => {
-      const save = calls.find((c) => c.url === "/api/birth-chart");
+      const save = calls.find((c) => c.url === "/api/birth-chart" && c.method === 'POST');
       expect(save).toBeTruthy();
       expect(save!.body).toMatchObject({ date: "1990-06-15", time: "12:00", location: "Paris, France" });
     });

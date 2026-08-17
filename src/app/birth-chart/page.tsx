@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
 import type { ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
@@ -10,13 +10,59 @@ export default function BirthChart() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ChartData | null>(null);
   const [savedToProfile, setSavedToProfile] = useState<null | boolean>(null);
+  const [savedChartId, setSavedChartId] = useState<number | null>(null);
+  // mode: 'view' = show saved chart, 'edit' = show calculator form
+  const [mode, setMode] = useState<'view' | 'edit'>('edit');
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  // On mount, load any existing saved chart so a returning user sees it
+  // (with Update / Create Another) instead of a blank calculator.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/birth-chart');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasChart && data.chart) {
+            setResult(data.chart as ChartData);
+            setSavedChartId(data.chartId ?? null);
+            setMode('view');
+          }
+        }
+      } catch { /* no saved chart; stay in edit mode */ }
+      setInitialLoad(false);
+    })();
+  }, []);
+
+  const startUpdate = () => {
+    // Pre-fill the form with the saved chart's birth details for editing.
+    if (result?.birth) {
+      setFormData({
+        name: result.name || '',
+        date: (result.birth.date || '').toString().slice(0, 10),
+        time: result.birth.time || '',
+        location: result.birth.location || '',
+        unknownTime: Boolean(result.birth.unknownTime),
+      });
+    }
+    setSavedToProfile(null);
+    setResult(null);
+    setMode('edit');
+  };
+
+  const startCreateAnother = () => {
+    setFormData({ name: '', date: '', time: '', location: '', unknownTime: false });
+    setSavedToProfile(null);
+    setResult(null);
+    setSavedChartId(null);
+    setMode('edit');
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
     setSavedToProfile(null);
-    // small delay to show the "aligning" state; computation itself is synchronous
     setTimeout(async () => {
       try {
         const res = await fetch('/api/chart', {
@@ -33,8 +79,7 @@ export default function BirthChart() {
         if (!res.ok) throw new Error('chart request failed');
         const chart: ChartData = await res.json();
         setResult(chart);
-        // Persist to the user's profile (single source of truth for every report).
-        // Best-effort: if the user isn't signed in we surface a prompt instead of failing.
+        // Persist: update the existing chart if we were editing one, else create.
         try {
           const saveRes = await fetch('/api/birth-chart', {
             method: 'POST',
@@ -47,12 +92,16 @@ export default function BirthChart() {
               unknownTime: formData.unknownTime,
               latitude: undefined,
               longitude: undefined,
+              chartId: savedChartId ?? undefined,
             }),
           });
+          const saveJson = await saveRes.json();
+          if (saveJson.chartId) setSavedChartId(saveJson.chartId);
           setSavedToProfile(saveRes.ok);
         } catch {
           setSavedToProfile(false);
         }
+        setMode('view');
       } catch {
         setResult(null);
       } finally {
@@ -61,22 +110,58 @@ export default function BirthChart() {
     }, 400);
   };
 
-  const reset = () => {
-    setResult(null);
-    setSavedToProfile(null);
-    setFormData({ name: '', date: '', time: '', location: '', unknownTime: false });
-  };
-
   const coreSign = result ? getSign(result.sun.sign) : null;
   const emoSign = result ? getSign(result.moon.sign) : null;
 
+  // VIEW mode: show the saved chart with management actions.
+  if (mode === 'view' && result) {
+    return (
+      <section className="py-24 relative z-10 constellation-map">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <span className="text-xs uppercase tracking-[0.4em] text-gold block mb-3">Your Natal Chart</span>
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">Celestial Configuration</h2>
+            <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto mt-6" />
+          </div>
+          <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="glass-panel-light p-4 rounded-2xl">
+                <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
+                <span className="text-base font-serif text-white block mt-1">{result.sun.label} in {result.sun.signLabel}</span>
+                <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
+              </div>
+              <div className="glass-panel-light p-4 rounded-2xl">
+                <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
+                <span className="text-base font-serif text-white block mt-1">{result.moon.label} in {result.moon.signLabel}</span>
+                <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
+              </div>
+            </div>
+            <BirthChartWheel chartData={result} interactive />
+            <div className="mt-8 flex flex-wrap gap-3 justify-center">
+              <button onClick={startUpdate} className="px-6 py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_25px_rgba(223,183,108,0.5)]">
+                Update Chart
+              </button>
+              <button onClick={startCreateAnother} className="px-6 py-3 rounded-full border border-gold/40 text-gold font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:bg-gold/10">
+                Create Another
+              </button>
+            </div>
+            {savedToProfile === true && (
+              <p className="text-center text-xs text-gold tracking-wider uppercase mt-4">✓ Saved to your profile</p>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // EDIT mode: the calculator form (create or update).
   return (
     <section id="birthchart" className="py-24 relative z-10 constellation-map">
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs uppercase tracking-[0.4em] text-gold block mb-3">Divine Alignment</span>
-          <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">Calculate Your Natal Chart</h2>
-          <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto mt-6"></div>
+          <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">{savedChartId ? 'Update Your Natal Chart' : 'Calculate Your Natal Chart'}</h2>
+          <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto mt-6" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
@@ -114,7 +199,7 @@ export default function BirthChart() {
                   <label htmlFor="rectified" className="text-xs text-gray-400 cursor-pointer">I don&apos;t know my exact time of birth (Use Solar Houses)</label>
                 </div>
                 <button type="submit" className="w-full py-4 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)]">
-                  Cast Celestial Chart
+                  {savedChartId ? 'Update Chart' : 'Cast Celestial Chart'}
                 </button>
               </form>
             </div>
@@ -128,7 +213,7 @@ export default function BirthChart() {
             <div className="w-full h-full min-h-[400px] glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 flex flex-col items-center justify-center text-center relative overflow-hidden">
               {loading && (
                 <div className="space-y-6">
-                  <div className="w-16 h-16 border-4 border-t-gold border-white/5 rounded-full animate-spin mx-auto"></div>
+                  <div className="w-16 h-16 border-4 border-t-gold border-white/5 rounded-full animate-spin mx-auto" />
                   <h4 className="text-xl font-serif text-white">Aligning Celestial Bodies...</h4>
                   <p className="text-sm text-gray-400">Mapping the transits relative to your cosmic entry.</p>
                 </div>
@@ -136,9 +221,9 @@ export default function BirthChart() {
               {!loading && !result && (
                 <div className="space-y-6">
                   <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
-                    <span className="absolute inset-0 border border-gold/30 rounded-full animate-spin-slow"></span>
-                    <span className="absolute inset-2 border border-dashed border-gold/20 rounded-full animate-spin-medium"></span>
-                    <i className="fa-solid fa-compass text-gold text-5xl opacity-40"></i>
+                    <span className="absolute inset-0 border border-gold/30 rounded-full animate-spin-slow" />
+                    <span className="absolute inset-2 border border-dashed border-gold/20 rounded-full animate-spin-medium" />
+                    <i className="fa-solid fa-compass text-gold text-5xl opacity-40" />
                   </div>
                   <h4 className="text-xl font-serif text-white">Your Chart Awaits Generation</h4>
                   <p className="text-sm text-gray-400 max-w-md mx-auto">Provide your birth coordinates on the left. Our celestial geometry engine will instantly chart planetary alignments across the Houses.</p>
@@ -151,9 +236,8 @@ export default function BirthChart() {
                       <h4 className="text-2xl font-serif text-white">{result.name}</h4>
                       <span className="text-xs text-gold tracking-wider uppercase">NATAL COSMIC CONFIGURATION</span>
                     </div>
-                    <i className="fa-solid fa-bahai text-gold text-3xl animate-spin-slow"></i>
+                    <i className="fa-solid fa-bahai text-gold text-3xl animate-spin-slow" />
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="glass-panel-light p-4 rounded-2xl">
                       <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
@@ -166,11 +250,9 @@ export default function BirthChart() {
                       <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
                     </div>
                   </div>
-
                   <div className="flex justify-center max-w-sm mx-auto">
                     <BirthChartWheel chartData={result} interactive />
                   </div>
-
                   <div className="space-y-3">
                     <span className="text-xs text-gold tracking-wider uppercase block">Major Placements</span>
                     <div className="space-y-2 text-sm text-gray-300">
@@ -192,14 +274,13 @@ export default function BirthChart() {
                       </div>
                     </div>
                   </div>
-
                   {savedToProfile === true && (
                     <p className="text-xs text-gold tracking-wider uppercase">✓ Saved to your profile</p>
                   )}
                   {savedToProfile === false && (
                     <p className="text-xs text-gray-400 tracking-wider uppercase"><a href="/login" className="text-gold hover:text-white underline">Sign in</a> to save this chart</p>
                   )}
-                  <button onClick={reset} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Cast Another Chart</button>
+                  <button onClick={startUpdate} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Edit This Chart</button>
                 </div>
               )}
             </div>

@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     const body = await request.json();
-    const { name, date, time, location, latitude, longitude, timezone, unknownTime } = body;
+    const { name, date, time, location, latitude, longitude, timezone, unknownTime, chartId } = body;
     if (!date || !location) {
       return NextResponse.json({ error: 'Missing required fields', details: 'date and location are required' }, { status: 400 });
     }
@@ -89,20 +89,50 @@ export async function POST(request: Request) {
     }
     const unknown = Boolean(unknownTime);
     const chart = await computeChart({ name: name || '', date, time: unknown ? undefined : (time || '12:00'), location, unknownTime: unknown });
-    const { rows } = await query(
-      `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary, unknown_time)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
-       RETURNING id`,
-      [
-        decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
-        JSON.stringify({ planets: chart.planets }),
-        JSON.stringify(chart.houses),
-        JSON.stringify(chart.ascendant),
-        JSON.stringify(chart.midheaven),
-        name || 'Primary Chart',
-        unknown,
-      ],
-    );
+
+    // Update an existing owned chart when chartId is supplied (the "Update"
+    // action); otherwise insert a new one ("Create Another"). This keeps a
+    // single primary chart instead of stacking duplicates on every save.
+    let savedId: number;
+    if (chartId) {
+      const upd = await query(
+        `UPDATE natal_charts
+            SET birth_date=$2, birth_time=$3, timezone=$4, location_name=$5, latitude=$6, longitude=$7,
+                natal_positions=$8, houses=$9, ascendant=$10, midheaven=$11, chart_name=$12, unknown_time=$13
+          WHERE id=$14 AND user_id=$1
+         RETURNING id`,
+        [
+          decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
+          JSON.stringify({ planets: chart.planets }),
+          JSON.stringify(chart.houses),
+          JSON.stringify(chart.ascendant),
+          JSON.stringify(chart.midheaven),
+          name || 'Primary Chart',
+          unknown,
+          chartId,
+        ],
+      );
+      if (upd.rows.length === 0) {
+        return NextResponse.json({ error: 'Chart not found or not owned by you' }, { status: 404 });
+      }
+      savedId = upd.rows[0].id;
+    } else {
+      const ins = await query(
+        `INSERT INTO natal_charts (user_id, birth_date, birth_time, timezone, location_name, latitude, longitude, natal_positions, houses, ascendant, midheaven, chart_name, is_primary, unknown_time)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
+         RETURNING id`,
+        [
+          decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
+          JSON.stringify({ planets: chart.planets }),
+          JSON.stringify(chart.houses),
+          JSON.stringify(chart.ascendant),
+          JSON.stringify(chart.midheaven),
+          name || 'Primary Chart',
+          unknown,
+        ],
+      );
+      savedId = ins.rows[0].id;
+    }
     // Build a complete ChartData-shaped response so consumers (birth-chart
     // result view, /my-chart, ChartsTab) get the same shape computeChart yields.
     const chartData = {
@@ -116,7 +146,7 @@ export async function POST(request: Request) {
       sun: chart.sun,
       moon: chart.moon,
     };
-    return NextResponse.json({ success: true, chartId: rows[0].id, chart: chartData });
+    return NextResponse.json({ success: true, chartId: savedId, chart: chartData });
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to save birth chart', details: err?.message }, { status: 500 });
   }
