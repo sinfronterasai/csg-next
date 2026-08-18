@@ -40,6 +40,30 @@ export default function SiteHeader() {
       <a href="/blog" className="text-gray-300 hover:text-gold transition-colors duration-300">Blog</a>
       <a href="/birth-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">Birth Chart</a>
       <a href="/tarot" className="text-gray-300 hover:text-gold transition-colors duration-300">Tarot</a>
+      <div className="relative group">
+        <button onClick={() => router.push('/reports')} className="flex items-center gap-2 text-gray-300 hover:text-gold transition-colors duration-300">
+          Reports
+          <span className="text-[9px] uppercase tracking-widest text-cosmic-950 bg-gold rounded-full px-1.5 py-0.5 font-bold">Premium</span>
+          <i className="fa-solid fa-chevron-down text-[9px]" />
+        </button>
+        <div className="absolute left-1/2 -translate-x-1/2 mt-3 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+          <div className="glass-panel rounded-2xl border border-gold/20 p-2" style={{ background: '#1E1B4B' }}>
+            {[
+              { label: 'Birth Chart Report', price: 'FREE', href: '/reports' },
+              { label: 'Yearly Transit Forecast', price: '$49', href: '/reports' },
+              { label: 'Synastry Love Report', price: '$65', href: '/reports' },
+              { label: 'Vocation & Wealth Map', price: '$55', href: '/reports' },
+              { label: 'Tarot Spreads', price: 'from $4.99', href: '/tarot' },
+              { label: 'Book a Live Zoom', price: '$120', href: '/reports' },
+            ].map((r) => (
+              <a key={r.label} href={r.href} className="flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                <span className="text-sm text-gray-200">{r.label}</span>
+                <span className="text-xs text-gold font-serif ml-3 whitespace-nowrap">{r.price}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
     </>
   );
 
