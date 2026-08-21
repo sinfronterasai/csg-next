@@ -74,7 +74,7 @@ export interface Aspect {
 export type AspectType = 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
 
 // Major aspects: angle + allowable orb.
-const ASPECT_DEFS: { type: AspectType; angle: number; orb: number }[] = [
+export const ASPECT_DEFS: { type: AspectType; angle: number; orb: number }[] = [
   { type: 'conjunction', angle: 0, orb: 8 },
   { type: 'sextile', angle: 60, orb: 5 },
   { type: 'square', angle: 90, orb: 6 },
@@ -92,7 +92,7 @@ export const ASPECT_LABEL: Record<AspectType, string> = {
 };
 
 // 360-degree angular distance between two longitudes (0..180).
-function angularDistance(a: number, b: number): number {
+export function angularDistance(a: number, b: number): number {
   const diff = Math.abs(normDeg(a) - normDeg(b));
   return Math.min(diff, 360 - diff);
 }

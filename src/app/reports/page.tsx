@@ -5,56 +5,91 @@ import Link from 'next/link';
 import ReportResult from '@/components/reports/ReportResult';
 
 // Layer-1 "what's inside" bullets are presentation copy that mirrors what the
-// deterministic engine actually computes (no fabricated data claims).
-const PRODUCTS = [
+// deterministic engine actually computes (no fabricated data claims). Prices
+// follow the master-index ladder (readme.md 00-master-index).
+type Accent = 'teal' | 'gold';
+type Kind = 'free' | 'paid' | 'bundle';
+
+const PRODUCTS: {
+  id: string; name: string; price: string; priceNote: string; blurb: string;
+  icon: string; accent: Accent; bullets: string[]; cta: string; kind: Kind;
+  needsPartner?: boolean;
+}[] = [
   {
-    id: 'natal',
-    name: 'Birth Chart Report',
-    price: 'FREE',
-    priceNote: 'free gateway',
+    id: 'natal', name: 'Birth Chart Report', price: 'FREE', priceNote: 'free gateway',
     blurb: 'Your complete natal map — the foundation every other report builds on. Start here.',
-    icon: 'fa-sun',
-    accent: 'teal' as const,
+    icon: 'fa-sun', accent: 'teal',
     bullets: ['Sun, Moon & Ascendant decode', 'All 10 planets across the 12 houses', 'Your dominant element & modality'],
-    cta: 'START FREE',
-    kind: 'free' as const,
+    cta: 'START FREE', kind: 'free',
   },
   {
-    id: 'transit',
-    name: 'Yearly Transit Forecast',
-    price: '$49',
-    priceNote: 'one-time',
-    blurb: 'Map planetary movements relative to your life nodes over the next 12 months.',
-    icon: 'fa-clock-rotate-left',
-    accent: 'gold' as const,
+    id: 'relationship', name: 'Relationship Matrix', price: 'FREE', priceNote: 'add-on to Natal',
+    blurb: 'Your Venus, Mars, Moon and 7th-house read — the solo love-print bundled with your birth chart.',
+    icon: 'fa-link', accent: 'teal',
+    bullets: ['Venus love style', 'Mars desire drive', '7th-house partnership axis'],
+    cta: 'UNLOCK FREE', kind: 'free',
+  },
+  {
+    id: 'transit', name: 'Yearly Transit Forecast', price: '$39', priceNote: 'one-time',
+    blurb: 'Map planetary movements relative to your chart over the next 12 months.',
+    icon: 'fa-clock-rotate-left', accent: 'gold',
     bullets: ['12-month forward ephemeris', 'Career, love, money & health themes', 'Exact timing windows per topic'],
-    cta: 'UNLOCK $49',
-    kind: 'paid' as const,
+    cta: 'UNLOCK $39', kind: 'paid',
   },
   {
-    id: 'synastry',
-    name: 'Synastry Love Report',
-    price: '$65',
-    priceNote: 'one-time',
-    blurb: 'Overlay two charts to unlock structural compatibility, friction zones, and soul-contract links.',
-    icon: 'fa-heart-circle-bolt',
-    accent: 'gold' as const,
-    bullets: ['Two-chart overlay & aspects', 'Harmony vs friction zones', 'Soul-contract & growth links'],
-    cta: 'UNLOCK $65',
-    kind: 'paid' as const,
-    needsPartner: true,
+    id: 'loveblueprint', name: 'Love Blueprint', price: '$39', priceNote: 'one-time',
+    blurb: 'Your Venus + Mars + Moon signature with the real love aspects colouring your chart.',
+    icon: 'fa-heart', accent: 'gold',
+    bullets: ['Venus/Mars/Moon love signature', '5th / 7th / 8th house reads', 'Aspects that colour love'],
+    cta: 'UNLOCK $39', kind: 'paid',
   },
   {
-    id: 'vocation',
-    name: 'Vocation & Wealth Map',
-    price: '$55',
-    priceNote: 'one-time',
+    id: 'lovetiming', name: 'Love Timing Forecast', price: '$29', priceNote: 'one-time',
+    blurb: 'The next 12 months scored for love intensity, with your peak romance window named.',
+    icon: 'fa-calendar-heart', accent: 'gold',
+    bullets: ['12-month love-intensity score', 'Peak romance window', 'Transits to Venus & angles'],
+    cta: 'UNLOCK $29', kind: 'paid',
+  },
+  {
+    id: 'vocation', name: 'Vocation & Wealth Map', price: '$39', priceNote: 'one-time',
     blurb: 'Decode Midheaven aspects and 2nd/10th House dynamics for perfect professional alignment.',
-    icon: 'fa-briefcase',
-    accent: 'gold' as const,
+    icon: 'fa-briefcase', accent: 'gold',
     bullets: ['2nd, 6th & 10th house reads', 'Midheaven career signature', 'Saturn & Jupiter wealth cues'],
-    cta: 'UNLOCK $55',
-    kind: 'paid' as const,
+    cta: 'UNLOCK $39', kind: 'paid',
+  },
+  {
+    id: 'karmicshadow', name: 'Karmic & Shadow Work', price: '$19', priceNote: 'one-time',
+    blurb: 'Your nodal axis, south-node release list, and a Chiron-based shadow journal.',
+    icon: 'fa-moon', accent: 'gold',
+    bullets: ['North/South node path', 'Chiron wound & healing', '5 grounded journal prompts'],
+    cta: 'UNLOCK $19', kind: 'paid',
+  },
+  {
+    id: 'synastry', name: 'Synastry Love Report', price: '$49', priceNote: 'one-time',
+    blurb: 'Overlay two charts to unlock structural compatibility, friction zones, and soul-contract links.',
+    icon: 'fa-heart-circle-bolt', accent: 'gold',
+    bullets: ['Two-chart overlay & aspects', 'Harmony vs friction zones', 'Soul-contract & growth links'],
+    cta: 'UNLOCK $49', kind: 'paid', needsPartner: true,
+  },
+  {
+    id: 'composite', name: 'Composite Chart Report', price: '$29', priceNote: 'one-time',
+    blurb: 'The "relationship soul" chart — the midpoint of both charts, the identity you become together.',
+    icon: 'fa-ring', accent: 'gold',
+    bullets: ['Midpoint composite chart', 'Couple Sun / Moon / Venus', 'Shared direction & growth edge'],
+    cta: 'UNLOCK $29', kind: 'paid', needsPartner: true,
+  },
+];
+
+const BUNDLES = [
+  {
+    id: 'couples', name: 'Couples Cosmic Profile', price: '$89', save: '$78 separately',
+    blurb: 'Synastry + Composite assembled into one connected profile, with a Couples Synthesis Index.',
+    icon: 'fa-link', needsPartner: true,
+  },
+  {
+    id: 'fullcosmic', name: 'Full Cosmic Profile', price: '$89', save: '$147 separately',
+    blurb: 'Natal + Yearly Transit + Synastry + Vocation in one book, with a Full Cosmic Synthesis.',
+    icon: 'fa-compass', needsPartner: false,
   },
 ];
 
@@ -72,6 +107,7 @@ const FAQ = [
   { q: 'How fast is delivery?', a: 'Reports are computed instantly from your saved birth chart and ready to view, download as PDF, and share the moment they’re generated.' },
   { q: 'Can I re-download later?', a: 'Yes. Every report you generate is saved to your profile library and can be opened or exported to PDF whenever you like.' },
   { q: 'What if I already saved my chart?', a: 'Perfect — every report reuses your saved natal chart, so you’re never asked for your birth details twice.' },
+  { q: 'Are these two-person reports private?', a: 'Yes. A partner’s birth data is used only to compute that one report and is never marketed or reused without their separate opt-in (privacy-by-design).' },
 ];
 
 export default function Reports() {
@@ -98,7 +134,7 @@ export default function Reports() {
       const res = await fetch('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: id, partner: id === 'synastry' ? partner : undefined }),
+        body: JSON.stringify({ type: id, partner: (id === 'synastry' || id === 'composite' || id === 'couples') ? partner : undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -187,7 +223,7 @@ export default function Reports() {
         </div>
       </section>
 
-      {/* C. PAID ASTRO REPORT GRID */}
+      {/* C. PAID + FREE SOLO ASTRO REPORT GRID */}
       <section id="paid" className="max-w-7xl mx-auto px-6 lg:px-16 pt-20">
         <div className="flex items-end justify-between mb-10">
           <div>
@@ -200,14 +236,14 @@ export default function Reports() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {PRODUCTS.filter((p) => p.kind === 'paid').map((p) => (
-            <div key={p.id} className="glass-panel p-7 rounded-[32px] border border-gold/30 flex flex-col justify-between group hover:border-gold/60 transition-all duration-300">
+          {PRODUCTS.map((p) => (
+            <div key={p.id} className={`glass-panel p-7 rounded-[32px] border flex flex-col justify-between group hover:border-gold/60 transition-all duration-300 ${p.kind === 'free' ? 'border-[#2DD4BF]/30' : 'border-gold/30'}`}>
               <div>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-xl">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${p.kind === 'free' ? 'bg-[#2DD4BF]/10 text-[#2DD4BF]' : 'bg-gold/10 text-gold'}`}>
                     <i className={`fa-solid ${p.icon}`} />
                   </div>
-                  <span className="text-[10px] uppercase tracking-widest text-[#2DD4BF] border border-[#2DD4BF]/40 rounded-full px-2.5 py-1">Instant PDF</span>
+                  <span className="text-[10px] uppercase tracking-widest rounded-full px-2.5 py-1 text-[#2DD4BF] border border-[#2DD4BF]/40">Instant PDF</span>
                 </div>
                 <h3 className="font-serif text-2xl text-white mb-2">{p.name}</h3>
                 <p className="text-cosmic-200 text-sm leading-relaxed mb-5">{p.blurb}</p>
@@ -229,7 +265,7 @@ export default function Reports() {
               </div>
               <div className="pt-5 border-t border-white/5">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-serif text-gold text-lg">{p.price}</span>
+                  <span className={`font-serif text-lg ${p.kind === 'free' ? 'text-[#2DD4BF]' : 'text-gold'}`}>{p.price}</span>
                   <span className="text-xs uppercase tracking-widest text-gray-400">{p.priceNote}</span>
                 </div>
                 <button
@@ -293,19 +329,32 @@ export default function Reports() {
 
       {/* F. BUNDLE STRIP */}
       <section className="max-w-7xl mx-auto px-6 lg:px-16 pt-16">
-        <div className="relative overflow-hidden glass-panel p-8 md:p-10 rounded-[40px] border border-gold/30 text-center" style={{ background: 'linear-gradient(120deg, rgba(138,43,226,0.12), rgba(223,183,108,0.10))' }}>
-          <p className="text-xs uppercase tracking-[0.3em] text-gold font-semibold">Best Value</p>
-          <h3 className="font-serif text-3xl text-white mt-2">The Full Cosmic Profile</h3>
-          <p className="text-cosmic-200 mt-3 max-w-2xl mx-auto text-sm">
-            Birth Chart Report (free) + Yearly Transit + Synastry + Vocation. Everything in one place — save $75 vs buying separately.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <span className="font-serif text-2xl text-gold">$149</span>
-            <span className="text-gray-400 text-sm line-through">$224 separately</span>
-            <button className="px-7 py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)]">
-              Get the Bundle $149
-            </button>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {BUNDLES.map((b) => (
+            <div key={b.id} className="relative overflow-hidden glass-panel p-8 md:p-10 rounded-[40px] border border-gold/30 text-center" style={{ background: 'linear-gradient(120deg, rgba(138,43,226,0.12), rgba(223,183,108,0.10))' }}>
+              <p className="text-xs uppercase tracking-[0.3em] text-gold font-semibold">Best Value</p>
+              <h3 className="font-serif text-3xl text-white mt-2">{b.name}</h3>
+              <p className="text-cosmic-200 mt-3 max-w-xl mx-auto text-sm">{b.blurb}</p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+                <span className="font-serif text-2xl text-gold">{b.price}</span>
+                <span className="text-gray-400 text-sm line-through">{b.save}</span>
+                <button
+                  onClick={() => generate(b.id)}
+                  disabled={loading === b.id}
+                  className="px-7 py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
+                >
+                  {loading === b.id ? 'Generating…' : `Get the Bundle ${b.price}`}
+                </button>
+              </div>
+              {b.needsPartner && (
+                <div className="mt-5 max-w-sm mx-auto space-y-2">
+                  <input placeholder="Partner birth date (YYYY-MM-DD)" value={partner.birthDate} onChange={(e) => setPartner({ ...partner, birthDate: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500" />
+                  <input placeholder="Partner time (HH:MM, optional)" value={partner.birthTime} onChange={(e) => setPartner({ ...partner, birthTime: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500" />
+                  <input placeholder="Partner location (optional)" value={partner.location} onChange={(e) => setPartner({ ...partner, location: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500" />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 

@@ -56,7 +56,13 @@ export default function ReportResult({
     }
   };
 
-  const heading = title || (type ? ({ natal: 'Natal Birth Chart Report', transit: 'Yearly Transit Forecast', synastry: 'Synastry Love Report', vocation: 'Vocation and Wealth Map' } as Record<ReportType, string>)[type] : 'Report');
+  const TITLE_BY_TYPE: Record<ReportType, string> = {
+    natal: 'Natal Birth Chart Report', transit: 'Yearly Transit Forecast', synastry: 'Synastry Love Report',
+    vocation: 'Vocation and Wealth Map', relationship: 'Relationship Matrix', loveblueprint: 'Love Blueprint',
+    lovetiming: 'Love Timing Forecast', composite: 'Composite Chart Report', couples: 'Couples Cosmic Profile',
+    karmicshadow: 'Karmic & Shadow Work', fullcosmic: 'Full Cosmic Profile',
+  };
+  const heading = title || (type ? TITLE_BY_TYPE[type] : 'Report');
   return (
     <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
       <h3 className="text-2xl font-serif text-gold mb-1 capitalize">{heading}</h3>

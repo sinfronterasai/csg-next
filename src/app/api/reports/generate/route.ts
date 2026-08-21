@@ -4,8 +4,10 @@ import { verifyToken, getUserById } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { saveUniversalReading } from '@/lib/profile/store';
 import {
-  buildNatalReport, buildTransitReport, buildSynastryReport, buildVocationReport,
-  type ReportType, REPORT_META,
+  buildNatalReport, buildRelationshipMatrixReport, buildTransitReport, buildLoveBlueprintReport,
+  buildLoveTimingReport, buildSynastryReport, buildCompositeReport, buildCouplesBundleReport,
+  buildVocationReport, buildKarmicShadowReport, buildFullCosmicBundleReport,
+  type ReportType, REPORT_META, PARTNER_REQUIRED,
 } from '@/lib/reportEngine';
 
 async function getSavedChart(userId: string) {
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const { type: rawType, partner } = body;
-    const type = rawType as ReportType; // type: natal | transit | synastry | vocation
+    const type = rawType as ReportType; // see ReportType union in reportEngine
 
     const chart = await getSavedChart(decoded.userId);
     if (!chart) {
@@ -56,32 +58,50 @@ export async function POST(request: Request) {
     }
 
     // Route every report through the single engine (report-design PART 3 #1).
-    const validTypes: ReportType[] = ['natal', 'transit', 'synastry', 'vocation'];
+    const validTypes: ReportType[] = ['natal', 'relationship', 'transit', 'loveblueprint', 'lovetiming', 'synastry', 'composite', 'couples', 'vocation', 'karmicshadow', 'fullcosmic'];
     if (!validTypes.includes(type)) {
       return NextResponse.json({ error: 'Unknown report type' }, { status: 400 });
     }
 
+    // Two-person reports need a partner's birth data (privacy-by-design: B's data
+    // is used ONLY for this report). Raise 400 early if it's missing.
+    if (PARTNER_REQUIRED.has(type) && (!partner || !partner.birthDate)) {
+      return NextResponse.json({ error: 'Partner birth date is required for this report' }, { status: 400 });
+    }
+
     let report;
+    const partnerInfo = partner ? {
+      date: partner.birthDate,
+      time: partner.birthTime,
+      location: partner.location || chart.birthInfo.location,
+      unknownTime: !partner.birthTime,
+    } : undefined;
     try {
-      if (type === 'transit') {
-        report = await buildTransitReport({ natal: chart.birthInfo });
-      } else if (type === 'vocation') {
-        report = await buildVocationReport({ natal: chart.birthInfo });
-      } else if (type === 'synastry') {
-        if (!partner || !partner.birthDate) {
-          return NextResponse.json({ error: 'Partner birth date required for synastry' }, { status: 400 });
-        }
-        report = await buildSynastryReport({
-          self: chart.birthInfo,
-          partner: {
-            date: partner.birthDate,
-            time: partner.birthTime,
-            location: partner.location || chart.birthInfo.location,
-            unknownTime: !partner.birthTime,
-          },
-        });
-      } else {
-        report = await buildNatalReport(chart.birthInfo);
+      switch (type) {
+        case 'natal':
+          report = await buildNatalReport(chart.birthInfo); break;
+        case 'relationship':
+          report = await buildRelationshipMatrixReport({ natal: chart.birthInfo }); break;
+        case 'transit':
+          report = await buildTransitReport({ natal: chart.birthInfo }); break;
+        case 'loveblueprint':
+          report = await buildLoveBlueprintReport({ natal: chart.birthInfo }); break;
+        case 'lovetiming':
+          report = await buildLoveTimingReport({ natal: chart.birthInfo }); break;
+        case 'vocation':
+          report = await buildVocationReport({ natal: chart.birthInfo }); break;
+        case 'karmicshadow':
+          report = await buildKarmicShadowReport({ natal: chart.birthInfo }); break;
+        case 'synastry':
+          report = await buildSynastryReport({ self: chart.birthInfo, partner: partnerInfo! }); break;
+        case 'composite':
+          report = await buildCompositeReport({ self: chart.birthInfo, partner: partnerInfo! }); break;
+        case 'couples':
+          report = await buildCouplesBundleReport({ self: chart.birthInfo, partner: partnerInfo! }); break;
+        case 'fullcosmic':
+          report = await buildFullCosmicBundleReport({ natal: chart.birthInfo, partner: partnerInfo }); break;
+        default:
+          report = await buildNatalReport(chart.birthInfo);
       }
     } catch (err) {
       console.error('[reports/generate] engine failed:', err);
@@ -101,7 +121,7 @@ export async function POST(request: Request) {
         title,
         question: `${title} report`,
         pricePaid,
-        partnerLabel: type === 'synastry' && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
+        partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples' || type === 'fullcosmic') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
         result: {
           title,
           text,
