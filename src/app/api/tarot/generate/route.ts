@@ -71,10 +71,18 @@ export async function POST(request: NextRequest) {
       readingId: reading.readingId,
     });
   } catch (err: any) {
-    // Never return a fake reading. Surface the real failure.
+    // Never return a fake reading. Surface the real failure so it is debuggable.
+    // 'model_not_found' / auth errors are config problems, not an outage.
+    const detail = String(err?.message || err);
+    const isConfig = /model_not_found|does not exist|API key|GROQ_API_KEY|401|403|unauthorized/i.test(detail);
     return NextResponse.json(
-      { error: "Reading generation failed. Our interpreter is unavailable right now.", detail: String(err?.message || err) },
-      { status: 502 },
+      {
+        error: isConfig
+          ? 'Tarot reading is misconfigured (LLM model or key).'
+          : 'Reading generation failed. Our interpretation service is unavailable right now.',
+        detail,
+      },
+      { status: isConfig ? 500 : 502 },
     );
   }
 }

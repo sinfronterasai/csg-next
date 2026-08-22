@@ -35,7 +35,7 @@ describe('SpreadMenu fixes', () => {
 
   // Violation 1: retain the typed question across a failed draw.
   it('retains the typed question when a draw fails (no retype)', async () => {
-    mockFetch({ '/api/tarot/generate': { ok: false, status: 500, body: { error: 'Our interpreter is unavailable right now.' } } });
+    mockFetch({ '/api/tarot/generate': { ok: false, status: 502, body: { error: 'Reading generation failed. Our interpretation service is unavailable right now.', detail: 'model_not_found' } } });
     render(<SpreadMenu />);
     fireEvent.click(screen.getByText('Past · Present · Future'));
     const ta = screen.getByPlaceholderText(/what.s your question/i) as HTMLTextAreaElement;
@@ -44,7 +44,7 @@ describe('SpreadMenu fixes', () => {
     // Modal reopens with the question preserved and the error surfaced.
     const retained = await screen.findByDisplayValue('Will I get the job?');
     expect(retained).toBeInTheDocument();
-    expect(screen.getByText(/interpreter is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/interpretation service is unavailable/i)).toBeInTheDocument();
   });
 
   // Violation 2: "New reading" must reset phase, not soft-nav to the same route.
