@@ -35,3 +35,19 @@ ALTER TABLE readings
 
 -- Index for the public fetch-by-token lookup.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_share_token ON readings(share_token);
+
+-- n8n report pipeline lifecycle. The app is the system of record; n8n only
+-- interprets verifiedFacts and calls back. pipeline_status tracks the async
+-- journey of a single report from dispatch through editorial sign-off.
+--   NULL/queued      -> dispatched to n8n, awaiting callback
+--   processing       -> n8n acknowledged, generating
+--   approved         -> passed gates (free) or editor-approved (paid); deliverable
+--   needs_editor     -> paid report passed automated gates, awaiting human sign-off
+--   rejected         -> failed gates or editor rejection; never delivered
+-- result.reportId holds the app-generated UUID that correlates the n8n callback.
+ALTER TABLE readings
+  ADD COLUMN IF NOT EXISTS pipeline_status text;
+
+-- Idempotent lookup: find the unified reading by its n8n correlation id.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_pipeline_report_id
+  ON readings ((result ->> 'reportId')) WHERE type = 'report';

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getReadingByShareToken } from '@/lib/profile/store';
+import { getReadingByShareToken, toPublicReport } from '@/lib/profile/store';
 
 // GET /api/reports/shared/:token  (public, no auth)
 // Returns the shared report payload for rendering the public read-only page.
+// Pipeline reports are gated: a paid report awaiting editor sign-off or a
+// rejected report is never delivered (R3.5).
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> },
@@ -13,17 +15,7 @@ export async function GET(
     if (!rec || rec.type !== 'report') {
       return NextResponse.json({ error: 'Shared report not found' }, { status: 404 });
     }
-    const result = rec.result as {
-      title?: string; overview?: unknown[]; sections?: unknown[]; reportType?: string;
-    };
-    return NextResponse.json({
-      success: true,
-      title: result.title ?? rec.title,
-      type: result.reportType,
-      overview: result.overview ?? [],
-      sections: result.sections ?? [],
-      createdAt: rec.createdAt,
-    });
+    return NextResponse.json({ success: true, ...toPublicReport(rec) });
   } catch {
     return NextResponse.json({ error: 'Failed to load shared report' }, { status: 500 });
   }
