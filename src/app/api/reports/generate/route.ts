@@ -6,7 +6,7 @@ import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
-import { extractVerifiedFacts } from '@/lib/reportVerifiedFacts';
+import { buildVerifiedFactsForReport, V2PreflightError } from '@/lib/reportFacts/integrate';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 
@@ -103,12 +103,26 @@ export async function POST(request: Request) {
       // stores it in report_orders.report_id AND the reading result JSON) and the
       // n8n dispatch. The callback later locates the reading by this exact value.
       const reportId = crypto.randomUUID();
+      // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
+      // input_incomplete we fail closed with 422 and never touch the purchase.
+      let readingInput;
+      try {
+        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued' });
+      } catch (e) {
+        if (e instanceof V2PreflightError) {
+          return NextResponse.json(
+            { error: 'Report facts incomplete for this birth data', mode: 'preflight_failed', missing: e.preflight.missing },
+            { status: 422 },
+          );
+        }
+        throw e;
+      }
       const consumed = await consumeReportPurchase({
         purchaseId,
         userId: Number(decoded.userId),
         reportType: type,
         reportId,
-        reading: await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued' }),
+        reading: readingInput,
       });
       if (consumed.outcome === 'already_correlated') {
         return buildRepeatResponse(consumed.readingId, consumed.reportId, consumed.readingStatus);
@@ -149,7 +163,17 @@ export async function POST(request: Request) {
     }
     const c = rows[0];
     const chart = await buildBirthInfo(c, user);
-    const verifiedFacts = await extractVerifiedFacts(contractType, chart);
+    const v2 = await buildVerifiedFactsForReport(type, chart);
+    if (!v2.ok) {
+      // Fail closed: do not insert or dispatch a report whose required facts are
+      // missing. No purchase is consumed (free path) and the client gets a
+      // machine-readable list of missing fact ids (never rendered as prose).
+      return NextResponse.json(
+        { error: 'Report facts incomplete for this birth data', mode: 'preflight_failed', missing: v2.preflight.missing },
+        { status: 422 },
+      );
+    }
+    const verifiedFacts = v2.ledger;
     const title = REPORT_META[type].title;
     const price = REPORT_META[type].price;
     const reportId = crypto.randomUUID();
@@ -232,7 +256,9 @@ async function buildReadingInput(opts: {
   const c = rows[0];
   const chart = await buildBirthInfo(c, user);
   const contractType = mapReportType(type)!;
-  const verifiedFacts = await extractVerifiedFacts(contractType, chart);
+  const v2 = await buildVerifiedFactsForReport(type, chart);
+  if (!v2.ok) throw new V2PreflightError(v2.preflight);
+  const verifiedFacts = v2.ledger;
   const title = REPORT_META[type].title;
   // Persist the IMMUTABLE request snapshot (normalized birth data + verified facts)
   // inside result.metadata so retry (and dispatch) uses the exact original values,

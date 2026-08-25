@@ -14,8 +14,13 @@ jest.mock('@/lib/auth', () => ({
   getUserById: async () => ({ id: 7, first_name: 'A', email: 'a@x.com', role: 'customer' }),
 }));
 jest.mock('@/lib/db', () => ({ query: jest.fn() }));
-jest.mock('@/lib/reportVerifiedFacts', () => ({
-  extractVerifiedFacts: async () => ({ natalChart: {} }),
+const V2_LEDGER = {
+  schemaVersion: 'csg-report-facts-v2', reportType: 'natal', asOfDate: '2026-01-01',
+  common: { chartRuler: { planet: 'moon', label: 'Moon', sign: 'cancer', condition: 'x', display: 'x' }, aspects: [], patterns: [], elements: {}, modalities: {}, moonPhase: { phase: 0.5, label: 'Full Moon' }, northNode: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, southNode: { sign: 'capricorn', signLabel: 'Capricorn', degreeInSign: 1, longitude: 271, house: null, retrograde: false, dignity: null, display: 'x' }, juno: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, partOfFortune: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, ascendant: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, house: 1 }, descendant: { sign: 'capricorn', signLabel: 'Capricorn', degreeInSign: 1, house: 7 }, midheaven: { sign: 'pisces', signLabel: 'Pisces', degreeInSign: 1, house: 10 }, icumcoeli: { sign: 'virgo', signLabel: 'Virgo', degreeInSign: 1, house: 4 }, topAspectByBody: {} },
+  facts: {}, reportData: {},
+};
+jest.mock('@/lib/reportFacts/integrate', () => ({
+  buildVerifiedFactsForReport: async () => ({ ok: true, ledger: V2_LEDGER }),
 }));
 jest.mock('@/lib/profile/store', () => ({
   setReadingDispatchFailed: jest.fn(async () => {}),

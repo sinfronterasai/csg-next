@@ -12,9 +12,18 @@ const CHART = {
   birth_date: new Date('1990-05-01'), birth_time: new Date('1990-05-01T10:30:00'),
   location_name: 'Paris', latitude: 48.85, longitude: 2.35, timezone: 'Europe/Paris', unknown_time: false,
 };
-const VERIFIED = { sunSign: 'Taurus', moonSign: 'Leo', ascendant: 'Cancer' };
+const VERIFIED = {
+  schemaVersion: 'csg-report-facts-v2',
+  reportType: 'natal',
+  asOfDate: '2026-01-01',
+  common: { chartRuler: { planet: 'moon', label: 'Moon', sign: 'cancer', condition: 'in no special dignity', display: 'x' }, aspects: [], patterns: [], elements: {}, modalities: {}, moonPhase: { phase: 0.5, label: 'Full Moon' }, northNode: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, southNode: { sign: 'capricorn', signLabel: 'Capricorn', degreeInSign: 1, longitude: 271, house: null, retrograde: false, dignity: null, display: 'x' }, juno: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, partOfFortune: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, longitude: 91, house: null, retrograde: false, dignity: null, display: 'x' }, ascendant: { sign: 'cancer', signLabel: 'Cancer', degreeInSign: 1, house: 1 }, descendant: { sign: 'capricorn', signLabel: 'Capricorn', degreeInSign: 1, house: 7 }, midheaven: { sign: 'pisces', signLabel: 'Pisces', degreeInSign: 1, house: 10 }, icumcoeli: { sign: 'virgo', signLabel: 'Virgo', degreeInSign: 1, house: 4 }, topAspectByBody: {} },
+  facts: {},
+  reportData: {},
+};
 
-jest.mock('@/lib/reportVerifiedFacts', () => ({ extractVerifiedFacts: async () => VERIFIED }));
+jest.mock('@/lib/reportFacts/integrate', () => ({
+  buildVerifiedFactsForReport: async () => ({ ok: true, ledger: VERIFIED }),
+}));
 jest.mock('@/lib/reportEngine', () => ({ REPORT_META: { natal: { price: 0, title: 'Natal Chart' } }, __esModule: true }));
 jest.mock('@/lib/reportPipeline', () => ({
   mapReportType: (t: string) => t,
