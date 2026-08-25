@@ -1,4 +1,5 @@
-import { query } from '@/lib/db';
+import { query, transaction } from '@/lib/db';
+import crypto from 'crypto';
 
 // Unified journal store for the Profile Hub. All non-tarot artifacts
 // (reports, horoscopes, zoom sessions) live in `readings` with a `type`
@@ -38,7 +39,13 @@ export interface UniversalReadingRecord {
   createdAt: string;
   /** Async n8n pipeline lifecycle state; null until dispatched. */
   pipelineStatus: string | null;
+  /** Canonical hash of the last applied callback payload (duplicate detection). */
+  pipelineCallbackHash: string | null;
 }
+
+const READING_COLS = `id, user_id, type, title, question, category, scope, period_start, period_end,
+            price_paid, partner_label, result, reflection, created_at,
+            pipeline_status, pipeline_callback_hash`;
 
 export async function saveUniversalReading(
   input: SaveUniversalReadingInput,
@@ -48,9 +55,7 @@ export async function saveUniversalReading(
        (user_id, type, title, question, category, scope, period_start, period_end,
         price_paid, partner_label, result, meta, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
-     RETURNING id, user_id, type, title, question, category, scope,
-               period_start, period_end, price_paid, partner_label,
-               result, reflection, created_at`,
+     RETURNING ${READING_COLS}`,
     [
       input.userId,
       input.type,
@@ -74,8 +79,7 @@ export async function listReadingsByType(
   type: ReadingType,
 ): Promise<UniversalReadingRecord[]> {
   const { rows } = await query(
-    `SELECT id, user_id, type, title, question, category, scope, period_start, period_end,
-            price_paid, partner_label, result, reflection, created_at
+    `SELECT ${READING_COLS}
        FROM readings
       WHERE user_id = $1 AND type = $2
       ORDER BY created_at DESC`,
@@ -84,16 +88,30 @@ export async function listReadingsByType(
   return rows.map(hydrateRow);
 }
 
+/** Customer-owned lookup: filters by BOTH id and owner. Never used for staff. */
 export async function getReadingById(
   id: number,
   userId: number,
 ): Promise<UniversalReadingRecord | null> {
   const { rows } = await query(
-    `SELECT id, user_id, type, title, question, category, scope, period_start, period_end,
-            price_paid, partner_label, result, reflection, created_at
+    `SELECT ${READING_COLS}
        FROM readings
       WHERE id = $1 AND user_id = $2`,
     [id, userId],
+  );
+  return rows[0] ? hydrateRow(rows[0]) : null;
+}
+
+/** Staff lookup (editor/admin): by id only, no owner filter. Caller must have
+ *  already authorized the role. Kept separate so customer lookups stay owned. */
+export async function getReportByIdForRole(
+  id: number,
+): Promise<UniversalReadingRecord | null> {
+  const { rows } = await query(
+    `SELECT ${READING_COLS}
+       FROM readings
+      WHERE id = $1 AND type = 'report'`,
+    [id],
   );
   return rows[0] ? hydrateRow(rows[0]) : null;
 }
@@ -106,8 +124,7 @@ export async function updateReflection(
   const { rows } = await query(
     `UPDATE readings SET reflection = $1
       WHERE id = $2 AND user_id = $3
-     RETURNING id, user_id, type, title, question, category, scope, period_start, period_end,
-               price_paid, partner_label, result, reflection, created_at`,
+     RETURNING ${READING_COLS}`,
     [reflection, id, userId],
   );
   return rows[0] ? hydrateRow(rows[0]) : null;
@@ -159,6 +176,7 @@ function hydrateRow(r: any): UniversalReadingRecord {
     reflection: r.reflection ?? null,
     createdAt: String(r.created_at),
     pipelineStatus: r.pipeline_status ?? null,
+    pipelineCallbackHash: r.pipeline_callback_hash ?? null,
   };
 }
 
@@ -194,8 +212,7 @@ export async function getReadingByShareToken(
   // to uuid and throws, which surfaces as a 500 instead of a clean 404.
   if (!token || !UUID_RE.test(token)) return null;
   const { rows } = await query(
-    `SELECT id, user_id, type, title, question, category, scope, period_start, period_end,
-            price_paid, partner_label, result, reflection, created_at
+    `SELECT ${READING_COLS}
        FROM readings
       WHERE share_token = $1::uuid`,
     [token],
@@ -208,9 +225,6 @@ export async function getReadingByShareToken(
 // n8n and stores it in `result.reportId`. n8n returns that same id on callback,
 // so we can locate the owning record without ever trusting a callback-supplied
 // user id. Ownership stays on the existing readings row.
-
-const READING_COLS = `id, user_id, type, title, question, category, scope, period_start, period_end,
-            price_paid, partner_label, result, reflection, created_at`;
 
 /** Find a report reading by its n8n correlation id (app-generated UUID). */
 export async function getReadingByReportId(
@@ -233,34 +247,133 @@ export type PipelineStatus =
   | 'rejected';
 
 /**
- * Idempotently apply a pipeline outcome to the record identified by reportId.
- * Returns the updated row, or null if no such report exists. The caller must
- * enforce state-machine rules (no terminal regression, no conflicting duplicate)
- * BEFORE calling this; this function only performs the write.
+ * Persist the dispatch failure so the customer sees a clear state and the record
+ * is not left stuck in `queued` after a non-2xx pipeline response.
  */
-export async function applyPipelineResult(input: {
+export async function setReadingDispatchFailed(
+  readingId: number,
+): Promise<void> {
+  await query(
+    `UPDATE readings SET pipeline_status = 'rejected' WHERE id = $1`,
+    [readingId],
+  );
+}
+
+/** Canonical hash of a callback payload used for duplicate/conflict detection. */
+export function canonicalCallbackHash(payload: {
+  status: string;
+  sections: unknown[];
+  judge: unknown;
+  editorNote: string | null;
+  rejectReasons: string[];
+}): string {
+  const canonical = JSON.stringify({
+    status: payload.status,
+    sections: payload.sections ?? [],
+    judge: payload.judge ?? null,
+    editorNote: payload.editorNote ?? null,
+    rejectReasons: payload.rejectReasons ?? [],
+  });
+  return crypto.createHash('sha256').update(canonical).digest('hex');
+}
+
+export type PipelineCallbackOutcome =
+  | 'applied'       // state advanced and persisted
+  | 'duplicate'     // identical to last applied callback (idempotent no-op)
+  | 'conflict'      // same terminal status but different payload (race/bug)
+  | 'regression'    // would move a terminal state backwards
+  | 'not_found';    // no such report
+
+export interface ApplyPipelineCallbackInput {
   reportId: string;
   status: PipelineStatus;
-  resultPatch: Record<string, unknown>;
-  pipelineStatus?: PipelineStatus;
-}): Promise<UniversalReadingRecord | null> {
-  const { rows } = await query(
-    `UPDATE readings
-        SET result = jsonb_set(result, '{pipeline}', $2::jsonb),
-            pipeline_status = $3
-      WHERE id = (
-        SELECT id FROM readings
-         WHERE type = 'report' AND result ->> 'reportId' = $1
-         ORDER BY created_at DESC LIMIT 1
-      )
-     RETURNING ${READING_COLS}`,
-    [
-      input.reportId,
-      JSON.stringify(input.resultPatch),
-      input.pipelineStatus ?? input.status,
-    ],
-  );
-  return rows[0] ? hydrateRow(rows[0]) : null;
+  /** The inner pipeline object written to result.pipeline. */
+  pipelineValue: Record<string, unknown>;
+  /** Canonical hash of the incoming callback payload. */
+  callbackHash: string;
+}
+
+/**
+ * Atomically validate and persist a pipeline callback. The SELECT ... FOR UPDATE
+ * locks the row so concurrent callbacks cannot both pass the transition check and
+ * double-apply. Returns a discriminated outcome the route maps to HTTP codes.
+ */
+export async function applyPipelineCallback(
+  input: ApplyPipelineCallbackInput,
+): Promise<PipelineCallbackOutcome> {
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const lock = await tx(
+        `SELECT id, pipeline_status, pipeline_callback_hash
+           FROM readings
+          WHERE type = 'report' AND result ->> 'reportId' = $1
+          ORDER BY created_at DESC LIMIT 1
+          FOR UPDATE`,
+        [input.reportId],
+      );
+      if (lock.rows.length === 0) return finalize(tx, 'not_found');
+
+      const before = (lock.rows[0].pipeline_status as string) ?? null;
+      const prevHash = lock.rows[0].pipeline_callback_hash as string | null;
+
+      // A null prevHash means this status was never persisted (e.g. the row was
+      // created in `queued` by dispatch, or a needs_editor gate result is arriving
+      // for the first time). Any write of the current status is a valid FIRST
+      // WRITE and must be applied; we skip the duplicate/conflict/regression checks
+      // because there is no prior payload to compare against. The UPDATE below
+      // persists the hash so subsequent identical callbacks become duplicates.
+      if (prevHash === null) {
+        // fall through to the UPDATE + applied path below
+      } else if (before === input.status) {
+        // Real no-op transition with a prior payload: dup vs conflict by hash.
+        if (prevHash === input.callbackHash) return finalize(tx, 'duplicate');
+        return finalize(tx, 'conflict');
+      } else if (!canTransitionStore(before, input.status)) {
+        // Terminal-state regression is never allowed.
+        return finalize(tx, 'regression');
+      }
+
+      await tx(
+        `UPDATE readings
+            SET result = jsonb_set(result, '{pipeline}', $2::jsonb),
+                pipeline_status = $3,
+                pipeline_callback_hash = $4
+          WHERE id = $1`,
+        [
+          lock.rows[0].id,
+          JSON.stringify(input.pipelineValue),
+          input.status,
+          input.callbackHash,
+        ],
+      );
+      return finalize(tx, 'applied');
+    } catch (err) {
+      await tx('ROLLBACK');
+      throw err;
+    }
+  });
+}
+
+async function finalize(
+  tx: (t: string, p?: any[]) => Promise<{ rows: any[] }>,
+  outcome: PipelineCallbackOutcome,
+): Promise<PipelineCallbackOutcome> {
+  if (outcome === 'not_found' || outcome === 'conflict' || outcome === 'regression') {
+    await tx('ROLLBACK');
+  } else {
+    await tx('COMMIT');
+  }
+  return outcome;
+}
+
+// State machine mirror (no import cycle with reportPipeline).
+function canTransitionStore(current: string | null, next: string): boolean {
+  const terminal = new Set(['approved', 'rejected']);
+  if (current === null || current === 'queued' || current === 'processing') return true;
+  if (terminal.has(current)) return current === next;
+  if (current === 'needs_editor') return next === 'approved' || next === 'rejected';
+  return false;
 }
 
 // --- Delivery gate (R3) ------------------------------------------------------

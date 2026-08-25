@@ -21,3 +21,21 @@ export async function query(text: string, params?: any[]) {
     client.release();
   }
 }
+
+/**
+ * Run a sequence of statements atomically on a single connection. `txQuery`
+ * executes within the open transaction; callers should BEGIN in `fn` and COMMIT
+ * (or ROLLBACK on error) themselves so they can intermix reads (e.g. SELECT ...
+ * FOR UPDATE) and writes. The client is always released.
+ */
+export async function transaction<T>(
+  fn: (txQuery: (text: string, params?: any[]) => Promise<{ rows: any[] }>) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  const txQuery = (text: string, params?: any[]) => client.query(text, params);
+  try {
+    return await fn(txQuery);
+  } finally {
+    client.release();
+  }
+}

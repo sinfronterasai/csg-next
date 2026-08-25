@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getReadingByReportId, applyPipelineResult, type UniversalReadingRecord } from '@/lib/profile/store';
-import { verifyCallbackToken, canTransition } from '@/lib/reportPipeline';
+import {
+  getReadingByReportId, applyPipelineCallback, canonicalCallbackHash,
+  type UniversalReadingRecord, type PipelineStatus,
+} from '@/lib/profile/store';
+import { verifyCallbackToken } from '@/lib/reportPipeline';
 
 // POST /api/reports/pipeline-complete
 // n8n calls this with the generated/approved/rejected report. The app is the
@@ -11,6 +14,7 @@ import { verifyCallbackToken, canTransition } from '@/lib/reportPipeline';
 // logged here. We only log coarse status transitions.
 
 const VALID_STATUSES = new Set(['approved', 'needs_editor', 'rejected']);
+const MAX_BODY_BYTES = 1_000_000; // 1 MB hard cap on callback payloads.
 
 interface CallbackSection { id?: string; prose?: string; factsCited?: string[] }
 interface CallbackBody {
@@ -28,12 +32,30 @@ function currentStatus(rec: UniversalReadingRecord | null): string | null {
   return pipeline?.status ?? rec.pipelineStatus ?? null;
 }
 
+function isValidSection(s: unknown): s is CallbackSection {
+  if (typeof s !== 'object' || s === null) return false;
+  const o = s as Record<string, unknown>;
+  if (o.id !== undefined && typeof o.id !== 'string') return false;
+  if (o.prose !== undefined && typeof o.prose !== 'string') return false;
+  if (o.factsCited !== undefined) {
+    if (!Array.isArray(o.factsCited)) return false;
+    if (!o.factsCited.every((f) => typeof f === 'string')) return false;
+  }
+  return true;
+}
+
 export async function POST(request: Request) {
   // R2.1 — reject absent/incorrect callback bearer token.
   const auth = request.headers.get('authorization') || request.headers.get('Authorization');
   const provided = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!verifyCallbackToken(provided)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // R7 — bound request size before parsing.
+  const len = Number(request.headers.get('content-length') || 0);
+  if (len > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
 
   let body: CallbackBody;
@@ -53,6 +75,24 @@ export async function POST(request: Request) {
   if (!status || !VALID_STATUSES.has(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
+  if (!Array.isArray(sections) || !sections.every(isValidSection)) {
+    return NextResponse.json({ error: 'Invalid sections' }, { status: 400 });
+  }
+  if (rejectReasons !== undefined && (!Array.isArray(rejectReasons) || !rejectReasons.every((r) => typeof r === 'string'))) {
+    return NextResponse.json({ error: 'Invalid rejectReasons' }, { status: 400 });
+  }
+
+  // R7 — contract-required content per status.
+  if (status === 'approved' || status === 'needs_editor') {
+    if (sections.length === 0 || !judge || typeof judge !== 'object') {
+      return NextResponse.json({ error: 'Approved/needs_editor callbacks require sections and judge' }, { status: 400 });
+    }
+  }
+  if (status === 'rejected') {
+    if (!Array.isArray(rejectReasons) || rejectReasons.length === 0) {
+      return NextResponse.json({ error: 'Rejected callbacks require rejectReasons' }, { status: 400 });
+    }
+  }
 
   const existing = await getReadingByReportId(reportId);
   if (!existing) {
@@ -60,39 +100,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
   }
 
-  const before = currentStatus(existing);
-  // R2.4 — prevent terminal-state regression / conflicting duplicate payload.
-  if (!canTransition(before, status)) {
-    // Identical duplicate callbacks (same terminal status) are harmless -> 200.
-    if (before === status) {
-      return NextResponse.json({ success: true, status, duplicate: true });
-    }
-    return NextResponse.json({ error: 'Conflicting duplicate callback' }, { status: 409 });
-  }
-
-  // R2.5 — persist approved/edited sections, judge result, reject reasons, status.
-  // R2.6 — ownership comes from `existing`; we never read/store callback user ids.
-  const resultPatch: Record<string, unknown> = {
-    pipeline: {
-      status,
-      sections: Array.isArray(sections) ? sections : [],
-      judge: judge ?? null,
-      editorNote: editorNote ?? null,
-      rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
-      completedAt: new Date().toISOString(),
-    },
-  };
-
-  const updated = await applyPipelineResult({
-    reportId,
-    status: status as any,
-    resultPatch,
+  // R2.4/R4 — atomic, hash-aware duplicate/conflict handling.
+  const callbackHash = canonicalCallbackHash({
+    status,
+    sections,
+    judge: judge ?? null,
+    editorNote: editorNote ?? null,
+    rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
   });
 
-  if (!updated) {
-    return NextResponse.json({ error: 'Failed to persist report' }, { status: 500 });
-  }
+  // R2.5 — build the inner pipeline object (NOT nested). applyPipelineCallback
+  // writes this directly at result.pipeline.
+  const pipelineValue: Record<string, unknown> = {
+    status,
+    sections,
+    judge: judge ?? null,
+    editorNote: editorNote ?? null,
+    rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
+    completedAt: new Date().toISOString(),
+  };
 
-  // Coarse status only — no PII, no facts, no bearer.
-  return NextResponse.json({ success: true, status });
+  const outcome = await applyPipelineCallback({
+    reportId,
+    status: status as PipelineStatus,
+    pipelineValue,
+    callbackHash,
+  });
+
+  switch (outcome) {
+    case 'applied':
+      // Coarse status only — no PII, no facts, no bearer.
+      return NextResponse.json({ success: true, status });
+    case 'duplicate':
+      return NextResponse.json({ success: true, status, duplicate: true });
+    case 'conflict':
+      return NextResponse.json({ error: 'Conflicting duplicate callback' }, { status: 409 });
+    case 'regression':
+      return NextResponse.json({ error: 'Terminal state cannot regress' }, { status: 409 });
+    case 'not_found':
+      return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
+  }
 }

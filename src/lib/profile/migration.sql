@@ -51,3 +51,22 @@ ALTER TABLE readings
 -- Idempotent lookup: find the unified reading by its n8n correlation id.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_pipeline_report_id
   ON readings ((result ->> 'reportId')) WHERE type = 'report';
+
+-- ============================================================================
+-- n8n report pipeline — callback dedup / conflict detection
+-- ----------------------------------------------------------------------------
+-- pipeline_callback_hash stores the canonical SHA-256 of the last applied
+-- callback payload so the callback route can distinguish an identical replay
+-- (idempotent 200) from a conflicting duplicate (409) of the same terminal status.
+ALTER TABLE readings
+  ADD COLUMN IF NOT EXISTS pipeline_callback_hash text;
+
+-- NOTE ON INDEX CREATION (deployment correctness):
+-- `CREATE INDEX CONCURRENTLY` cannot run inside an explicit transaction block
+-- (Postgres requires it to be the only statement in its transaction). Apply this
+-- migration with autocommit semantics (e.g. `psql -f migration.sql` or Render's
+-- per-statement runner). Do NOT wrap the whole file in BEGIN/COMMIT, or the
+-- CONCURRENTLY indexes below will fail with "CREATE INDEX CONCURRENTLY cannot
+-- run inside a transaction block". The IF NOT EXISTS guards make the file
+-- re-runnable; a failed CONCURRENTLY index can be left invalid and should be
+-- dropped + recreated (DROP INDEX CONCURRENTLY IF EXISTS ...; CREATE INDEX ...).

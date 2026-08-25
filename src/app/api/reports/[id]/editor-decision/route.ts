@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
-import { getReadingById } from '@/lib/profile/store';
+import { getReportByIdForRole } from '@/lib/profile/store';
 import { sendEditorDecision } from '@/lib/reportPipeline';
+import { isPaidReport } from '@/lib/reportEntitlement';
+import type { ReportType } from '@/lib/reportEngine';
 
 // PATCH /api/reports/:id/editor-decision
 // Internal editorial sign-off for PAID reports in `needs_editor`. Posts the final
 // approved/rejected decision to n8n, which calls back to /api/reports/pipeline-complete
-// to apply the terminal status. Auth + ownership required; this is not customer-facing.
+// to apply the terminal status. Role-authorized; uses a staff lookup (not the
+// customer-owned lookup) so an editor can act on any customer's report.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -31,9 +34,27 @@ export async function PATCH(
     if (!Number.isFinite(readingId)) {
       return NextResponse.json({ error: 'Invalid report id' }, { status: 400 });
     }
-    const rec = await getReadingById(readingId, Number(decoded.userId));
+
+    // Staff lookup: by id only, no ownership filter. Safe because role is enforced.
+    const rec = await getReportByIdForRole(readingId);
     if (!rec || rec.type !== 'report') {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+
+    // Only PAID reports require editorial sign-off.
+    const reportType = (rec.result as any)?.reportType as ReportType | undefined;
+    if (!reportType || !isPaidReport(reportType)) {
+      return NextResponse.json({ error: 'Only paid reports require editorial decision' }, { status: 409 });
+    }
+
+    // Must currently be awaiting sign-off.
+    const pipeline = (rec.result as any)?.pipeline as { status?: string } | undefined;
+    const currentStatus = pipeline?.status ?? rec.pipelineStatus ?? null;
+    if (currentStatus !== 'needs_editor') {
+      return NextResponse.json(
+        { error: `Report is not awaiting editorial decision (status: ${currentStatus})` },
+        { status: 409 },
+      );
     }
 
     const body = await request.json().catch(() => ({}));
