@@ -130,16 +130,30 @@ export async function verifyAndMarkReportPurchasePaid(input: {
       const meta = input.session?.metadata ?? {};
       const expectAmount = Number(r.amount);
       const expectCurrency = String(r.currency).toUpperCase();
-      const sessionAmount = Number(input.session?.amount_total ?? input.session?.amount ?? 0);
-      const sessionCurrency = String(input.session?.currency ?? '').toUpperCase();
+      const sessionCurrency = input.session?.currency;
+      const rawSessionAmount = input.session?.amount_total ?? input.session?.amount;
+      const sessionAmount = Number(rawSessionAmount);
 
       const mismatches: string[] = [];
       if (meta.kind !== 'report') mismatches.push('kind');
       if (String(meta.userId) !== String(r.user_id)) mismatches.push('userId');
       if (meta.reportType !== r.report_type) mismatches.push('reportType');
       if (meta.sku !== r.sku) mismatches.push('sku');
-      if (sessionCurrency && sessionCurrency !== expectCurrency) mismatches.push('currency');
-      if (sessionAmount && sessionAmount !== expectAmount) mismatches.push('amount');
+      // Currency + amount are REQUIRED and must match exactly (no missing/zero/NaN).
+      if (typeof sessionCurrency !== 'string' || sessionCurrency.toUpperCase() !== expectCurrency) {
+        mismatches.push('currency');
+      }
+      if (!Number.isFinite(sessionAmount) || !Number.isInteger(sessionAmount) || sessionAmount <= 0) {
+        mismatches.push('amount');
+      } else if (sessionAmount !== expectAmount) {
+        mismatches.push('amount');
+      }
+      // Require a session id and, if we already recorded one, it must match.
+      if (!input.session?.id) {
+        mismatches.push('session_id');
+      } else if (r.stripe_session_id && input.session.id !== r.stripe_session_id) {
+        mismatches.push('session_id');
+      }
 
       if (mismatches.length > 0) {
         return finalize(tx, { outcome: 'deferred_mismatch', reason: mismatches.join(',') });
@@ -189,8 +203,8 @@ export async function getReportPurchaseByReadingId(readingId: number | string): 
 }
 
 export type ConsumeResult =
-  | { outcome: 'consumed'; readingId: number; reportId: string; readingStatus: string }
-  | { outcome: 'already_correlated'; readingId: number; reportId: string; readingStatus: string }
+  | { outcome: 'consumed'; readingId: number; reportId: string; readingStatus: string; readingResult?: any }
+  | { outcome: 'already_correlated'; readingId: number; reportId: string; readingStatus: string; readingResult?: any }
   | { outcome: 'not_found' }
   | { outcome: 'not_paid' }
   | { outcome: 'wrong_owner' }
@@ -218,6 +232,7 @@ export async function consumeReportPurchase(input: {
   purchaseId: string;
   userId: number | string;
   reportType: string;
+  reportId: string;
   reading: ReadingInsert;
 }): Promise<ConsumeResult> {
   if (!isValidPurchaseId(input.purchaseId)) return { outcome: 'not_found' };
@@ -241,17 +256,22 @@ export async function consumeReportPurchase(input: {
       if (r.status === 'consumed' && r.reading_id != null) {
         const rdr = await tx(`SELECT pipeline_status FROM readings WHERE id = $1`, [Number(r.reading_id)]);
         const readingStatus = (rdr.rows[0]?.pipeline_status as string) ?? 'queued';
+        const rdrRes = await tx(`SELECT result FROM readings WHERE id = $1`, [Number(r.reading_id)]);
         return finalize(tx, {
           outcome: 'already_correlated',
           readingId: Number(r.reading_id),
           reportId: r.report_id,
           readingStatus,
+          readingResult: rdrRes.rows[0]?.result,
         });
       }
       if (r.status !== 'paid') return finalize(tx, { outcome: 'not_paid' });
 
-      // Create the reading AND correlate it in the same transaction.
-      const reportId = crypto.randomUUID();
+      // Create the reading AND correlate it in the same transaction. The reportId
+      // is supplied by the caller as the SINGLE source of truth and is stored in
+      // both report_orders.report_id and the reading's result JSON (so the n8n
+      // callback can locate the reading by the exact same reportId).
+      const reportId = input.reportId;
       const ins = await tx(
         `INSERT INTO readings (user_id, type, title, question, price_paid, result, pipeline_status, created_at)
          VALUES ($1, 'report', $2, $3, $4, $5, $6, now())
@@ -273,21 +293,47 @@ export async function consumeReportPurchase(input: {
         // Lost a race: re-read to return whatever won.
         const re = await tx(`SELECT reading_id, report_id, pipeline_status FROM report_orders WHERE purchase_id = $1`, [input.purchaseId]);
         if (re.rows[0]?.reading_id != null) {
+          const reRes = await tx(`SELECT result FROM readings WHERE id = $1`, [Number(re.rows[0].reading_id)]);
           return finalize(tx, {
             outcome: 'already_correlated',
             readingId: Number(re.rows[0].reading_id),
             reportId: re.rows[0].report_id,
             readingStatus: (re.rows[0].pipeline_status as string) ?? 'queued',
+            readingResult: reRes.rows[0]?.result,
           });
         }
         return finalize(tx, { outcome: 'not_paid' });
       }
-      return finalize(tx, { outcome: 'consumed', readingId, reportId, readingStatus: input.reading.pipelineStatus });
+      return finalize(tx, { outcome: 'consumed', readingId, reportId, readingStatus: input.reading.pipelineStatus, readingResult: input.reading.resultJson });
     } catch (err) {
       await tx('ROLLBACK');
       throw err;
     }
   });
+}
+
+// (3) Atomic, stateful retry claim. Transitions a terminal dispatch-failed /
+// rejected reading back to 'queued' ONLY if it is currently in a retryable state,
+// using a single conditional UPDATE ... RETURNING. Two concurrent retries race here:
+// exactly one wins the row, the other gets 0 rows and must return 409.
+export async function claimRetry(readingId: number | string, userId: number | string): Promise<{ claimed: boolean }> {
+  const upd = await query(
+    `UPDATE readings
+       SET pipeline_status = 'queued'
+     WHERE id = $1 AND user_id = $2 AND pipeline_status IN ('dispatch_failed', 'rejected')
+     RETURNING id`,
+    [Number(readingId), Number(userId)],
+  );
+  return { claimed: (upd.rowCount ?? 0) > 0 };
+}
+
+// Restore a failed dispatch to the terminal dispatch_failed state (distinct from a
+// quality rejection). Used when a retry's n8n call itself fails.
+export async function markReadingDispatchFailed(readingId: number | string): Promise<void> {
+  await query(
+    `UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1`,
+    [Number(readingId)],
+  );
 }
 
 async function finalize(

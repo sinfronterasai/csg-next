@@ -99,11 +99,16 @@ export async function POST(request: Request) {
       // transaction. If already consumed (repeat request), returns the EXISTING
       // correlation with the reading's ACTUAL pipeline status (never a fake
       // "queued"). No orphaned reading is left by a losing race.
+      // Generate ONE reportId and thread it through the locked consume (which
+      // stores it in report_orders.report_id AND the reading result JSON) and the
+      // n8n dispatch. The callback later locates the reading by this exact value.
+      const reportId = crypto.randomUUID();
       const consumed = await consumeReportPurchase({
         purchaseId,
         userId: Number(decoded.userId),
         reportType: type,
-        reading: await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, pipelineStatus: 'queued' }),
+        reportId,
+        reading: await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued' }),
       });
       if (consumed.outcome === 'already_correlated') {
         return buildRepeatResponse(consumed.readingId, consumed.reportId, consumed.readingStatus);
@@ -115,12 +120,15 @@ export async function POST(request: Request) {
         );
       }
       const readingId = consumed.readingId;
-      const reportId = consumed.reportId;
+      // reportId is the single source of truth declared above (line ~105).
 
       // Dispatch to n8n. Fails closed: non-2xx / network error marks the reading
       // rejected and returns 502. The purchase stays 'consumed' (already paid),
       // so a retry path can re-dispatch without double-charging.
-      const dispatchRes = await dispatchWithFailClosed({ reportId, type, price: REPORT_META[type].price, user, decoded, partner, c: null });
+      const dispatchRes = await dispatchWithFailClosed({
+        reportId, type, price: REPORT_META[type].price, user, decoded, partner,
+        readingResult: typeof consumed.readingResult === 'string' ? JSON.parse(consumed.readingResult) : (consumed.readingResult ?? {}),
+      });
       if (!dispatchRes.ok) {
         await markReadingFailed(readingId);
         return NextResponse.json({ error: 'Report pipeline unavailable. Please try again shortly.', status: dispatchRes.readingStatus }, { status: 502 });
@@ -142,9 +150,9 @@ export async function POST(request: Request) {
     const c = rows[0];
     const chart = await buildBirthInfo(c, user);
     const verifiedFacts = await extractVerifiedFacts(contractType, chart);
-    const reportId = crypto.randomUUID();
     const title = REPORT_META[type].title;
     const price = REPORT_META[type].price;
+    const reportId = crypto.randomUUID();
     const insert = await query(
       `INSERT INTO readings (user_id, type, title, question, price_paid, result, pipeline_status, created_at)
        VALUES ($1, 'report', $2, $3, $4, $5, 'queued', now())
@@ -153,11 +161,13 @@ export async function POST(request: Request) {
         JSON.stringify({
           title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'free',
           verifiedFacts, pending: true,
+          metadata: { birthData: chart, verifiedFacts },
           partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
         })],
     );
     const readingId = insert.rows[0].id;
-    const dispatchRes = await dispatchWithFailClosed({ reportId, type, price, user, decoded, partner, c });
+    const readingResult = JSON.parse(insert.rows[0].result ?? '{}');
+    const dispatchRes = await dispatchWithFailClosed({ reportId, type, price, user, decoded, partner, readingResult });
     if (!dispatchRes.ok) {
       await markReadingFailed(readingId);
       return NextResponse.json({ error: 'Report pipeline unavailable. Please try again shortly.' }, { status: 502 });
@@ -196,9 +206,9 @@ async function buildBirthInfo(c: any, user: any) {
 }
 
 async function buildReadingInput(opts: {
-  decoded: any; user: any; type: ReportType; partner: any; price: number; pipelineStatus: string;
+  decoded: any; user: any; type: ReportType; partner: any; price: number; reportId?: string; pipelineStatus: string;
 }): Promise<{ userId: number; type: string; title: string; question: string; pricePaid: number; resultJson: string; pipelineStatus: string }> {
-  const { decoded, user, type, partner, price, pipelineStatus } = opts;
+  const { decoded, user, type, partner, price, reportId, pipelineStatus } = opts;
   const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [decoded.userId]);
   if (rows.length === 0) throw new Error('Create your birth chart first');
   const c = rows[0];
@@ -206,7 +216,22 @@ async function buildReadingInput(opts: {
   const contractType = mapReportType(type)!;
   const verifiedFacts = await extractVerifiedFacts(contractType, chart);
   const title = REPORT_META[type].title;
-  const reportId = crypto.randomUUID();
+  // Persist the IMMUTABLE request snapshot (normalized birth data + verified facts)
+  // inside result.metadata so retry (and dispatch) uses the exact original values,
+  // never a later-edited natal chart.
+  const snapshot = {
+    birthData: {
+      firstName: chart.name,
+      dob: chart.date,
+      birthTime: chart.time || null,
+      place: chart.location,
+      lat: Number(c.latitude),
+      lon: Number(c.longitude),
+      tz: c.timezone || 'UTC',
+      solarFallback: chart.unknownTime,
+    },
+    verifiedFacts,
+  };
   return {
     userId: Number(decoded.userId),
     type,
@@ -217,35 +242,26 @@ async function buildReadingInput(opts: {
     resultJson: JSON.stringify({
       title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: price > 0 ? 'paid' : 'free',
       verifiedFacts, pending: true,
+      metadata: snapshot,
       partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
     }),
   };
 }
 
 async function dispatchWithFailClosed(opts: {
-  reportId: string; type: ReportType; price: number; user: any; decoded: any; partner: any; c: any;
+  reportId: string; type: ReportType; price: number; user: any; decoded: any; partner: any; readingResult?: any;
 }) {
-  // c is null for the paid path (chart already consumed in buildReadingInput); for
-  // free path c is the natal_charts row. We re-derive birth data uniformly.
-  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [opts.decoded.userId]);
-  const c = opts.c ?? rows[0];
-  const chart = await buildBirthInfo(c, opts.user);
-  const verifiedFacts = (JSON.parse((await buildReadingInput({ ...opts, pipelineStatus: 'queued' })).resultJson)).verifiedFacts;
+  // Use the IMMUTABLE snapshot persisted on the reading (result.metadata) so the
+  // dispatch payload is identical to the original attempt — never a later-edited
+  // natal chart. For free reports we still have the chart handy.
+  const meta = opts.readingResult?.metadata;
   try {
     const res = await dispatchReport({
       reportId: opts.reportId,
       reportType: opts.type,
       tier: opts.price > 0 ? 'paid' : 'free',
-      birthData: {
-        firstName: chart.name,
-        dob: chart.date,
-        birthTime: chart.time || null,
-        place: chart.location,
-        lat: Number(c.latitude), lon: Number(c.longitude),
-        tz: c.timezone || 'UTC',
-        solarFallback: chart.unknownTime,
-      },
-      verifiedFacts,
+      birthData: meta ? meta.birthData : undefined,
+      verifiedFacts: meta ? meta.verifiedFacts : undefined,
       promptSlug: '',
       callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     });

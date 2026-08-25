@@ -25,7 +25,7 @@ let inDollarQuote = false;
 for (let i = 0; i < noLine.length; i++) {
   const char = noLine[i];
   const next = noLine[i + 1];
-  
+
   // Detect $$ delimiter
   if (char === '$' && next === '$') {
     inDollarQuote = !inDollarQuote;
