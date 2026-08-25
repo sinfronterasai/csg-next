@@ -1,6 +1,6 @@
 -- Cosmic Profile Hub — idempotent schema extension.
--- Re-runnable on the existing Render Postgres. Extends `readings` (unified journal)
--- and `users` (profile + preferences). No forking of existing tables.
+-- Re-runnable on the existing Render Postgres. Extends readings (unified journal)
+-- and users (profile + preferences). No forking of existing tables.
 
 ALTER TABLE readings
   ADD COLUMN IF NOT EXISTS title text,
@@ -36,14 +36,14 @@ ALTER TABLE readings
 -- Index for the public fetch-by-token lookup.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_share_token ON readings(share_token);
 
--- n8n report pipeline lifecycle. The app is the system of record; n8n only
+-- n8n report pipeline lifecycle. The app is the system of record. n8n only
 -- interprets verifiedFacts and calls back. pipeline_status tracks the async
 -- journey of a single report from dispatch through editorial sign-off.
 --   NULL/queued      -> dispatched to n8n, awaiting callback
---   processing       -> n8n acknowledged, generating
---   approved         -> passed gates (free) or editor-approved (paid); deliverable
---   needs_editor     -> paid report passed automated gates, awaiting human sign-off
---   rejected         -> failed gates or editor rejection; never delivered
+--   processing        -> n8n acknowledged, generating
+--   approved          -> passed gates (free) or editor-approved (paid) and is deliverable
+--   needs_editor      -> paid report passed automated gates, awaiting human sign-off
+--   rejected          -> failed gates or editor rejection and is never delivered
 -- result.reportId holds the app-generated UUID that correlates the n8n callback.
 ALTER TABLE readings
   ADD COLUMN IF NOT EXISTS pipeline_status text;
@@ -52,21 +52,19 @@ ALTER TABLE readings
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_pipeline_report_id
   ON readings ((result ->> 'reportId')) WHERE type = 'report';
 
--- ============================================================================
--- n8n report pipeline — callback dedup / conflict detection
--- ----------------------------------------------------------------------------
+-- n8n report pipeline — callback dedup / conflict detection.
 -- pipeline_callback_hash stores the canonical SHA-256 of the last applied
 -- callback payload so the callback route can distinguish an identical replay
 -- (idempotent 200) from a conflicting duplicate (409) of the same terminal status.
 ALTER TABLE readings
   ADD COLUMN IF NOT EXISTS pipeline_callback_hash text;
 
--- NOTE ON INDEX CREATION (deployment correctness):
--- `CREATE INDEX CONCURRENTLY` cannot run inside an explicit transaction block
--- (Postgres requires it to be the only statement in its transaction). Apply this
--- migration with autocommit semantics (e.g. `psql -f migration.sql` or Render's
--- per-statement runner). Do NOT wrap the whole file in BEGIN/COMMIT, or the
--- CONCURRENTLY indexes below will fail with "CREATE INDEX CONCURRENTLY cannot
--- run inside a transaction block". The IF NOT EXISTS guards make the file
--- re-runnable; a failed CONCURRENTLY index can be left invalid and should be
--- dropped + recreated (DROP INDEX CONCURRENTLY IF EXISTS ...; CREATE INDEX ...).
+-- NOTE ON INDEX CREATION (deployment correctness).
+-- CREATE INDEX CONCURRENTLY cannot run inside an explicit transaction block.
+-- Postgres requires it to be the only statement in its transaction. Apply this
+-- migration with autocommit semantics, e.g. `node scripts/migrate.mjs` (which
+-- runs each statement in its own autocommit query) or `psql -f migration.sql`.
+-- Do NOT wrap the whole file in BEGIN/COMMIT, or the CONCURRENTLY indexes will
+-- fail with "CREATE INDEX CONCURRENTLY cannot run inside a transaction block".
+-- The IF NOT EXISTS guards make the file re-runnable. A failed CONCURRENTLY
+-- index can be left invalid and should be dropped and recreated.
