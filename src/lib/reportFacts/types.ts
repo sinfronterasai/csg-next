@@ -91,21 +91,27 @@ export interface PatternFact extends VerifiedFact {
 
 export interface CommonDerived {
   positions: VerifiedFact[];
-  ascendant: { sign: string; signLabel: string; degreeInSign: number; house: 1 };
-  descendant: { sign: string; signLabel: string; degreeInSign: number; house: 7 };
-  midheaven: { sign: string; signLabel: string; degreeInSign: number; house: 10 };
-  icumcoeli: { sign: string; signLabel: string; degreeInSign: number; house: 4 };
-  chartRuler: { planet: string; label: string; sign: string; condition: string; display: string };
+  // Time-dependent fields are OMITTED (undefined) under unknown-time (solar)
+  // fallback. They must never be fabricated. Preflight for time-dependent reports
+  // then fails closed.
+  ascendant?: { sign: string; signLabel: string; degreeInSign: number; house: 1 };
+  descendant?: { sign: string; signLabel: string; degreeInSign: number; house: 7 };
+  midheaven?: { sign: string; signLabel: string; degreeInSign: number; house: 10 };
+  icumcoeli?: { sign: string; signLabel: string; degreeInSign: number; house: 4 };
+  chartRuler?: { planet: string; label: string; sign: string; condition: string; display: string };
   northNode: NodeValue;
   southNode: NodeValue;
   juno: NodeValue;
-  partOfFortune: NodeValue;
+  partOfFortune?: NodeValue;
   moonPhase: { phase: number; label: string };
   elements: Record<string, number>;
   modalities: Record<string, number>;
   aspects: AspectFact[];
   topAspectByBody: Record<string, string>;
   patterns: PatternFact[];
+  // True when the chart was computed without a birth time; time-dependent facts
+  // are intentionally absent.
+  isSolarFallback: boolean;
 }
 
 export type PreflightStatus = 'complete' | 'input_incomplete';

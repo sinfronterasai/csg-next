@@ -63,14 +63,20 @@ function positionFact(id: string, key: string, label: string, longitude: number,
 }
 
 // Build the full common derived layer from a computed chart.
-export async function buildCommonDerived(chart: ChartData): Promise<CommonDerived> {
+// When `unknownTime` is true, time-dependent facts (angles, chart ruler, Part of
+// Fortune, houses, and any aspect involving an angle) are OMITTED rather than
+// fabricated from a default noon time. Consumers/preflight then fail closed.
+export async function buildCommonDerived(chart: ChartData, unknownTime: boolean = (chart.birth?.unknownTime ?? false)): Promise<CommonDerived> {
   const positions: VerifiedFact[] = [];
   for (const p of chart.planets) positions.push(positionFact(`natal.${p.key}.position`, p.key, p.label, p.longitude, p.house, p.retrograde));
-  // Angles
-  positions.push(positionFact('natal.ascendant.position', 'ascendant', 'Ascendant', chart.ascendant.longitude, 1, false));
-  positions.push(positionFact('natal.descendant.position', 'descendant', 'Descendant', normDeg(chart.ascendant.longitude + 180), 7, false));
-  positions.push(positionFact('natal.midheaven.position', 'midheaven', 'Midheaven', chart.midheaven.longitude, 10, false));
-  positions.push(positionFact('natal.icumcoeli.position', 'icumcoeli', 'Imum Coeli', normDeg(chart.midheaven.longitude + 180), 4, false));
+  // Angles require a birth time. Under unknown-time (solar) fallback they are OMITTED,
+  // never fabricated. Natal preflight then fails closed for time-dependent reports.
+  if (!unknownTime) {
+    positions.push(positionFact('natal.ascendant.position', 'ascendant', 'Ascendant', chart.ascendant.longitude, 1, false));
+    positions.push(positionFact('natal.descendant.position', 'descendant', 'Descendant', normDeg(chart.ascendant.longitude + 180), 7, false));
+    positions.push(positionFact('natal.midheaven.position', 'midheaven', 'Midheaven', chart.midheaven.longitude, 10, false));
+    positions.push(positionFact('natal.icumcoeli.position', 'icumcoeli', 'Imum Coeli', normDeg(chart.midheaven.longitude + 180), 4, false));
+  }
 
   const byKey: Record<string, VerifiedFact> = {};
   for (const f of positions) byKey[f.id] = f;
@@ -94,34 +100,45 @@ export async function buildCommonDerived(chart: ChartData): Promise<CommonDerive
   };
   const junoFact = positionFact('natal.juno.position', 'juno', 'Juno', junoLong, null, false);
   const juno: NodeValue = { ...(junoFact.value as object), display: junoFact.display } as NodeValue;
+  positions.push(junoFact); // surface Juno as a stable position fact in the flat map
 
-  // Part of Fortune: ASC + Moon - Sun (zodiacal).
-  const ascLong = chart.ascendant.longitude;
+  // Moon/Sun longitudes are time-independent; needed for Moon phase in both modes.
   const moonLong = chart.moon.longitude;
   const sunLong = chart.sun.longitude;
-  const pofLong = normDeg(ascLong + moonLong - sunLong);
-  const pofFact = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, null, false);
-  const partOfFortune: NodeValue = { ...(pofFact.value as object), display: pofFact.display } as NodeValue;
 
-  // Chart ruler = ruler of Ascendant sign.
-  const ascSign = getSign(chart.ascendant.sign)!;
-  const rulerKey = ascSign.ruler.toLowerCase();
-  const rulerPlanet = chart.planets.find((p) => p.key === rulerKey)!;
-  const rulerInfo = getPlanet(rulerKey)!;
-  const rulerDignity = dignityFor(rulerKey, rulerPlanet.sign);
-  const rulerCondition = rulerDignity ? DIGNITY_LABEL[rulerDignity] : 'in no special dignity';
-  const chartRuler = {
-    planet: rulerKey, label: rulerInfo.label, sign: rulerPlanet.sign, condition: rulerCondition,
-    display: `Chart ruler ${rulerInfo.label} at ${rulerPlanet.degreeInSign.toFixed(2)}° ${rulerPlanet.signLabel}, ${rulerCondition}`,
-  };
+  // Part of Fortune (ASC + Moon - Sun) and chart ruler both depend on the Ascendant,
+  // which requires a birth time. Omit both under unknown-time.
+  let partOfFortune: NodeValue | undefined;
+  let chartRuler: CommonDerived['chartRuler'] | undefined;
+  if (!unknownTime) {
+    const ascLong = chart.ascendant.longitude;
+    const pofLong = normDeg(ascLong + moonLong - sunLong);
+    const pofFact = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, null, false);
+    partOfFortune = { ...(pofFact.value as object), display: pofFact.display } as NodeValue;
+
+    const ascSign = getSign(chart.ascendant.sign)!;
+    const rulerKey = ascSign.ruler.toLowerCase();
+    const rulerPlanet = chart.planets.find((p) => p.key === rulerKey)!;
+    const rulerInfo = getPlanet(rulerKey)!;
+    const rulerDignity = dignityFor(rulerKey, rulerPlanet.sign);
+    const rulerCondition = rulerDignity ? DIGNITY_LABEL[rulerDignity] : 'in no special dignity';
+    chartRuler = {
+      planet: rulerKey, label: rulerInfo.label, sign: rulerPlanet.sign, condition: rulerCondition,
+      display: `Chart ruler ${rulerInfo.label} at ${rulerPlanet.degreeInSign.toFixed(2)}° ${rulerPlanet.signLabel}, ${rulerCondition}`,
+    };
+  }
 
   // Moon phase at birth (Sun-Moon elongation).
   const elong = normDeg(moonLong - sunLong);
   const phase = round2(elong / 360);
   const moonPhase = { phase, label: moonPhaseLabel(phase) };
 
-  // Aspects: all pairs among positions (bodies + angles).
-  const aspects = buildAspects(positions);
+  // Aspects: all pairs among positions (bodies + angles). Under unknown time, drop
+  // any aspect that involves an angle (time-dependent).
+  const angleKeys = new Set(['ascendant', 'descendant', 'midheaven', 'icumcoeli']);
+  let rawAspects = buildAspects(positions);
+  if (unknownTime) rawAspects = rawAspects.filter((a) => !angleKeys.has(a.value.bodyA) && !angleKeys.has(a.value.bodyB));
+  const aspects = rawAspects;
   const topAspectByBody: Record<string, string> = {};
   for (const a of aspects) {
     const tighten = topAspectByBody[a.value.bodyA];
@@ -142,20 +159,25 @@ export async function buildCommonDerived(chart: ChartData): Promise<CommonDerive
 
   const patterns = buildPatterns(chart, aspects);
 
-  return {
+  const ret: CommonDerived = {
     positions,
-    ascendant: { sign: chart.ascendant.sign, signLabel: chart.ascendant.signLabel, degreeInSign: round2(chart.ascendant.degreeInSign), house: 1 },
-    descendant: { sign: signFromLongitude(normDeg(chart.ascendant.longitude + 180)).sign.key, signLabel: signFromLongitude(normDeg(chart.ascendant.longitude + 180)).sign.label, degreeInSign: round2(signFromLongitude(normDeg(chart.ascendant.longitude + 180)).degreeInSign), house: 7 },
-    midheaven: { sign: chart.midheaven.sign, signLabel: chart.midheaven.signLabel, degreeInSign: round2(chart.midheaven.degreeInSign), house: 10 },
-    icumcoeli: { sign: signFromLongitude(normDeg(chart.midheaven.longitude + 180)).sign.key, signLabel: signFromLongitude(normDeg(chart.midheaven.longitude + 180)).sign.label, degreeInSign: round2(signFromLongitude(normDeg(chart.midheaven.longitude + 180)).degreeInSign), house: 4 },
-    chartRuler,
-    northNode, southNode, juno, partOfFortune,
+    northNode, southNode, juno,
+    isSolarFallback: unknownTime,
     moonPhase,
     elements, modalities,
     aspects,
     topAspectByBody,
     patterns,
   };
+  if (!unknownTime) {
+    ret.ascendant = { sign: chart.ascendant.sign, signLabel: chart.ascendant.signLabel, degreeInSign: round2(chart.ascendant.degreeInSign), house: 1 };
+    ret.descendant = { sign: signFromLongitude(normDeg(chart.ascendant.longitude + 180)).sign.key, signLabel: signFromLongitude(normDeg(chart.ascendant.longitude + 180)).sign.label, degreeInSign: round2(signFromLongitude(normDeg(chart.ascendant.longitude + 180)).degreeInSign), house: 7 };
+    ret.midheaven = { sign: chart.midheaven.sign, signLabel: chart.midheaven.signLabel, degreeInSign: round2(chart.midheaven.degreeInSign), house: 10 };
+    ret.icumcoeli = { sign: signFromLongitude(normDeg(chart.midheaven.longitude + 180)).sign.key, signLabel: signFromLongitude(normDeg(chart.midheaven.longitude + 180)).sign.label, degreeInSign: round2(signFromLongitude(normDeg(chart.midheaven.longitude + 180)).degreeInSign), house: 4 };
+    ret.chartRuler = chartRuler!;
+    ret.partOfFortune = partOfFortune!;
+  }
+  return ret;
 }
 
 function moonPhaseLabel(phase: number): string {
@@ -258,5 +280,5 @@ function computeJD(chart: ChartData): number {
 // Top-level async builder used by build.ts
 export async function computeVerifiedCommon(birth: { date: string; time?: string; location: string; unknownTime?: boolean; name?: string }): Promise<CommonDerived> {
   const chart = await computeChart({ name: birth.name, date: birth.date, time: birth.time, location: birth.location, unknownTime: !!birth.unknownTime });
-  return buildCommonDerived(chart);
+  return buildCommonDerived(chart, !!birth.unknownTime);
 }

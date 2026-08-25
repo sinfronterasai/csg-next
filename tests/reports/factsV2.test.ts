@@ -97,14 +97,70 @@ describe('null dignity is never fabricated', () => {
   });
 });
 
-describe('unknown-time solar fallback', () => {
-  it('produces a valid ledger with anchored angles (solar-whole-sign houses)', async () => {
+describe('unknown-time solar fallback — no fabricated time-dependent facts (#5)', () => {
+  it('omits angles, chart ruler, and Part of Fortune; flags isSolarFallback', async () => {
     const v2 = await buildVerifiedFactsV2('natal', UNKNOWN_TIME_SOLAR.birth);
-    expect(v2.common.ascendant.house).toBe(1); // angles still anchored
+    expect(v2.common.isSolarFallback).toBe(true);
+    // Time-dependent facts must be ABSENT, never fabricated from a default noon.
+    expect(v2.common.ascendant).toBeUndefined();
+    expect(v2.common.descendant).toBeUndefined();
+    expect(v2.common.midheaven).toBeUndefined();
+    expect(v2.common.icumcoeli).toBeUndefined();
+    expect(v2.common.chartRuler).toBeUndefined();
+    expect(v2.common.partOfFortune).toBeUndefined();
+    expect(v2.facts['natal.ascendant.position']).toBeUndefined();
+    expect(v2.facts['natal.partoffortune.position']).toBeUndefined();
+    // Planet positions, nodes, Juno, and planet-planet aspects remain valid.
+    expect(v2.facts['natal.sun.position']).toBeDefined();
+    expect(v2.facts['natal.northnode.position']).toBeDefined();
+    expect(v2.facts['natal.juno.position']).toBeDefined();
     expect(v2.common.aspects.length).toBeGreaterThan(0);
-    // Solar fallback uses whole-sign houses; the ledger must build without error
-    // and must not fabricate a birth time into the record.
-    expect(v2.reportData).toBeDefined();
+    // No aspect may involve an angle (time-dependent).
+    const angleKeys = new Set(['ascendant', 'descendant', 'midheaven', 'icumcoeli']);
+    const angleAspect = v2.common.aspects.find((a) => angleKeys.has(a.value.bodyA) || angleKeys.has(a.value.bodyB));
+    expect(angleAspect).toBeUndefined();
+  });
+
+  it('natal preflight fails closed (input_incomplete) for unknown time', async () => {
+    const v2 = await buildVerifiedFactsV2('natal', UNKNOWN_TIME_SOLAR.birth);
+    const result = preflightReport('natal', v2);
+    expect(result.status).toBe('input_incomplete');
+    expect(result.missing).toContain('common.ascendant');
+    expect(result.missing).toContain('facts.natal.ascendant.position');
+    expect(result.missing).toContain('common.chartRuler');
+    expect(result.missing).toContain('common.partOfFortune');
+  });
+});
+
+describe('flat facts map contains position facts (#3)', () => {
+  it('every computed body position is present under its stable id', async () => {
+    const v2 = await buildVerifiedFactsV2('natal', { date: '1990-06-15', time: '12:00', location: 'Paris' });
+    const expectedIds = [
+      'natal.sun.position', 'natal.moon.position', 'natal.mercury.position',
+      'natal.venus.position', 'natal.mars.position', 'natal.jupiter.position',
+      'natal.saturn.position', 'natal.ascendant.position', 'natal.midheaven.position',
+    ];
+    for (const id of expectedIds) {
+      expect(v2.facts[id]).toBeDefined();
+      expect((v2.facts[id] as any).kind).toBe('position');
+    }
+    // The position fact value carries normalized degreeInSign + display.
+    const sun = v2.facts['natal.sun.position'] as any;
+    expect(sun.value.degreeInSign).toBeGreaterThanOrEqual(0);
+    expect(sun.value.degreeInSign).toBeLessThan(30);
+    expect(typeof sun.display).toBe('string');
+    expect(sun.display.length).toBeGreaterThan(0);
+  });
+});
+
+describe('hasPath nested reportData resolution (#4)', () => {
+  it('resolves a nested reportData path, not a flat dotted string', async () => {
+    const v2 = await buildVerifiedFactsV2('relationship', { date: '1990-06-15', time: '12:00', location: 'Paris' });
+    const result = preflightReport('relationship', v2);
+    // relationshipScores is an object; the band lives one level deeper. hasPath must
+    // traverse nested objects, not look up the literal 'reportData.relationshipScores.emotionalConnection' key.
+    expect(result.status).toBe('complete');
+    expect((v2.reportData as any).relationshipScores.emotionalConnection).toBeDefined();
   });
 });
 
@@ -142,9 +198,11 @@ describe('preflight failure mode (Workstream B)', () => {
 describe('fixture corpus — every report type passes >=3 materially different fixtures', () => {
   const types = ['natal', 'relationship', 'loveblueprint', 'vocation', 'karmicshadow'] as const;
   for (const t of types) {
-    it(`${t} builds a complete ledger for >=3 fixtures`, async () => {
-      const subset = ALL_FIXTURES.slice(0, 4);
-      for (const fx of subset) {
+    it(`${t} builds a complete ledger for >=3 known-time fixtures`, async () => {
+      // Unknown-time natal correctly fails preflight (time-dependent facts omitted),
+      // so only known-time fixtures are asserted to complete. See #5 tests above.
+      const known = ALL_FIXTURES.filter((f) => f.expect.knownTime).slice(0, 4);
+      for (const fx of known) {
         const out = await buildAndPreflight(t, fx.birth);
         if (t === 'natal' || t === 'relationship' || t === 'loveblueprint' || t === 'vocation' || t === 'karmicshadow') {
           // P0 builds common + scores for these; timing/fullcosmic intentionally incomplete.
