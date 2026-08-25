@@ -68,3 +68,37 @@ ALTER TABLE readings
 -- fail with "CREATE INDEX CONCURRENTLY cannot run inside a transaction block".
 -- The IF NOT EXISTS guards make the file re-runnable. A failed CONCURRENTLY
 -- index can be left invalid and should be dropped and recreated.
+
+-- ============================================================================
+-- Per-report one-time purchase / entitlement store (pay-per-report model).
+-- Paid astrology reports are individual purchases, NOT granted by subscription
+-- tier or tarot entitlements. A purchase is the ONLY thing that entitles a user
+-- to generate a specific paid report.
+--   status lifecycle: pending -> paid -> consumed
+--     pending : checkout session created, not yet paid
+--     paid    : Stripe webhook confirmed payment (or server-side re-verification)
+--     consumed: the matching report was dispatched and correlated to a reading
+-- Uniqueness on stripe_session_id / stripe_payment_id guarantees one payment
+-- produces exactly one purchase record. Atomic consumption (FOR UPDATE +
+-- conditional UPDATE) guarantees one purchase dispatches exactly one report.
+CREATE TABLE IF NOT EXISTS report_orders (
+  id                bigserial PRIMARY KEY,
+  purchase_id       uuid UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+  user_id           integer NOT NULL,
+  report_type       text NOT NULL,
+  sku               text NOT NULL,
+  amount            integer NOT NULL,            -- amount in minor units (cents)
+  currency          text NOT NULL DEFAULT 'usd',
+  status            text NOT NULL DEFAULT 'pending',
+  stripe_session_id text UNIQUE,
+  stripe_payment_id text UNIQUE,
+  reading_id        integer,
+  report_id         uuid,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_orders_user_type
+  ON report_orders (user_id, report_type);
+CREATE INDEX IF NOT EXISTS idx_report_orders_reading
+  ON report_orders (reading_id) WHERE reading_id IS NOT NULL;

@@ -11,7 +11,7 @@ jest.mock('@/lib/auth', () => ({
   verifyToken: () => ({ userId: 'editor-1' }),
   getUserById: async () => ({ id: 'editor-1', role: currentRole }),
 }));
-jest.mock('@/lib/reportEntitlement', () => ({
+jest.mock('@/lib/billing/reportPurchase', () => ({
   isPaidReport: (t: string) => t === 'fullcosmic' || t === 'transit',
 }));
 
@@ -20,6 +20,7 @@ let sendEditorDecision: jest.Mock;
 
 jest.mock('@/lib/profile/store', () => ({
   getReportByIdForRole: (...a: any[]) => getReportByIdForRole(...a),
+  setReadingDispatchFailed: jest.fn(async () => {}),
 }));
 jest.mock('@/lib/reportPipeline', () => ({
   sendEditorDecision: (...a: any[]) => sendEditorDecision(...a),
@@ -52,7 +53,7 @@ beforeEach(() => {
 describe('#5 editor cross-owner flow', () => {
   it('staff lookup finds a customer-owned report (no owner filter)', async () => {
     getReportByIdForRole.mockResolvedValue(makeRec());
-    const res = await call('5', { decision: 'approved' });
+    const res = await call('5', { decision: 'accept' });
     expect(res.status).toBe(200);
     expect(getReportByIdForRole).toHaveBeenCalledWith(5); // by id only
     expect(sendEditorDecision).toHaveBeenCalledTimes(1);
@@ -61,27 +62,27 @@ describe('#5 editor cross-owner flow', () => {
   it('non-editor/non-admin is forbidden (403)', async () => {
     currentRole = 'customer';
     getReportByIdForRole.mockResolvedValue(makeRec());
-    const res = await call('5', { decision: 'approved' });
+    const res = await call('5', { decision: 'accept' });
     expect(res.status).toBe(403);
     currentRole = 'editor'; // restore for later tests
   });
 
   it('requires current status needs_editor (409 otherwise)', async () => {
     getReportByIdForRole.mockResolvedValue(makeRec({ pipelineStatus: 'approved' }));
-    const res = await call('5', { decision: 'approved' });
+    const res = await call('5', { decision: 'accept' });
     expect(res.status).toBe(409);
     expect(sendEditorDecision).not.toHaveBeenCalled();
   });
 
-  it('free report not requiring editorial decision -> 409', async () => {
+  it('free report (natal) is not eligible for editorial decision -> 400', async () => {
     getReportByIdForRole.mockResolvedValue(makeRec({ result: { reportId: 'r', reportType: 'natal' } }));
-    const res = await call('5', { decision: 'approved' });
-    expect(res.status).toBe(409);
+    const res = await call('5', { decision: 'accept' });
+    expect(res.status).toBe(400);
   });
 
   it('report not found -> 404', async () => {
     getReportByIdForRole.mockResolvedValue(null);
-    const res = await call('5', { decision: 'approved' });
+    const res = await call('5', { decision: 'accept' });
     expect(res.status).toBe(404);
   });
 

@@ -29,10 +29,10 @@ export async function query(text: string, params?: any[]) {
  * FOR UPDATE) and writes. The client is always released.
  */
 export async function transaction<T>(
-  fn: (txQuery: (text: string, params?: any[]) => Promise<{ rows: any[] }>) => Promise<T>,
+  fn: (txQuery: (text: string, params?: any[]) => Promise<{ rows: any[]; rowCount: number | null }>) => Promise<T>,
 ): Promise<T> {
   const client = await pool.connect();
-  const txQuery = (text: string, params?: any[]) => client.query(text, params);
+  const txQuery = (text: string, params?: any[]) => client.query(text, params) as Promise<{ rows: any[]; rowCount: number | null }>;
   try {
     return await fn(txQuery);
   } finally {

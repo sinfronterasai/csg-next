@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhook, handleStripeEvent, pgBillingDb } from '@/lib/billing/stripe';
+import { handleReportPurchaseWebhook } from '@/lib/billing/reportPurchase';
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature');
@@ -14,6 +15,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Report purchases are one-time payments with metadata.kind='report'.
+    // They are handled by the report purchase store, never the subscription path.
+    if (
+      event.type === 'checkout.session.completed' &&
+      event.data?.object?.metadata?.kind === 'report'
+    ) {
+      const result = await handleReportPurchaseWebhook(event.data.object);
+      return NextResponse.json({ received: true, reportPurchase: result });
+    }
+
     const result = await handleStripeEvent(pgBillingDb, event);
     return NextResponse.json({ received: true, ...result });
   } catch (err: any) {

@@ -7,7 +7,7 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { extractVerifiedFacts } from '@/lib/reportVerifiedFacts';
-import { userEntitledForReport, isPaidReport } from '@/lib/reportEntitlement';
+import { consumeReportPurchase, getReportPurchase } from '@/lib/billing/reportPurchaseStore';
 import { setReadingDispatchFailed } from '@/lib/profile/store';
 import crypto from 'crypto';
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { type: rawType, partner } = body;
+    const { type: rawType, partner, purchaseId } = body;
     const type = rawType as ReportType;
 
     // Two-person / unsupported types never use the n8n pipeline.
@@ -47,15 +47,48 @@ export async function POST(request: Request) {
     }
 
     const contractType = mapReportType(type)!;
+    const isPaid = (REPORT_META[type]?.price ?? 0) > 0;
 
-    // R3.1 / #1 — paid reports require SERVER-SIDE entitlement. We never trust any
-    // client-supplied flag; entitlement is derived from the user's persisted,
-    // active subscription tier written by the verified Stripe webhook.
-    if (isPaidReport(type)) {
-      const ent = await userEntitledForReport(Number(decoded.userId), type);
-      if (!ent.entitled) {
+    // COMMERCIAL MODEL: paid reports require a real, server-verified purchase.
+    // Entitlement is NEVER inferred from subscription tier or tarot entitlements.
+    // Free reports (Natal / Relationship) continue without any purchase.
+    let purchaseCorrelation: { readingId: number; reportId: string } | null = null;
+    if (isPaid) {
+      if (!purchaseId || typeof purchaseId !== 'string') {
         return NextResponse.json(
-          { error: 'Subscription required to generate this report', requiresSubscription: true, requiredTier: ent.requiredTier },
+          { error: 'A valid purchase is required to generate this report', requiresPurchase: true },
+          { status: 402 },
+        );
+      }
+      const purchase = await getReportPurchase(purchaseId);
+      // Paid state is verified from the persisted, webhook-confirmed purchase.
+      if (!purchase || purchase.userId !== Number(decoded.userId)) {
+        return NextResponse.json(
+          { error: 'Purchase not found or not owned by this account', requiresPurchase: true },
+          { status: 402 },
+        );
+      }
+      if (purchase.reportType !== type) {
+        return NextResponse.json(
+          { error: 'Purchase does not match the requested report type', requiresPurchase: true },
+          { status: 409 },
+        );
+      }
+      // If a prior dispatch already correlated this purchase, return it without
+      // re-dispatching (idempotent repeat request).
+      if (purchase.status === 'consumed' && purchase.readingId != null && purchase.reportId != null) {
+        return NextResponse.json({
+          success: true,
+          status: 'queued',
+          readingId: purchase.readingId,
+          reportId: purchase.reportId,
+          message: 'Your report is already being prepared by our astrology engine.',
+          pending: true,
+        });
+      }
+      if (purchase.status !== 'paid') {
+        return NextResponse.json(
+          { error: 'Purchase is not paid', requiresPurchase: true, purchaseStatus: purchase.status },
           { status: 402 },
         );
       }
@@ -105,6 +138,34 @@ export async function POST(request: Request) {
     );
     const readingId = insert.rows[0].id;
 
+    // Atomically consume the purchase against this reading (one purchase -> one report).
+    if (isPaid && purchaseId) {
+      const consumed = await consumeReportPurchase({
+        purchaseId,
+        userId: Number(decoded.userId),
+        reportType: type,
+        readingId,
+        reportId,
+      });
+      if (consumed.outcome === 'already_correlated') {
+        // Race/again: another request won. Return the winning correlation, no dispatch.
+        return NextResponse.json({
+          success: true, status: 'queued',
+          readingId: consumed.readingId, reportId: consumed.reportId,
+          message: 'Your report is already being prepared by our astrology engine.',
+          pending: true,
+        });
+      }
+      if (consumed.outcome !== 'consumed') {
+        // Purchase state changed underneath us (e.g. consumed elsewhere, or not paid).
+        await setReadingDispatchFailed(Number(readingId));
+        return NextResponse.json(
+          { error: 'Purchase could not be consumed for this report', requiresPurchase: true },
+          { status: 409 },
+        );
+      }
+    }
+
     // R1 — dispatch to n8n. Fails closed: any non-2xx (or error) leaves the report
     // in a terminal 'rejected' state and surfaces 502 (never local prose).
     try {
@@ -134,7 +195,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Report pipeline unavailable. Please try again shortly.' }, { status: 502 });
     }
 
-    // R3.5 — customer-facing in-progress copy. Never raw verifiedFacts.
+    // Customer-facing in-progress copy. Never raw verifiedFacts.
     return NextResponse.json({
       success: true,
       status: 'queued',

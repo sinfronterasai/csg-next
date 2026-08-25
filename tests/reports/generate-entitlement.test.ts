@@ -1,6 +1,6 @@
-// Route-level tests for POST /api/reports/generate focusing on the two critical
-// fixes: #1 (server-side entitlement, never trust request JSON) and #2 (fail
-// closed on non-2xx n8n dispatch).
+// Route-level tests for POST /api/reports/generate under the pay-per-report model.
+// Entitlement comes ONLY from a server-verified purchase record. Subscription
+// tier / tarot entitlements must NOT grant report generation.
 import { POST } from '@/app/api/reports/generate/route';
 
 jest.mock('next/headers', () => ({
@@ -8,30 +8,29 @@ jest.mock('next/headers', () => ({
 }));
 jest.mock('@/lib/auth', () => ({
   verifyToken: () => ({ userId: '7' }),
-  getUserById: async () => ({ id: 7, first_name: 'A', role: 'customer' }),
+  getUserById: async () => ({ id: 7, first_name: 'A', email: 'a@x.com', role: 'customer' }),
 }));
-jest.mock('@/lib/db', () => ({
-  query: jest.fn(),
-}));
+jest.mock('@/lib/db', () => ({ query: jest.fn() }));
 jest.mock('@/lib/reportVerifiedFacts', () => ({
   extractVerifiedFacts: async () => ({ natalChart: {} }),
 }));
 jest.mock('@/lib/profile/store', () => ({
   setReadingDispatchFailed: jest.fn(async () => {}),
 }));
+jest.mock('@/lib/billing/reportPurchaseStore', () => ({
+  getReportPurchase: jest.fn(),
+  consumeReportPurchase: jest.fn(),
+}));
 
 let dispatched: jest.Mock;
-let entitled: jest.Mock;
 let query: jest.Mock;
+let getPurchase: jest.Mock;
+let consume: jest.Mock;
 
 jest.mock('@/lib/reportPipeline', () => ({
   mapReportType: (t: string) => (t === 'transit' ? 'yearlytransit' : (t as any)),
   isUnsupportedForPipeline: (t: string) => ['synastry', 'composite', 'couples', 'tarot'].includes(t),
   dispatchReport: (...a: any[]) => dispatched(...a),
-}));
-jest.mock('@/lib/reportEntitlement', () => ({
-  isPaidReport: (t: string) => t === 'transit' || t === 'fullcosmic',
-  userEntitledForReport: (...a: any[]) => entitled(...a),
 }));
 
 const CHART = {
@@ -39,9 +38,14 @@ const CHART = {
   unknown_time: false, latitude: 48.8, longitude: 2.3, timezone: 'Europe/Paris',
 };
 
-function setup(entitlementResult: { entitled: boolean; requiredTier?: any; reason?: string }, dispatchResult = { ok: true, status: 200 }) {
-  dispatched = jest.fn(async () => dispatchResult);
-  entitled = jest.fn(async () => entitlementResult);
+beforeEach(() => { jest.clearAllMocks(); });
+
+function setup(opts: { purchase?: any; dispatchResult?: any } = {}) {
+  dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
+  getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
+  consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
+  getPurchase.mockResolvedValue(opts.purchase ?? null);
+  consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1' });
   query = require('@/lib/db').query;
   query.mockImplementation(async (text: string) => {
     if (text.includes('natal_charts')) return { rows: [CHART] };
@@ -58,51 +62,91 @@ function call(body: any) {
   }));
 }
 
-describe('#1 server-side entitlement (no request JSON trust)', () => {
-  it('paid report without entitlement -> 402 and never dispatches', async () => {
-    setup({ entitled: false, requiredTier: 'premium', reason: 'tier=free' });
+describe('commercial model: subscription/tarot do NOT grant reports', () => {
+  it('paid report with no purchaseId -> 402 (subscription alone is irrelevant)', async () => {
+    setup(); // no purchase lookup will matter; route rejects before looking
     const res = await call({ type: 'transit' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
 
-  it('client cannot forge entitlement via request body', async () => {
-    setup({ entitled: false, requiredTier: 'premium' });
-    const res = await call({ type: 'transit', entitlementVerified: true });
+  it('paid report with bogus purchaseId -> 402 (not owned / not found)', async () => {
+    setup({ purchase: null });
+    const res = await call({ type: 'transit', purchaseId: 'bogus' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
-  });
-
-  it('entitled paid report dispatches to n8n', async () => {
-    setup({ entitled: true, requiredTier: 'premium' });
-    const res = await call({ type: 'transit' });
-    expect(res.status).toBe(200);
-    expect(dispatched).toHaveBeenCalledTimes(1);
-    const arg = dispatched.mock.calls[0][0];
-    expect(arg.reportType).toBe('transit');
-    expect(arg.tier).toBe('paid');
-  });
-
-  it('free report dispatches without entitlement check', async () => {
-    setup({ entitled: false }); // would fail paid, but free skips it
-    const res = await call({ type: 'natal' });
-    expect(res.status).toBe(200);
-    expect(dispatched).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('#2 fail closed on non-2xx dispatch', () => {
-  it('n8n 401 leaves report rejected and returns 502', async () => {
-    setup({ entitled: true, requiredTier: 'premium' }, { ok: false, status: 401 });
-    const setFailed = require('@/lib/profile/store').setReadingDispatchFailed;
-    const res = await call({ type: 'transit' });
-    expect(res.status).toBe(502);
-    expect(setFailed).toHaveBeenCalledWith(99);
+describe('purchase verification gates dispatch', () => {
+  const paidPurchase = {
+    userId: 7, reportType: 'transit', status: 'paid',
+    readingId: null, reportId: null,
+  };
+
+  it('matching paid purchase dispatches once (200 + 1 dispatch)', async () => {
+    setup({ purchase: paidPurchase });
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(200);
+    expect(dispatched).toHaveBeenCalledTimes(1);
+    expect(consume).toHaveBeenCalledWith(expect.objectContaining({ purchaseId: 'p-1', userId: 7, reportType: 'transit' }));
   });
 
-  it('n8n 500 leaves report rejected and returns 502', async () => {
-    setup({ entitled: true, requiredTier: 'premium' }, { ok: false, status: 500 });
-    const res = await call({ type: 'transit' });
+  it('wrong user owns the purchase -> 402', async () => {
+    setup({ purchase: { ...paidPurchase, userId: 999 } });
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(402);
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('purchase for a different report type (SKU mismatch) -> 409', async () => {
+    setup({ purchase: { ...paidPurchase, reportType: 'fullcosmic' } });
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(409);
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('unpaid (pending) purchase -> 402', async () => {
+    setup({ purchase: { ...paidPurchase, status: 'pending' } });
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(402);
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('free report (natal) dispatches without any purchase', async () => {
+    setup();
+    const res = await call({ type: 'natal' });
+    expect(res.status).toBe(200);
+    expect(dispatched).toHaveBeenCalledTimes(1);
+    expect(getPurchase).not.toHaveBeenCalled();
+  });
+
+  it('repeat request for an already-consumed purchase returns same correlation, no re-dispatch', async () => {
+    setup({ purchase: { ...paidPurchase, status: 'consumed', readingId: 99, reportId: 'rid-1' } });
+    // getReportPurchase returns consumed; route short-circuits before dispatch.
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.readingId).toBe(99);
+    expect(body.reportId).toBe('rid-1');
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('consume reports already_correlated (race) -> no re-dispatch, returns winning correlation', async () => {
+    setup({ purchase: paidPurchase });
+    consume.mockResolvedValueOnce({ outcome: 'already_correlated', readingId: 88, reportId: 'rid-other' });
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.readingId).toBe(88);
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('n8n 401 after a valid purchase leaves report rejected + 502', async () => {
+    setup({ purchase: paidPurchase, dispatchResult: { ok: false, status: 401 } });
+    const setFailed = require('@/lib/profile/store').setReadingDispatchFailed;
+    const res = await call({ type: 'transit', purchaseId: 'p-1' });
     expect(res.status).toBe(502);
+    expect(setFailed).toHaveBeenCalledWith(99);
   });
 });
