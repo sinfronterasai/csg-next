@@ -129,11 +129,11 @@ describe('purchase verification gates dispatch', () => {
     expect(dispatched).not.toHaveBeenCalled();
   });
 
-  it('repeat after a failed dispatch returns the ACTUAL rejected status (no fake queued)', async () => {
-    setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'rejected' } });
+  it('repeat after a failed dispatch returns the ACTUAL dispatch_failed status (no fake queued)', async () => {
+    setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'dispatch_failed' } });
     const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     const body = await res.json();
-    expect(body.status).toBe('rejected');
+    expect(body.status).toBe('dispatch_failed');
     expect(body.retryAvailable).toBe(true);
     expect(dispatched).not.toHaveBeenCalled();
   });
@@ -151,9 +151,9 @@ describe('purchase verification gates dispatch', () => {
     setup({ purchase: paidPurchase, dispatchResult: { ok: false, status: 401 } });
     const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(502);
-    // The route marks the reading rejected via a direct query UPDATE.
+    // The route marks the reading dispatch_failed (retryable) via a direct query UPDATE.
     const q = require('@/lib/db').query as jest.Mock;
-    const failCalls = q.mock.calls.filter((c: any[]) => String(c[0]).includes("pipeline_status = 'rejected'"));
+    const failCalls = q.mock.calls.filter((c: any[]) => String(c[0]).includes("pipeline_status = 'dispatch_failed'"));
     expect(failCalls.length).toBe(1);
     expect(failCalls[0][1]).toEqual([99]);
   });

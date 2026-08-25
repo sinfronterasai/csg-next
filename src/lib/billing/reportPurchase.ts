@@ -51,6 +51,11 @@ export async function createReportCheckoutSession(opts: {
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
+    // Launch scope: card only. Async payment methods (e.g. bank redirect) can leave
+    // a Checkout Session in an unpaid "completed" state that our webhook (which only
+    // marks paid on checkout.session.completed with confirmed payment) would never
+    // transition. Card is synchronous, so payment_status is known at completion.
+    payment_method_types: ['card'],
     customer_email: opts.email,
     client_reference_id: purchaseId,
     line_items: [

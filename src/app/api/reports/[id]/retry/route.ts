@@ -17,7 +17,10 @@ import { getReportPurchaseByReadingId, claimRetry, markReadingDispatchFailed } f
 // one wins the row (returns 200). The loser gets 0 rows -> 409 (no double dispatch).
 const MAX_BODY_BYTES = 200_000;
 
-const RETRYABLE = new Set(['dispatch_failed', 'rejected']);
+// Only a terminal DISPATCH failure is customer-retryable. A quality "rejected"
+// (judge decision via callback) is terminal and must NOT let a customer regenerate
+// at no charge; that requires a separate privileged editor/admin rework action.
+const RETRYABLE = new Set(['dispatch_failed']);
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const raw = await request.text().catch(() => '');
@@ -50,8 +53,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const status: string = r.pipeline_status ?? (r.result?.pipeline?.status ?? '');
-    // #2 — NEVER retry queued/processing/needs_editor/approved. Only terminal
-    // dispatch failures (dispatch_failed) or quality rejections (rejected).
+    // #2 — NEVER retry queued/processing/needs_editor/approved/rejected. Only a
+    // terminal dispatch_failed (initial n8n dispatch failed) is customer-retryable.
     if (!RETRYABLE.has(status)) {
       return NextResponse.json({ error: 'Report is not in a retryable state', status }, { status: 409 });
     }

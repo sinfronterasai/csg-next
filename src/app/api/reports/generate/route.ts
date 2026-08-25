@@ -153,20 +153,38 @@ export async function POST(request: Request) {
     const title = REPORT_META[type].title;
     const price = REPORT_META[type].price;
     const reportId = crypto.randomUUID();
+    // Build the immutable result object ONCE and reuse it for the INSERT, the
+    // dispatch payload, and any later retry. Reading insert.rows[0].result would be
+    // undefined (INSERT only RETURNING id), which previously dispatched empty
+    // birthData/verifiedFacts for free reports.
+    // metadata.birthData uses the SAME normalized shape as the paid path so dispatch
+    // (which reads .dob/.birthTime/.place/...) gets real values, not undefined.
+    const snapshot = {
+      birthData: {
+        firstName: chart.name,
+        dob: chart.date,
+        birthTime: chart.time || null,
+        place: chart.location,
+        lat: Number(c.latitude),
+        lon: Number(c.longitude),
+        tz: c.timezone || 'UTC',
+        solarFallback: chart.unknownTime,
+      },
+      verifiedFacts,
+    };
+    const readingResult = {
+      title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'free',
+      verifiedFacts, pending: true,
+      metadata: snapshot,
+      partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
+    };
     const insert = await query(
       `INSERT INTO readings (user_id, type, title, question, price_paid, result, pipeline_status, created_at)
        VALUES ($1, 'report', $2, $3, $4, $5, 'queued', now())
-       RETURNING id`,
-      [Number(decoded.userId), title, `${title} report`, price,
-        JSON.stringify({
-          title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'free',
-          verifiedFacts, pending: true,
-          metadata: { birthData: chart, verifiedFacts },
-          partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
-        })],
+       RETURNING id, result`,
+      [Number(decoded.userId), title, `${title} report`, price, JSON.stringify(readingResult)],
     );
     const readingId = insert.rows[0].id;
-    const readingResult = JSON.parse(insert.rows[0].result ?? '{}');
     const dispatchRes = await dispatchWithFailClosed({ reportId, type, price, user, decoded, partner, readingResult });
     if (!dispatchRes.ok) {
       await markReadingFailed(readingId);
@@ -266,22 +284,28 @@ async function dispatchWithFailClosed(opts: {
       callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     });
     if (!res.ok) {
-      return { ok: false, status: res.status, readingStatus: 'rejected' };
+      // Initial n8n dispatch failed (non-2xx / network) -> terminal dispatch_failed,
+      // which IS customer-retryable. A quality "rejected" is set only by the callback
+      // (judge) and is NOT customer-retryable.
+      return { ok: false, status: res.status, readingStatus: 'dispatch_failed' };
     }
     return { ok: true, status: 200, readingStatus: 'queued' };
   } catch {
-    return { ok: false, status: 0, readingStatus: 'rejected' };
+    return { ok: false, status: 0, readingStatus: 'dispatch_failed' };
   }
 }
 
 async function markReadingFailed(readingId: number) {
-  await query(`UPDATE readings SET pipeline_status = 'rejected' WHERE id = $1`, [Number(readingId)]);
+  // Dispatch failure (not a judge rejection) -> dispatch_failed, which is retryable.
+  await query(`UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1`, [Number(readingId)]);
 }
 
 function buildRepeatResponse(readingId: number, reportId: string, readingStatus: string) {
-  // #5 — return the ACTUAL reading status, never a hardcoded "queued". A rejected
-  // (failed dispatch) reading is honestly reported and a safe retry is offered.
-  const retryAvailable = readingStatus === 'rejected' || readingStatus === 'queued';
+  // Return the ACTUAL reading status, never a hardcoded "queued". A dispatch_failed
+  // reading is honestly reported and a safe retry is offered. A quality "rejected"
+  // reading is terminal (judge decision) and must NOT be customer-retryable; queued/
+  // processing are in-flight and never retryable.
+  const retryAvailable = readingStatus === 'dispatch_failed';
   return NextResponse.json({
     success: true,
     status: readingStatus,
@@ -289,7 +313,7 @@ function buildRepeatResponse(readingId: number, reportId: string, readingStatus:
     reportId,
     pending: readingStatus === 'queued' || readingStatus === 'processing',
     retryAvailable,
-    message: readingStatus === 'rejected'
+    message: readingStatus === 'dispatch_failed'
       ? 'Your previous report generation failed. You can retry at no extra charge.'
       : 'Your report is already being prepared by our astrology engine.',
   });

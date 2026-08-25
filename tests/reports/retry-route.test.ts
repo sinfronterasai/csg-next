@@ -62,6 +62,12 @@ describe('retry route', () => {
     expect(res.status).toBe(409);
     expect(dispatched).not.toHaveBeenCalled();
   });
+  it('r2 — rejects a quality-rejected (judge) reading: NOT customer-retryable', async () => {
+    setup({ status: 'rejected', claimResult: true });
+    const res = await call();
+    expect(res.status).toBe(409);
+    expect(dispatched).not.toHaveBeenCalled();
+  });
   it('r2/r3 — claims dispatch_failed and dispatches once', async () => {
     setup({ status: 'dispatch_failed', claimResult: true });
     const res = await call();

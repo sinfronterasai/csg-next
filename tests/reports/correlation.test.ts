@@ -57,15 +57,14 @@ function fakeDb() {
       if (text.includes('UPDATE readings') && text.includes('pipeline_status')) {
         const r = readings.find((x) => x.id === Number(params[0]));
         if (!r) return { rows: [], rowCount: 0 };
-        if (text.includes("IN ('dispatch_failed'")) {
-          // claimRetry: only transition from dispatch_failed/rejected -> queued
-          if (['dispatch_failed', 'rejected'].includes(r.pipeline_status)) {
+        if (text.includes("SET pipeline_status = 'queued'")) {
+          // claimRetry: only a terminal dispatch_failed reading transitions to queued.
+          if (r.pipeline_status === 'dispatch_failed') {
             r.pipeline_status = 'queued';
             return { rows: [{ id: r.id }], rowCount: 1 };
           }
           return { rows: [], rowCount: 0 };
         }
-        // markReadingDispatchFailed: literal 'dispatch_failed'
         if (text.includes("SET pipeline_status = 'dispatch_failed'")) {
           r.pipeline_status = 'dispatch_failed';
           return { rows: [{ id: r.id }], rowCount: 1 };
@@ -84,6 +83,17 @@ function fakeDb() {
       if (text.includes('SELECT * FROM report_orders')) {
         const r = orders.find((x) => x.purchase_id === params[0]);
         return { rows: r ? [r] : [], rowCount: r ? 1 : 0 };
+      }
+      if (text.includes('LEFT JOIN readings')) {
+        // Lost-race re-read: must join readings for the status, NOT read a
+        // nonexistent report_orders.pipeline_status column.
+        if (text.includes('pipeline_status FROM report_orders')) {
+          throw new Error('REGRESSION: report_orders has no pipeline_status column');
+        }
+        const o = orders.find((x) => x.purchase_id === params[0]);
+        if (!o || o.reading_id == null) return { rows: [], rowCount: 0 };
+        const r = readings.find((x) => x.id === Number(o.reading_id));
+        return { rows: [{ reading_id: o.reading_id, report_id: o.report_id, pipeline_status: r?.pipeline_status ?? 'queued' }], rowCount: 1 };
       }
       if (text.includes('SET stripe_session_id')) {
         const r = orders.find((x) => x.purchase_id === params[0]);
@@ -177,6 +187,32 @@ describe('r5 — Stripe invariants are REQUIRED', () => {
     const r = await verifyAndMarkReportPurchasePaid({ purchaseId: id, session: good({ client_reference_id: id, id: 'cs_different' }) });
     expect(r.outcome).toBe('deferred_mismatch');
     expect((r as any).reason).toContain('session_id');
+  });
+});
+
+describe('r4 — lost-race branch query shape (#4)', () => {
+  it('already_consumed returns existing correlation with reading status from JOIN (no report_orders.pipeline_status)', async () => {
+    installFake();
+    const { purchaseId } = await createReportPurchase({ userId: 7, reportType: 'transit', sku: 'report-transit', amount: 3900 });
+    await verifyAndMarkReportPurchasePaid({ purchaseId, session: {
+      id: 'cs_1', client_reference_id: purchaseId, payment_status: 'paid', currency: 'usd', amount_total: 3900,
+      payment_intent: { id: 'pi_1', status: 'succeeded' },
+      metadata: { kind: 'report', userId: '7', reportType: 'transit', sku: 'report-transit' },
+    }});
+    const reportId = 'bbbbbbbb-0000-0000-0000-000000000001';
+    const first = await consumeReportPurchase({ purchaseId, userId: 7, reportType: 'transit', reportId, reading: {
+      userId: 7, type: 'report', title: 'T', question: 'q', pricePaid: 39,
+      resultJson: JSON.stringify({ reportId, reportType: 'transit', verifiedFacts: { x: 1 } }), pipelineStatus: 'queued',
+    }});
+    expect(first.outcome).toBe('consumed');
+    // Mark the reading as dispatch_failed to prove status comes from readings via JOIN.
+    readings.find((r) => r.id === first.readingId)!.pipeline_status = 'dispatch_failed';
+    const second = await consumeReportPurchase({ purchaseId, userId: 7, reportType: 'transit', reportId, reading: {
+      userId: 7, type: 'report', title: 'T', question: 'q', pricePaid: 39,
+      resultJson: JSON.stringify({ reportId, reportType: 'transit', verifiedFacts: { x: 1 } }), pipelineStatus: 'queued',
+    }});
+    expect(second.outcome).toBe('already_correlated');
+    expect(second.readingStatus).toBe('dispatch_failed');
   });
 });
 

@@ -290,8 +290,15 @@ export async function consumeReportPurchase(input: {
         [input.purchaseId, readingId, reportId],
       );
       if (upd.rowCount === 0) {
-        // Lost a race: re-read to return whatever won.
-        const re = await tx(`SELECT reading_id, report_id, pipeline_status FROM report_orders WHERE purchase_id = $1`, [input.purchaseId]);
+        // Lost a race: re-read to return whatever won. report_orders has no
+        // pipeline_status column, so join readings to get the reading's actual status.
+        const re = await tx(
+          `SELECT o.reading_id, o.report_id, r.pipeline_status
+             FROM report_orders o
+             LEFT JOIN readings r ON r.id = o.reading_id
+            WHERE o.purchase_id = $1`,
+          [input.purchaseId],
+        );
         if (re.rows[0]?.reading_id != null) {
           const reRes = await tx(`SELECT result FROM readings WHERE id = $1`, [Number(re.rows[0].reading_id)]);
           return finalize(tx, {
@@ -317,10 +324,13 @@ export async function consumeReportPurchase(input: {
 // using a single conditional UPDATE ... RETURNING. Two concurrent retries race here:
 // exactly one wins the row, the other gets 0 rows and must return 409.
 export async function claimRetry(readingId: number | string, userId: number | string): Promise<{ claimed: boolean }> {
+  // Only a terminal DISPATCH failure is customer-retryable. A quality "rejected"
+  // (judge decision via callback) is terminal and must NOT let a customer regenerate
+  // at no charge; that requires a separate privileged editor/admin rework action.
   const upd = await query(
     `UPDATE readings
        SET pipeline_status = 'queued'
-     WHERE id = $1 AND user_id = $2 AND pipeline_status IN ('dispatch_failed', 'rejected')
+     WHERE id = $1 AND user_id = $2 AND pipeline_status = 'dispatch_failed'
      RETURNING id`,
     [Number(readingId), Number(userId)],
   );
