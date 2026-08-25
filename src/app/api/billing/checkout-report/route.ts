@@ -5,18 +5,29 @@ import { createReportCheckoutSession, isPaidReportType } from '@/lib/billing/rep
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 
 const PIPELINE_PAID: ReportType[] = ['transit', 'loveblueprint', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic'];
+const MAX_BODY_BYTES = 50_000;
 
 export async function POST(request: NextRequest) {
+  // #6 — enforce actual payload size regardless of (or absent) Content-Length.
+  const raw = await request.text().catch(() => '');
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  }
+  let body: any;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
   if (!token) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   const decoded = verifyToken(token);
   if (!decoded) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
-  const body = await request.json().catch(() => ({}));
   const reportType = body.reportType as ReportType;
   if (!PIPELINE_PAID.includes(reportType)) {
-    // Free reports (natal/relationship) and unsupported types never need purchase.
     return NextResponse.json({ error: 'Report type does not require purchase.' }, { status: 400 });
   }
   if (!isPaidReportType(reportType)) {

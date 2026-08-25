@@ -52,15 +52,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // R7 — bound request size before parsing.
-  const len = Number(request.headers.get('content-length') || 0);
-  if (len > MAX_BODY_BYTES) {
+  // R7 — enforce ACTUAL payload size regardless of (or absent) Content-Length.
+  // Read bounded text first; if it exceeds the cap, reject before parsing.
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return NextResponse.json({ error: 'Malformed body' }, { status: 400 });
+  }
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
-
   let body: CallbackBody;
   try {
-    body = await request.json();
+    body = JSON.parse(raw);
   } catch {
     // R2.3 — malformed callback returns 400.
     return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });

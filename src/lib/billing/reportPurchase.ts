@@ -5,7 +5,7 @@ import Stripe from 'stripe';
 import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import {
-  createReportPurchase, markReportPurchasePaid, getReportPurchase, getReportPurchaseBySession,
+  createReportPurchase, verifyAndMarkReportPurchasePaid, getReportPurchase,
   type ReportPurchaseRow,
 } from '@/lib/billing/reportPurchaseStore';
 
@@ -24,6 +24,8 @@ export function isPaidReportType(type: ReportType): boolean {
 /**
  * Create a pending purchase record + a one-time Stripe Checkout Session.
  * Returns the hosted URL and our purchaseId (to pass back into /api/reports/generate).
+ * Promotion codes are DISABLED for launch: the stored amount must equal the exact
+ * charged amount_total, so discounts would otherwise break webhook verification.
  */
 export async function createReportCheckoutSession(opts: {
   userId: number | string;
@@ -64,7 +66,7 @@ export async function createReportCheckoutSession(opts: {
     metadata: { kind: 'report', userId: String(opts.userId), reportType: opts.reportType, sku },
     success_url: `${opts.origin}/reports?purchase=success&type=${opts.reportType}`,
     cancel_url: `${opts.origin}/reports?purchase=canceled`,
-    allow_promotion_codes: true,
+    allow_promotion_codes: false,
   });
 
   // Record the session id so webhook correlation + idempotency are robust.
@@ -77,21 +79,25 @@ export async function createReportCheckoutSession(opts: {
 
 /**
  * Apply a confirmed Stripe checkout session to its purchase record.
- * Called ONLY from the verified-webhook path. Idempotent.
+ * Called ONLY from the verified-webhook path. Verifies payment_status + signed
+ * invariants under lock; marks paid only when everything matches. Returns whether
+ * it was applied, deferred (unpaid/mismatch), or not found, so the webhook can
+ * return the correct HTTP status and let Stripe retry a deferred/incomplete one.
  */
-export async function handleReportPurchaseWebhook(session: any): Promise<{ applied: boolean; purchaseId?: string }> {
+export async function handleReportPurchaseWebhook(session: any): Promise<{ outcome: string; purchaseId?: string; reason?: string }> {
   const purchaseId: string | undefined = session?.client_reference_id;
-  if (!purchaseId) return { applied: false };
-  const paymentId: string | undefined =
-    session?.payment_intent?.id ?? session?.payment_intent ?? session?.id ?? undefined;
-  const ok = await markReportPurchasePaid({ purchaseId, stripeSessionId: session?.id, stripePaymentId: paymentId });
-  return { applied: ok, purchaseId };
+  if (!purchaseId) return { outcome: 'no_reference' };
+  const result = await verifyAndMarkReportPurchasePaid({ purchaseId, session });
+  if (result.outcome === 'applied') return { outcome: 'applied', purchaseId };
+  if (result.outcome === 'deferred_unpaid') return { outcome: 'deferred_unpaid', purchaseId };
+  if (result.outcome === 'deferred_mismatch') return { outcome: 'deferred_mismatch', purchaseId, reason: result.reason };
+  return { outcome: 'not_found', purchaseId };
 }
 
 /**
  * Defense-in-depth: re-verify a purchase's paid state by retrieving the Stripe
  * session server-side (never trusts stored flags alone). Returns the purchase row
- * only if Stripe confirms payment.
+ * only if Stripe confirms payment AND invariants match.
  */
 export async function verifyPurchasePaidViaStripe(purchaseId: string): Promise<ReportPurchaseRow | null> {
   const purchase = await getReportPurchase(purchaseId);
@@ -100,13 +106,9 @@ export async function verifyPurchasePaidViaStripe(purchaseId: string): Promise<R
   if (!sessionId) return purchase.status === 'paid' ? purchase : null;
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent'] });
-    const pi = session.payment_intent;
-    const paid = session.payment_status === 'paid' || pi?.status === 'succeeded';
-    if (paid && purchase.status !== 'paid') {
-      await markReportPurchasePaid({ purchaseId, stripeSessionId: sessionId, stripePaymentId: pi?.id });
-      return await getReportPurchase(purchaseId);
-    }
-    return paid ? purchase : null;
+    const res = await verifyAndMarkReportPurchasePaid({ purchaseId, session });
+    if (res.outcome === 'applied') return await getReportPurchase(purchaseId);
+    return purchase.status === 'paid' ? purchase : null;
   } catch {
     // Stripe retrieval failed -> fall back to stored state (set by webhook).
     return purchase.status === 'paid' ? purchase : null;

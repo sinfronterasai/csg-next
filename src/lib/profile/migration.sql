@@ -102,3 +102,42 @@ CREATE INDEX IF NOT EXISTS idx_report_orders_user_type
   ON report_orders (user_id, report_type);
 CREATE INDEX IF NOT EXISTS idx_report_orders_reading
   ON report_orders (reading_id) WHERE reading_id IS NOT NULL;
+
+-- ============================================================================
+-- report_orders schema integrity (idempotent; legacy report_purchases untouched).
+-- Adds foreign keys to users + readings and CHECK constraints. A DO block guards
+-- each constraint so re-running the migration is safe (Postgres has no
+-- ADD CONSTRAINT IF NOT EXISTS for these shapes).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_report_orders_user') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT fk_report_orders_user FOREIGN KEY (user_id) REFERENCES users(id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_report_orders_reading') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT fk_report_orders_reading FOREIGN KEY (reading_id) REFERENCES readings(id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_status') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT ck_report_orders_status
+      CHECK (status IN ('pending','paid','consumed','failed'));
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_currency') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT ck_report_orders_currency CHECK (currency IN ('usd'));
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_amount') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT ck_report_orders_amount CHECK (amount > 0);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_sku') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT ck_report_orders_sku CHECK (sku = 'report-' || report_type);
+  END IF;
+END $$;

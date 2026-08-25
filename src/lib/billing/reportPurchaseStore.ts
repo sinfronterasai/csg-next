@@ -4,18 +4,28 @@
 //
 // Lifecycle: pending -> paid -> consumed.
 //   pending  : Stripe Checkout Session created (not yet paid)
-//   paid     : payment confirmed by signed webhook OR server-side Stripe retrieval
+//   paid     : payment confirmed by signed webhook (invariants verified) OR
+//              server-side Stripe retrieval
 //   consumed : the matching report was dispatched and correlated to a reading row
 //
 // Idempotency guarantees:
 //   - stripe_session_id / stripe_payment_id are UNIQUE -> one payment = one purchase
-//   - consumeReportPurchase() uses SELECT ... FOR UPDATE + a conditional UPDATE so a
-//     single paid purchase dispatches exactly one report; a repeat request for an
-//     already-consumed purchase returns the existing correlation WITHOUT re-dispatching.
+//   - consumeReportPurchase() creates the reading row AND correlates the purchase
+//     inside a single transaction (SELECT ... FOR UPDATE + conditional UPDATE), so
+//     one paid purchase creates exactly one reading and dispatches exactly once.
+//     A repeat request for an already-consumed purchase returns the existing
+//     correlation (with the reading's ACTUAL status) WITHOUT creating a new reading.
 import { query, transaction } from '@/lib/db';
 import crypto from 'crypto';
 
 export type ReportPurchaseStatus = 'pending' | 'paid' | 'consumed' | 'failed';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Validate a purchaseId is a real UUID BEFORE it touches the uuid column. */
+export function isValidPurchaseId(id: unknown): id is string {
+  return typeof id === 'string' && UUID_RE.test(id);
+}
 
 export interface ReportPurchaseRow {
   id: number;
@@ -53,6 +63,11 @@ function hydrate(row: any): ReportPurchaseRow {
   };
 }
 
+/** Validate the report_type/sku pairing server-side (defense against bad input). */
+export function isValidSkuPair(reportType: string, sku: string): boolean {
+  return sku === `report-${reportType}`;
+}
+
 /** Create a pending purchase row. Returns the app-generated purchaseId. */
 export async function createReportPurchase(input: {
   userId: number | string;
@@ -61,6 +76,9 @@ export async function createReportPurchase(input: {
   amount: number;
   currency?: string;
 }): Promise<{ purchaseId: string }> {
+  if (!isValidSkuPair(input.reportType, input.sku)) {
+    throw new Error(`Invalid report_type/sku pairing: ${input.reportType}/${input.sku}`);
+  }
   const { rows } = await query(
     `INSERT INTO report_orders (user_id, report_type, sku, amount, currency, status)
      VALUES ($1, $2, $3, $4, $5, 'pending')
@@ -70,27 +88,83 @@ export async function createReportPurchase(input: {
   return { purchaseId: rows[0].purchase_id };
 }
 
-/** Mark a purchase paid from a confirmed Stripe session. Idempotent. */
-export async function markReportPurchasePaid(input: {
+/**
+ * Verify a confirmed Stripe session against the stored order UNDER LOCK, then
+ * mark paid only if every signed invariant matches. Returns a discriminated
+ * result so the webhook can decide whether to defer (don't mark paid) vs apply.
+ *
+ * Verifies: client_reference_id/purchaseId, metadata.kind, metadata.userId,
+ * metadata.reportType, metadata.sku, currency, and amount_total (incl. any
+ * discount) equals the stored amount. Rejects/defers on mismatch or unpaid.
+ */
+export type VerifyPaidResult =
+  | { outcome: 'applied' }
+  | { outcome: 'deferred_unpaid' }
+  | { outcome: 'deferred_mismatch'; reason: string }
+  | { outcome: 'not_found' };
+
+export async function verifyAndMarkReportPurchasePaid(input: {
   purchaseId: string;
-  stripeSessionId?: string | null;
-  stripePaymentId?: string | null;
-}): Promise<boolean> {
-  const { rows } = await query(
-    `UPDATE report_orders
-       SET status = 'paid',
-           stripe_session_id = COALESCE($2, stripe_session_id),
-           stripe_payment_id = COALESCE($3, stripe_payment_id),
-           updated_at = now()
-     WHERE purchase_id = $1
-       AND status IN ('pending', 'paid')
-     RETURNING id`,
-    [input.purchaseId, input.stripeSessionId ?? null, input.stripePaymentId ?? null],
-  );
-  return rows.length > 0;
+  session: any;
+}): Promise<VerifyPaidResult> {
+  // Payment must be confirmed by Stripe, not just "session completed".
+  const paymentStatus = input.session?.payment_status;
+  const pi = input.session?.payment_intent;
+  const piStatus = typeof pi === 'object' ? pi?.status : undefined;
+  const paid = paymentStatus === 'paid' || piStatus === 'succeeded';
+  if (!paid) {
+    return { outcome: 'deferred_unpaid' };
+  }
+
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const lock = await tx(
+        `SELECT id, user_id, report_type, sku, amount, currency, status, stripe_session_id
+           FROM report_orders WHERE purchase_id = $1 FOR UPDATE`,
+        [input.purchaseId],
+      );
+      if (lock.rows.length === 0) return finalize(tx, { outcome: 'not_found' });
+      const r = lock.rows[0];
+
+      const meta = input.session?.metadata ?? {};
+      const expectAmount = Number(r.amount);
+      const expectCurrency = String(r.currency).toUpperCase();
+      const sessionAmount = Number(input.session?.amount_total ?? input.session?.amount ?? 0);
+      const sessionCurrency = String(input.session?.currency ?? '').toUpperCase();
+
+      const mismatches: string[] = [];
+      if (meta.kind !== 'report') mismatches.push('kind');
+      if (String(meta.userId) !== String(r.user_id)) mismatches.push('userId');
+      if (meta.reportType !== r.report_type) mismatches.push('reportType');
+      if (meta.sku !== r.sku) mismatches.push('sku');
+      if (sessionCurrency && sessionCurrency !== expectCurrency) mismatches.push('currency');
+      if (sessionAmount && sessionAmount !== expectAmount) mismatches.push('amount');
+
+      if (mismatches.length > 0) {
+        return finalize(tx, { outcome: 'deferred_mismatch', reason: mismatches.join(',') });
+      }
+
+      const upd = await tx(
+        `UPDATE report_orders
+           SET status = 'paid',
+               stripe_session_id = COALESCE($2, stripe_session_id),
+               stripe_payment_id = COALESCE($3, stripe_payment_id),
+               updated_at = now()
+         WHERE purchase_id = $1 AND status IN ('pending', 'paid')
+         RETURNING id`,
+        [input.purchaseId, input.session?.id ?? null, pi?.id ?? input.session?.payment_intent ?? null],
+      );
+      return finalize(tx, upd.rows.length > 0 ? { outcome: 'applied' } : { outcome: 'applied' });
+    } catch (err) {
+      await tx('ROLLBACK');
+      throw err;
+    }
+  });
 }
 
 export async function getReportPurchase(purchaseId: string): Promise<ReportPurchaseRow | null> {
+  if (!isValidPurchaseId(purchaseId)) return null; // never hit the uuid column with garbage
   const { rows } = await query(
     `SELECT * FROM report_orders WHERE purchase_id = $1`,
     [purchaseId],
@@ -106,61 +180,122 @@ export async function getReportPurchaseBySession(sessionId: string): Promise<Rep
   return rows.length ? hydrate(rows[0]) : null;
 }
 
+export async function getReportPurchaseByReadingId(readingId: number | string): Promise<ReportPurchaseRow | null> {
+  const { rows } = await query(
+    `SELECT * FROM report_orders WHERE reading_id = $1`,
+    [Number(readingId)],
+  );
+  return rows.length ? hydrate(rows[0]) : null;
+}
+
 export type ConsumeResult =
-  | { outcome: 'consumed'; readingId: number; reportId: string }
-  | { outcome: 'already_correlated'; readingId: number; reportId: string }
+  | { outcome: 'consumed'; readingId: number; reportId: string; readingStatus: string }
+  | { outcome: 'already_correlated'; readingId: number; reportId: string; readingStatus: string }
   | { outcome: 'not_found' }
   | { outcome: 'not_paid' }
   | { outcome: 'wrong_owner' }
   | { outcome: 'wrong_type' };
 
+export interface ReadingInsert {
+  userId: number;
+  type: string;
+  title: string;
+  question: string;
+  pricePaid: number;
+  resultJson: string;
+  pipelineStatus: string;
+}
+
 /**
- * Atomically verify a purchase and correlate it to a freshly created reading.
- * Must be called AFTER the readings row exists (readingId/reportId known).
- *
- * Race-safe: locks the purchase row with FOR UPDATE, then performs a conditional
- * UPDATE that only succeeds when status = 'paid' AND reading_id IS NULL. This
- * guarantees one paid purchase -> one dispatch. A repeat call for an already
- * consumed purchase returns the existing correlation (no double dispatch).
+ * Atomically consume a paid purchase AND create its reading row in one
+ * transaction. This eliminates the race/orphan: the reading is created only when
+ * the purchase is successfully correlated, so a losing concurrent request cannot
+ * leave a dangling queued reading behind. A repeat for an already-consumed
+ * purchase returns the EXISTING correlation with the reading's ACTUAL status
+ * (never a hardcoded "queued").
  */
 export async function consumeReportPurchase(input: {
   purchaseId: string;
   userId: number | string;
   reportType: string;
-  readingId: number | string;
-  reportId: string;
+  reading: ReadingInsert;
 }): Promise<ConsumeResult> {
+  if (!isValidPurchaseId(input.purchaseId)) return { outcome: 'not_found' };
+
   return transaction(async (tx) => {
-    const lock = await tx(
-      `SELECT id, user_id, report_type, status, reading_id, report_id
-         FROM report_orders WHERE purchase_id = $1 FOR UPDATE`,
-      [input.purchaseId],
-    );
-    if (lock.rows.length === 0) return { outcome: 'not_found' };
-    const r = lock.rows[0];
-    if (Number(r.user_id) !== Number(input.userId)) return { outcome: 'wrong_owner' };
-    if (r.report_type !== input.reportType) return { outcome: 'wrong_type' };
+    await tx('BEGIN');
+    try {
+      const lock = await tx(
+        `SELECT id, user_id, report_type, status, reading_id, report_id
+           FROM report_orders WHERE purchase_id = $1 FOR UPDATE`,
+        [input.purchaseId],
+      );
+      if (lock.rows.length === 0) return finalize(tx, { outcome: 'not_found' });
+      const r = lock.rows[0];
 
-    // Already consumed for a prior (or concurrent) dispatch -> return correlation.
-    if (r.status === 'consumed' && r.reading_id != null) {
-      return { outcome: 'already_correlated', readingId: Number(r.reading_id), reportId: r.report_id };
-    }
-    if (r.status !== 'paid') return { outcome: 'not_paid' };
+      if (Number(r.user_id) !== Number(input.userId)) return finalize(tx, { outcome: 'wrong_owner' });
+      if (r.report_type !== input.reportType) return finalize(tx, { outcome: 'wrong_type' });
 
-    const upd = await tx(
-      `UPDATE report_orders
-         SET status = 'consumed', reading_id = $2, report_id = $3, updated_at = now()
-       WHERE purchase_id = $1 AND status = 'paid' AND reading_id IS NULL`,
-      [input.purchaseId, Number(input.readingId), input.reportId],
-    );
-    if (upd.rowCount === 0) {
-      // Lost a race: re-read to return whatever won.
-      const re = await tx(`SELECT reading_id, report_id FROM report_orders WHERE purchase_id = $1`, [input.purchaseId]);
-      if (re.rows[0]?.reading_id != null) {
-        return { outcome: 'already_correlated', readingId: Number(re.rows[0].reading_id), reportId: re.rows[0].report_id };
+      // Already consumed -> return the EXISTING correlation with the reading's
+      // ACTUAL pipeline status (so a failed dispatch is not misreported as queued).
+      if (r.status === 'consumed' && r.reading_id != null) {
+        const rdr = await tx(`SELECT pipeline_status FROM readings WHERE id = $1`, [Number(r.reading_id)]);
+        const readingStatus = (rdr.rows[0]?.pipeline_status as string) ?? 'queued';
+        return finalize(tx, {
+          outcome: 'already_correlated',
+          readingId: Number(r.reading_id),
+          reportId: r.report_id,
+          readingStatus,
+        });
       }
-      return { outcome: 'not_paid' };
+      if (r.status !== 'paid') return finalize(tx, { outcome: 'not_paid' });
+
+      // Create the reading AND correlate it in the same transaction.
+      const reportId = crypto.randomUUID();
+      const ins = await tx(
+        `INSERT INTO readings (user_id, type, title, question, price_paid, result, pipeline_status, created_at)
+         VALUES ($1, 'report', $2, $3, $4, $5, $6, now())
+         RETURNING id`,
+        [
+          Number(input.userId), input.reading.title, input.reading.question, input.reading.pricePaid,
+          input.reading.resultJson, input.reading.pipelineStatus,
+        ],
+      );
+      const readingId = Number(ins.rows[0].id);
+
+      const upd = await tx(
+        `UPDATE report_orders
+           SET status = 'consumed', reading_id = $2, report_id = $3, updated_at = now()
+         WHERE purchase_id = $1 AND status = 'paid' AND reading_id IS NULL`,
+        [input.purchaseId, readingId, reportId],
+      );
+      if (upd.rowCount === 0) {
+        // Lost a race: re-read to return whatever won.
+        const re = await tx(`SELECT reading_id, report_id, pipeline_status FROM report_orders WHERE purchase_id = $1`, [input.purchaseId]);
+        if (re.rows[0]?.reading_id != null) {
+          return finalize(tx, {
+            outcome: 'already_correlated',
+            readingId: Number(re.rows[0].reading_id),
+            reportId: re.rows[0].report_id,
+            readingStatus: (re.rows[0].pipeline_status as string) ?? 'queued',
+          });
+        }
+        return finalize(tx, { outcome: 'not_paid' });
+      }
+      return finalize(tx, { outcome: 'consumed', readingId, reportId, readingStatus: input.reading.pipelineStatus });
+    } catch (err) {
+      await tx('ROLLBACK');
+      throw err;
     }
-    return { outcome: 'consumed', readingId: Number(input.readingId), reportId: input.reportId };
   });
+}
+
+async function finalize(
+  tx: (t: string, p?: any[]) => Promise<{ rows: any[]; rowCount: number | null }>,
+  outcome: any,
+): Promise<any> {
+  // A "not_found"/"wrong_*"/"not_paid" result is still a successful, expected
+  // business outcome (no DB error) -> commit the (no-op) transaction.
+  await tx('COMMIT');
+  return outcome;
 }

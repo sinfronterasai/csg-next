@@ -1,6 +1,9 @@
-// Route-level tests for POST /api/reports/generate under the pay-per-report model.
-// Entitlement comes ONLY from a server-verified purchase record. Subscription
-// tier / tarot entitlements must NOT grant report generation.
+// Route-level tests for POST /api/reports/generate under the pay-per-report model
+// + payment-integrity review. Entitlement comes ONLY from a server-verified
+// purchase record. Subscription tier / tarot entitlements do NOT grant reports.
+// A malformed (non-UUID) purchaseId must 400 without a DB hit. A repeat request
+// for an already-consumed purchase returns the EXISTING correlation with the
+// reading's ACTUAL status (never a fake "queued").
 import { POST } from '@/app/api/reports/generate/route';
 
 jest.mock('next/headers', () => ({
@@ -20,6 +23,7 @@ jest.mock('@/lib/profile/store', () => ({
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),
+  isValidPurchaseId: jest.fn((id: any) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)),
 }));
 
 let dispatched: jest.Mock;
@@ -40,12 +44,12 @@ const CHART = {
 
 beforeEach(() => { jest.clearAllMocks(); });
 
-function setup(opts: { purchase?: any; dispatchResult?: any } = {}) {
+function setup(opts: { purchase?: any; consumeResult?: any; dispatchResult?: any } = {}) {
   dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
   consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
   getPurchase.mockResolvedValue(opts.purchase ?? null);
-  consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1' });
+  consume.mockResolvedValue(opts.consumeResult ?? { outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
   query = require('@/lib/db').query;
   query.mockImplementation(async (text: string) => {
     if (text.includes('natal_charts')) return { rows: [CHART] };
@@ -57,62 +61,55 @@ function setup(opts: { purchase?: any; dispatchResult?: any } = {}) {
 function call(body: any) {
   return POST(new Request('http://localhost/api/reports/generate', {
     method: 'POST',
-    headers: { 'content-length': String(JSON.stringify(body).length) },
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   }));
 }
 
 describe('commercial model: subscription/tarot do NOT grant reports', () => {
-  it('paid report with no purchaseId -> 402 (subscription alone is irrelevant)', async () => {
-    setup(); // no purchase lookup will matter; route rejects before looking
+  it('paid report with no purchaseId -> 402', async () => {
+    setup();
     const res = await call({ type: 'transit' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
-
-  it('paid report with bogus purchaseId -> 402 (not owned / not found)', async () => {
-    setup({ purchase: null });
+  it('paid report with bogus (non-UUID) purchaseId -> 400, no DB call', async () => {
+    setup();
     const res = await call({ type: 'transit', purchaseId: 'bogus' });
-    expect(res.status).toBe(402);
+    expect(res.status).toBe(400);
+    expect(getPurchase).not.toHaveBeenCalled(); // UUID rejected before DB
     expect(dispatched).not.toHaveBeenCalled();
   });
 });
 
 describe('purchase verification gates dispatch', () => {
-  const paidPurchase = {
-    userId: 7, reportType: 'transit', status: 'paid',
-    readingId: null, reportId: null,
-  };
+  const paidPurchase = { userId: 7, reportType: 'transit', status: 'paid', readingId: null, reportId: null };
 
   it('matching paid purchase dispatches once (200 + 1 dispatch)', async () => {
     setup({ purchase: paidPurchase });
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     expect(dispatched).toHaveBeenCalledTimes(1);
-    expect(consume).toHaveBeenCalledWith(expect.objectContaining({ purchaseId: 'p-1', userId: 7, reportType: 'transit' }));
+    expect(consume).toHaveBeenCalledWith(expect.objectContaining({ purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', userId: 7, reportType: 'transit' }));
   });
-
   it('wrong user owns the purchase -> 402', async () => {
     setup({ purchase: { ...paidPurchase, userId: 999 } });
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
-
   it('purchase for a different report type (SKU mismatch) -> 409', async () => {
     setup({ purchase: { ...paidPurchase, reportType: 'fullcosmic' } });
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(409);
     expect(dispatched).not.toHaveBeenCalled();
   });
-
   it('unpaid (pending) purchase -> 402', async () => {
     setup({ purchase: { ...paidPurchase, status: 'pending' } });
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
-
   it('free report (natal) dispatches without any purchase', async () => {
     setup();
     const res = await call({ type: 'natal' });
@@ -121,21 +118,29 @@ describe('purchase verification gates dispatch', () => {
     expect(getPurchase).not.toHaveBeenCalled();
   });
 
-  it('repeat request for an already-consumed purchase returns same correlation, no re-dispatch', async () => {
-    setup({ purchase: { ...paidPurchase, status: 'consumed', readingId: 99, reportId: 'rid-1' } });
-    // getReportPurchase returns consumed; route short-circuits before dispatch.
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+  it('repeat request for an already-consumed purchase returns SAME correlation, no re-dispatch', async () => {
+    setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' } });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.readingId).toBe(99);
     expect(body.reportId).toBe('rid-1');
+    expect(body.status).toBe('queued');
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('repeat after a failed dispatch returns the ACTUAL rejected status (no fake queued)', async () => {
+    setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'rejected' } });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const body = await res.json();
+    expect(body.status).toBe('rejected');
+    expect(body.retryAvailable).toBe(true);
     expect(dispatched).not.toHaveBeenCalled();
   });
 
   it('consume reports already_correlated (race) -> no re-dispatch, returns winning correlation', async () => {
-    setup({ purchase: paidPurchase });
-    consume.mockResolvedValueOnce({ outcome: 'already_correlated', readingId: 88, reportId: 'rid-other' });
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 88, reportId: 'rid-other', readingStatus: 'queued' } });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.readingId).toBe(88);
@@ -144,9 +149,12 @@ describe('purchase verification gates dispatch', () => {
 
   it('n8n 401 after a valid purchase leaves report rejected + 502', async () => {
     setup({ purchase: paidPurchase, dispatchResult: { ok: false, status: 401 } });
-    const setFailed = require('@/lib/profile/store').setReadingDispatchFailed;
-    const res = await call({ type: 'transit', purchaseId: 'p-1' });
+    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(502);
-    expect(setFailed).toHaveBeenCalledWith(99);
+    // The route marks the reading rejected via a direct query UPDATE.
+    const q = require('@/lib/db').query as jest.Mock;
+    const failCalls = q.mock.calls.filter((c: any[]) => String(c[0]).includes("pipeline_status = 'rejected'"));
+    expect(failCalls.length).toBe(1);
+    expect(failCalls[0][1]).toEqual([99]);
   });
 });

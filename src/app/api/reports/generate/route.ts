@@ -7,8 +7,7 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { extractVerifiedFacts } from '@/lib/reportVerifiedFacts';
-import { consumeReportPurchase, getReportPurchase } from '@/lib/billing/reportPurchaseStore';
-import { setReadingDispatchFailed } from '@/lib/profile/store';
+import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
@@ -20,6 +19,19 @@ const PIPELINE_TYPES: ReportType[] = [
 const MAX_BODY_BYTES = 200_000; // 200 KB hard cap on request payloads.
 
 export async function POST(request: Request) {
+  // #6 — read bounded text and enforce actual byte size regardless of (or absent)
+  // Content-Length. Then parse. This defeats omitted/spoofed content-length.
+  const raw = await readBounded(request, MAX_BODY_BYTES).catch(() => null);
+  if (raw === null) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  }
+  let body: any;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
+  }
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -29,12 +41,6 @@ export async function POST(request: Request) {
     const user = await getUserById(decoded.userId);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
-    const len = Number(request.headers.get('content-length') || 0);
-    if (len > MAX_BODY_BYTES) {
-      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
-    }
-
-    const body = await request.json().catch(() => ({}));
     const { type: rawType, partner, purchaseId } = body;
     const type = rawType as ReportType;
 
@@ -52,16 +58,24 @@ export async function POST(request: Request) {
     // COMMERCIAL MODEL: paid reports require a real, server-verified purchase.
     // Entitlement is NEVER inferred from subscription tier or tarot entitlements.
     // Free reports (Natal / Relationship) continue without any purchase.
-    let purchaseCorrelation: { readingId: number; reportId: string } | null = null;
     if (isPaid) {
-      if (!purchaseId || typeof purchaseId !== 'string') {
+      // #3 — validate purchaseId BEFORE any DB call. A missing purchaseId is a
+      // payment-required condition (402); a present but malformed (non-UUID)
+      // value is a bad request (400) and must never reach the uuid column
+      // (which would otherwise throw an invalid-UUID Postgres error -> 500).
+      if (!purchaseId) {
         return NextResponse.json(
-          { error: 'A valid purchase is required to generate this report', requiresPurchase: true },
+          { error: 'A purchase is required to generate this report', requiresPurchase: true },
           { status: 402 },
         );
       }
+      if (!isValidPurchaseId(purchaseId)) {
+        return NextResponse.json(
+          { error: 'Invalid purchase identifier', requiresPurchase: true },
+          { status: 400 },
+        );
+      }
       const purchase = await getReportPurchase(purchaseId);
-      // Paid state is verified from the persisted, webhook-confirmed purchase.
       if (!purchase || purchase.userId !== Number(decoded.userId)) {
         return NextResponse.json(
           { error: 'Purchase not found or not owned by this account', requiresPurchase: true },
@@ -74,27 +88,50 @@ export async function POST(request: Request) {
           { status: 409 },
         );
       }
-      // If a prior dispatch already correlated this purchase, return it without
-      // re-dispatching (idempotent repeat request).
-      if (purchase.status === 'consumed' && purchase.readingId != null && purchase.reportId != null) {
-        return NextResponse.json({
-          success: true,
-          status: 'queued',
-          readingId: purchase.readingId,
-          reportId: purchase.reportId,
-          message: 'Your report is already being prepared by our astrology engine.',
-          pending: true,
-        });
-      }
       if (purchase.status !== 'paid') {
         return NextResponse.json(
           { error: 'Purchase is not paid', requiresPurchase: true, purchaseStatus: purchase.status },
           { status: 402 },
         );
       }
+
+      // #4/#5 — atomically create the reading AND consume the purchase in one
+      // transaction. If already consumed (repeat request), returns the EXISTING
+      // correlation with the reading's ACTUAL pipeline status (never a fake
+      // "queued"). No orphaned reading is left by a losing race.
+      const consumed = await consumeReportPurchase({
+        purchaseId,
+        userId: Number(decoded.userId),
+        reportType: type,
+        reading: await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, pipelineStatus: 'queued' }),
+      });
+      if (consumed.outcome === 'already_correlated') {
+        return buildRepeatResponse(consumed.readingId, consumed.reportId, consumed.readingStatus);
+      }
+      if (consumed.outcome !== 'consumed') {
+        return NextResponse.json(
+          { error: 'Purchase could not be consumed for this report', requiresPurchase: true },
+          { status: 409 },
+        );
+      }
+      const readingId = consumed.readingId;
+      const reportId = consumed.reportId;
+
+      // Dispatch to n8n. Fails closed: non-2xx / network error marks the reading
+      // rejected and returns 502. The purchase stays 'consumed' (already paid),
+      // so a retry path can re-dispatch without double-charging.
+      const dispatchRes = await dispatchWithFailClosed({ reportId, type, price: REPORT_META[type].price, user, decoded, partner, c: null });
+      if (!dispatchRes.ok) {
+        await markReadingFailed(readingId);
+        return NextResponse.json({ error: 'Report pipeline unavailable. Please try again shortly.', status: dispatchRes.readingStatus }, { status: 502 });
+      }
+      return NextResponse.json({
+        success: true, status: 'queued', readingId, reportId,
+        message: 'Your report is being prepared by our astrology engine. It will be ready shortly.', pending: true,
+      });
     }
 
-    // Load saved chart (single source of truth for birth data).
+    // ---- Free report path (no purchase) ----
     const { rows } = await query(
       'SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
       [decoded.userId],
@@ -103,109 +140,141 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Create your birth chart first', requiresBirthChart: true }, { status: 400 });
     }
     const c = rows[0];
-    const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
-    const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
-
-    const birthInfo = {
-      name: user.first_name || undefined,
-      date: toDateStr(c.birth_date),
-      time: toTimeStr(c.birth_time),
-      location: c.location_name,
-      unknownTime: c.unknown_time,
-    };
-
-    // Authoritative facts (computed, deterministic). n8n interprets these.
-    const verifiedFacts = await extractVerifiedFacts(contractType, birthInfo);
-
-    // App-generated correlation id. Owner of the result is the existing reading row.
+    const chart = await buildBirthInfo(c, user);
+    const verifiedFacts = await extractVerifiedFacts(contractType, chart);
     const reportId = crypto.randomUUID();
-
     const title = REPORT_META[type].title;
     const price = REPORT_META[type].price;
     const insert = await query(
       `INSERT INTO readings (user_id, type, title, question, price_paid, result, pipeline_status, created_at)
        VALUES ($1, 'report', $2, $3, $4, $5, 'queued', now())
        RETURNING id`,
-      [
-        Number(decoded.userId), title, `${title} report`, price,
+      [Number(decoded.userId), title, `${title} report`, price,
         JSON.stringify({
-          title, reportType: type, generatedFor: 'self',
-          reportId, pricePaid: price, tier: price > 0 ? 'paid' : 'free',
+          title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'free',
           verifiedFacts, pending: true,
           partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
-        }),
-      ],
+        })],
     );
     const readingId = insert.rows[0].id;
-
-    // Atomically consume the purchase against this reading (one purchase -> one report).
-    if (isPaid && purchaseId) {
-      const consumed = await consumeReportPurchase({
-        purchaseId,
-        userId: Number(decoded.userId),
-        reportType: type,
-        readingId,
-        reportId,
-      });
-      if (consumed.outcome === 'already_correlated') {
-        // Race/again: another request won. Return the winning correlation, no dispatch.
-        return NextResponse.json({
-          success: true, status: 'queued',
-          readingId: consumed.readingId, reportId: consumed.reportId,
-          message: 'Your report is already being prepared by our astrology engine.',
-          pending: true,
-        });
-      }
-      if (consumed.outcome !== 'consumed') {
-        // Purchase state changed underneath us (e.g. consumed elsewhere, or not paid).
-        await setReadingDispatchFailed(Number(readingId));
-        return NextResponse.json(
-          { error: 'Purchase could not be consumed for this report', requiresPurchase: true },
-          { status: 409 },
-        );
-      }
-    }
-
-    // R1 — dispatch to n8n. Fails closed: any non-2xx (or error) leaves the report
-    // in a terminal 'rejected' state and surfaces 502 (never local prose).
-    try {
-      const res = await dispatchReport({
-        reportId,
-        reportType: type,
-        tier: price > 0 ? 'paid' : 'free',
-        birthData: {
-          firstName: birthInfo.name,
-          dob: birthInfo.date,
-          birthTime: birthInfo.time || null,
-          place: birthInfo.location,
-          lat: Number(c.latitude), lon: Number(c.longitude),
-          tz: c.timezone || 'UTC',
-          solarFallback: birthInfo.unknownTime,
-        },
-        verifiedFacts,
-        promptSlug: '',
-        callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
-      });
-      if (!res.ok) {
-        throw new Error(`n8n dispatch rejected with status ${res.status}`);
-      }
-    } catch (err: any) {
-      console.error('[reports/generate] pipeline dispatch failed:', err?.message);
-      await setReadingDispatchFailed(Number(readingId));
+    const dispatchRes = await dispatchWithFailClosed({ reportId, type, price, user, decoded, partner, c });
+    if (!dispatchRes.ok) {
+      await markReadingFailed(readingId);
       return NextResponse.json({ error: 'Report pipeline unavailable. Please try again shortly.' }, { status: 502 });
     }
-
-    // Customer-facing in-progress copy. Never raw verifiedFacts.
     return NextResponse.json({
-      success: true,
-      status: 'queued',
-      readingId,
-      reportId,
-      message: 'Your report is being prepared by our astrology engine. It will be ready shortly.',
-      pending: true,
+      success: true, status: 'queued', readingId, reportId,
+      message: 'Your report is being prepared by our astrology engine. It will be ready shortly.', pending: true,
     });
   } catch (err: any) {
     const msg = err?.message || 'Report generation failed';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+}
+
+// --- helpers -----------------------------------------------------------------
+
+async function readBounded(request: Request, maxBytes: number): Promise<string> {
+  // Read the raw body text, but bound it: if it exceeds the cap we still read just
+  // enough to know it's too large, then throw. Node streams make exact bounding
+  // awkward, so we read text and check byte length.
+  const text = await request.text();
+  if (Buffer.byteLength(text, 'utf8') > maxBytes) throw new Error('too_large');
+  return text;
+}
+
+async function buildBirthInfo(c: any, user: any) {
+  const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
+  const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
+  return {
+    name: user.first_name || undefined,
+    date: toDateStr(c.birth_date),
+    time: toTimeStr(c.birth_time),
+    location: c.location_name,
+    unknownTime: c.unknown_time,
+  };
+}
+
+async function buildReadingInput(opts: {
+  decoded: any; user: any; type: ReportType; partner: any; price: number; pipelineStatus: string;
+}): Promise<{ userId: number; type: string; title: string; question: string; pricePaid: number; resultJson: string; pipelineStatus: string }> {
+  const { decoded, user, type, partner, price, pipelineStatus } = opts;
+  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [decoded.userId]);
+  if (rows.length === 0) throw new Error('Create your birth chart first');
+  const c = rows[0];
+  const chart = await buildBirthInfo(c, user);
+  const contractType = mapReportType(type)!;
+  const verifiedFacts = await extractVerifiedFacts(contractType, chart);
+  const title = REPORT_META[type].title;
+  const reportId = crypto.randomUUID();
+  return {
+    userId: Number(decoded.userId),
+    type,
+    title,
+    question: `${title} report`,
+    pricePaid: price,
+    pipelineStatus,
+    resultJson: JSON.stringify({
+      title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: price > 0 ? 'paid' : 'free',
+      verifiedFacts, pending: true,
+      partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
+    }),
+  };
+}
+
+async function dispatchWithFailClosed(opts: {
+  reportId: string; type: ReportType; price: number; user: any; decoded: any; partner: any; c: any;
+}) {
+  // c is null for the paid path (chart already consumed in buildReadingInput); for
+  // free path c is the natal_charts row. We re-derive birth data uniformly.
+  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [opts.decoded.userId]);
+  const c = opts.c ?? rows[0];
+  const chart = await buildBirthInfo(c, opts.user);
+  const verifiedFacts = (JSON.parse((await buildReadingInput({ ...opts, pipelineStatus: 'queued' })).resultJson)).verifiedFacts;
+  try {
+    const res = await dispatchReport({
+      reportId: opts.reportId,
+      reportType: opts.type,
+      tier: opts.price > 0 ? 'paid' : 'free',
+      birthData: {
+        firstName: chart.name,
+        dob: chart.date,
+        birthTime: chart.time || null,
+        place: chart.location,
+        lat: Number(c.latitude), lon: Number(c.longitude),
+        tz: c.timezone || 'UTC',
+        solarFallback: chart.unknownTime,
+      },
+      verifiedFacts,
+      promptSlug: '',
+      callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
+    });
+    if (!res.ok) {
+      return { ok: false, status: res.status, readingStatus: 'rejected' };
+    }
+    return { ok: true, status: 200, readingStatus: 'queued' };
+  } catch {
+    return { ok: false, status: 0, readingStatus: 'rejected' };
+  }
+}
+
+async function markReadingFailed(readingId: number) {
+  await query(`UPDATE readings SET pipeline_status = 'rejected' WHERE id = $1`, [Number(readingId)]);
+}
+
+function buildRepeatResponse(readingId: number, reportId: string, readingStatus: string) {
+  // #5 — return the ACTUAL reading status, never a hardcoded "queued". A rejected
+  // (failed dispatch) reading is honestly reported and a safe retry is offered.
+  const retryAvailable = readingStatus === 'rejected' || readingStatus === 'queued';
+  return NextResponse.json({
+    success: true,
+    status: readingStatus,
+    readingId,
+    reportId,
+    pending: readingStatus === 'queued' || readingStatus === 'processing',
+    retryAvailable,
+    message: readingStatus === 'rejected'
+      ? 'Your previous report generation failed. You can retry at no extra charge.'
+      : 'Your report is already being prepared by our astrology engine.',
+  });
 }
