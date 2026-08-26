@@ -18,14 +18,15 @@ export type FactKind =
   | 'meta';
 
 export interface VerifiedFact {
-  id: string; // stable, e.g. "natal.venus.position" or "natal.aspect.venus-saturn-square"
+  id: string; // stable, e.g. "natal.venus.position" or "natal.aspect.venus-mars-square"
   kind: FactKind;
   source: FactSource;
-  // Renderer-owned exact display string, e.g. "Venus at 18.68° Taurus in the 9th house".
-  // The writer MUST NOT recompute this; it cites the id and the renderer shows display.
+  // Renderer-owned exact display string. The writer MUST NOT recompute this.
   display: string;
   value: unknown;
   // For derived facts: the ids of the source facts used to compute this one.
+  // REQUIRED for every 'derived-deterministic' fact (R2-B10). May be empty only
+  // for authoritative 'swiss-ephemeris' root facts.
   provenance?: string[];
 }
 
@@ -41,9 +42,8 @@ export interface PositionValue {
   house: number | null;
   retrograde: boolean;
   dignity: Dignity;
-  // For points whose exact longitude is not authoritative (e.g. unknown-time Moon)
-  // this flag marks the value as approximate/uncertain so the writer will not cite
-  // it as precise evidence.
+  // True when the exact longitude is not authoritative (e.g. unknown-time noon
+  // approximation) so the writer will not cite it as precise evidence.
   uncertain?: boolean;
 }
 
@@ -69,61 +69,161 @@ export function validateReportType(t: string): t is ReportType {
   return (REPORT_TYPES as string[]).includes(t);
 }
 
+// ---- House / ruler structures (R2-B6) ----
+
+export interface HouseCusp {
+  num: number;
+  cuspLongitude: number;
+  sign: string;
+  signLabel: string;
+}
+
+export interface RulerFact {
+  house: number;
+  ruler: string; // planet key, e.g. 'venus'
+  rulerLabel: string;
+  sign: string;
+  condition: string; // dignity condition string
+  provenance: string[]; // source fact ids (the cusp + the ruler planet position)
+}
+
+export interface OccupantRef {
+  body: string; // planet key
+  label: string;
+  positionId: string; // fact id of the occupant's position fact
+}
+
+export interface HouseOccupants {
+  house: number;
+  occupants: OccupantRef[];
+}
+
+// ---- A4 report-specific evidence bundles (R2-B4) ----
+
+export interface AspectEvidence {
+  pair: string; // e.g. "venus-mars"
+  aspectType: string | null; // null if no aspect within orb
+  aspectId: string | null; // fact id if present
+  provenance: string[];
+}
+
+export interface RelationshipEvidence {
+  seventhHouseRuler: RulerFact;
+  seventhHouseOccupants: HouseOccupants;
+  aspects: {
+    venusMars: AspectEvidence;
+    mercuryVenus: AspectEvidence;
+    moonVenus: AspectEvidence;
+    venusSaturn: AspectEvidence;
+  };
+  junoCondition: string;
+  scoreDrivers: string[];
+}
+
+export interface LoveBlueprintEvidence {
+  aspects: {
+    moonVenus: AspectEvidence;
+    venusMars: AspectEvidence;
+    junoSaturn: AspectEvidence;
+  };
+  dscRuler: RulerFact;
+  dscOccupants: HouseOccupants;
+  chironAspects: string[]; // aspect fact ids
+  northNodeSign: string;
+  scoreDrivers: string[];
+}
+
+export interface VocationEvidence {
+  mcRuler: RulerFact; // 10th house ruler
+  secondRuler: RulerFact; // 2nd house ruler
+  sixthRuler: RulerFact; // 6th house ruler
+  saturnAspect: AspectEvidence; // to Sun or MC
+  jupiterAspect: AspectEvidence;
+  plutoAspect: AspectEvidence;
+  wealthIndicators: string[]; // fact ids / labels
+  careerWindowsDeclared: boolean; // 24-month windows are P6/P7; declared + fail closed
+}
+
+export interface KarmicEvidence {
+  northNodeHouse: number | null;
+  southNodeHouse: number | null;
+  northNodeRuler: RulerFact;
+  southNodeRuler: RulerFact;
+  nodalAspects: string[]; // aspect fact ids involving a node
+  nodalSquares: string[];
+  saturnEvidence: AspectEvidence;
+  plutoEvidence: AspectEvidence;
+  chironAspects: string[];
+  chironDeclared: boolean; // conditional Chiron structure declared
+}
+
 export interface VerifiedFactsV2 {
   schemaVersion: 'csg-report-facts-v2';
   reportType: ReportType;
-  asOfDate: string; // ISO date the facts are computed "as of" (immutable snapshot)
+  asOfDate: string; // ISO date; immutable snapshot
   common: CommonDerived;
   facts: Record<string, VerifiedFact>;
   reportData: Record<string, unknown>;
 }
 
-// Common derived layer available to every report that has a natal chart.
-// Every citable value is surfaced as a VerifiedFact with a stable id so future
-// exact-citation validation can resolve ALL narrative evidence to one fact id.
 export interface CommonDerived {
   positions: VerifiedFact[];
-  // Time-dependent fields are OMITTED (undefined) under unknown-time (solar)
-  // fallback. They must never be fabricated. Preflight for time-dependent reports
-  // then fails closed. Solar fallback uses a reduced, sign-level schema instead.
   ascendant?: NodeValue;
   descendant?: NodeValue;
   midheaven?: NodeValue;
   icumcoeli?: NodeValue;
-  chartRuler?: VerifiedFact; // kind 'point', provenance = [ascendant sign fact]
+  chartRuler?: VerifiedFact;
   northNode: NodeValue;
   southNode: NodeValue;
   juno: NodeValue;
-  partOfFortune?: VerifiedFact; // kind 'point', provenance = [ascendant, moon, sun]
-  moonPhase: VerifiedFact; // kind 'phase'
-  elements: VerifiedFact; // kind 'tally'
-  modalities: VerifiedFact; // kind 'tally'
+  partOfFortune?: VerifiedFact;
+  moonPhase?: VerifiedFact;
+  elements: VerifiedFact;
+  modalities: VerifiedFact;
+  houses?: HouseCusp[]; // 12 cusps (R2-B6)
+  rulers?: {
+    dsc?: RulerFact; // 7th house ruler
+    second?: RulerFact; // 2nd house ruler
+    sixth?: RulerFact; // 6th house ruler
+    tenth?: RulerFact; // 10th house ruler (MC)
+  };
+  occupants?: HouseOccupants[]; // bodies per house
+  nodalRulers?: { north: RulerFact; south: RulerFact };
   aspects: AspectFact[];
-  topAspectByBody: Record<string, string>; // body key -> tightest-aspect fact id (both sides)
+  topAspectByBody: VerifiedFact; // stable citable fact: per-body tightest aspect (R2-B10)
   patterns: PatternFact[];
-  // True when the chart was computed without a birth time; time-dependent facts
-  // are intentionally absent and only sign-level (solar) facts are authoritative.
   isSolarFallback: boolean;
-  // Under solar fallback, the reduced authoritative set is surfaced here.
-  solarSign?: { sun: string; sunLabel: string; moon: string; moonLabel: string };
+  solarSign?: { sun: string; sunLabel: string; moon?: { sign: string; signLabel: string; invariant: boolean } };
+}
+
+export interface TopAspectValue {
+  body: string; // planet/angle key
+  aspectId: string; // fact id of the tightest aspect for this body
+  orb: number; // the tightest orb
 }
 
 export interface AspectValue {
   bodyA: string;
   bodyB: string;
-  aspectType: string; // conjunction|sextile|square|trine|opposition
+  aspectType: string;
   orb: number;
-  exact: boolean;
+  tight: boolean; // orb < 1 (tightness threshold, NOT mathematically exact; see warnings)
   bodyALabel: string;
   bodyBLabel: string;
-  // Weighted contribution to relationship/synthesis scoring (see scores.ts policy).
   weight: number;
+  minor: boolean; // true for a minor aspect (R2-B7)
 }
 
+// Tightness semantics (R2-B11): explicit per pattern type.
+//  - stellium: angular span = max(degreeInSign) - min(degreeInSign) across participants (degrees).
+//  - grandTrine: max orb among the three trine aspects (degrees).
+//  - tSquare: max orb among the three aspects (two squares + one opposition).
+//  - yod: max orb among the three aspects (two quincunxes + one sextile).
 export interface PatternValue {
-  name: string;
+  name: 'Stellium' | 'GrandTrine' | 'TSquare' | 'Yod';
   participants: string[];
-  tightness: number; // real tightness measure (max orb among participants), not count
+  tightness: number;
+  tightnessSemantics: 'angular-span' | 'max-orb';
 }
 
 export interface AspectFact extends VerifiedFact {
@@ -138,17 +238,12 @@ export interface PatternFact extends VerifiedFact {
 
 export type PreflightStatus = 'complete' | 'input_incomplete';
 
-// Machine-readable preflight result. On incomplete, `missing` lists the exact
-// required field ids that were absent. This is NEVER rendered to the customer.
 export interface PreflightResult {
   status: PreflightStatus;
   missing: string[];
-  // Explicit success/failure semantics (was always 'preflight_failed' before).
   mode: 'preflight_ok' | 'preflight_failed';
 }
 
-// A gate validator that rejects any fact whose provenance/driver id does not
-// resolve to an existing fact in the ledger.
 export interface DriverResolution {
   ok: boolean;
   dangling: string[];

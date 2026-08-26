@@ -54,6 +54,7 @@ export interface ChartData {
   planets: PlanetPlacement[];
   angles: AnglePlacement[];
   houses: HousePlacement[];
+  cusps: number[]; // 12 cusp longitudes (index 1..12), Placidus (known-time) or whole-sign (unknown)
   ascendant: AnglePlacement;
   midheaven: AnglePlacement;
   sun: PlanetPlacement;
@@ -305,6 +306,7 @@ export async function computeChart(input: {
     midheaven,
     sun,
     moon,
+    cusps,
   };
 }
 

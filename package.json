@@ -9,7 +9,8 @@
     "db:migrate": "node scripts/migrate.mjs",
     "verify": "bash scripts/verify-local-build.sh",
     "test": "jest",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@fusionstrings/swiss-eph": "^0.1.1",

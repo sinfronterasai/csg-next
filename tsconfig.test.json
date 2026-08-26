@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "src/lib/reportFacts/**/*",
+    "src/lib/reportEngine.ts",
+    "src/lib/reportPipeline.ts",
+    "src/lib/chartEngine.ts",
+    "src/lib/astrology.ts",
+    "src/lib/transit.ts",
+    "tests/reports/fixtures/factsFixtures.ts",
+    "tests/reports/factsV2.test.ts",
+    "tests/reports/generate-repeat-fastpath.test.ts"
+  ],
+  "exclude": ["node_modules"]
+}

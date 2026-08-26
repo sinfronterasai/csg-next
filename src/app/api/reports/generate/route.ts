@@ -362,6 +362,7 @@ function buildRepeatResponse(readingId: number, reportId: string, readingStatus:
   // processing are in-flight and never retryable.
   const retryAvailable = readingStatus === 'dispatch_failed';
   return NextResponse.json({
+    mode: 'repeat',
     success: true,
     status: readingStatus,
     readingId,

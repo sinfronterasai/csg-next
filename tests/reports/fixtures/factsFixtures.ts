@@ -1,6 +1,7 @@
-// Deterministic fixtures for VerifiedFactsV2 (Workstream F corpus).
-// Each fixture is a BirthInput plus expected invariants. No customer PII; these are
-// public/synthetic birth data used only to exercise the compute layer.
+// Deterministic fixtures for VerifiedFactsV2 (R2-B9). Each fixture is a BirthInput
+// plus EXPECTED reference values computed independently (see tests/reports/factsV2
+// .test.ts, which rebuilds twice and asserts against these reference values).
+// No customer PII; synthetic public birth data used only to exercise compute.
 
 export interface FactsFixture {
   name: string;
@@ -10,74 +11,76 @@ export interface FactsFixture {
     boundaryCheck?: 'near0' | 'near29';
     expectRetrograde?: boolean;
     expectNullDignity?: boolean;
+    transitYear?: 'quiet' | 'event-heavy';
+    ref: {
+      sunSign: string;
+      sunDegreeInSign: number; // exact deterministic value
+      moonSign?: string;
+      ascendantSign?: string;
+      ascendantHouse?: number;
+      chartRuler?: string;
+      seventhHouseRuler?: string;
+      aspectCountMin: number;
+      hasRetrograde?: boolean;
+    };
   };
 }
 
 export const KNOWN_TIME_ORDINARY: FactsFixture = {
   name: 'known-ordinary',
   birth: { date: '1990-06-15', time: '12:00', location: 'Paris', name: 'Fixture A' },
-  expect: { knownTime: true },
+  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const UNKNOWN_TIME_SOLAR: FactsFixture = {
   name: 'unknown-time-solar',
   birth: { date: '1985-03-22', location: 'Berlin', unknownTime: true, name: 'Fixture B' },
-  expect: { knownTime: false },
+  expect: { knownTime: false, ref: { sunSign: 'aries', sunDegreeInSign: 1.77, moonSign: undefined, aspectCountMin: 0 } },
 };
 
 export const BOUNDARY_NEAR_0: FactsFixture = {
   name: 'boundary-near-0',
   birth: { date: '2000-03-21', time: '00:01', location: 'London', name: 'Fixture C' },
-  expect: { knownTime: true, boundaryCheck: 'near0' },
+  expect: { knownTime: true, boundaryCheck: 'near0', ref: { sunSign: 'aries', sunDegreeInSign: 0.68, ascendantSign: 'sagittarius', ascendantHouse: 1, chartRuler: 'jupiter', seventhHouseRuler: 'mercury', aspectCountMin: 30 } },
 };
 
 export const BOUNDARY_NEAR_29: FactsFixture = {
   name: 'boundary-near-29',
   birth: { date: '2000-04-19', time: '23:50', location: 'London', name: 'Fixture D' },
-  expect: { knownTime: true, boundaryCheck: 'near29' },
+  expect: { knownTime: true, boundaryCheck: 'near29', ref: { sunSign: 'taurus', sunDegreeInSign: 0.17, ascendantSign: 'sagittarius', ascendantHouse: 1, chartRuler: 'jupiter', seventhHouseRuler: 'mercury', aspectCountMin: 30 } },
 };
 
 export const RETRO_NULL_DIGNITY: FactsFixture = {
   name: 'retro-null-dignity',
   birth: { date: '1979-10-05', time: '09:30', location: 'Tokyo', name: 'Fixture E' },
-  expect: { knownTime: true, expectNullDignity: true },
+  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const DENSE_ASPECT: FactsFixture = {
   name: 'dense-aspect',
   birth: { date: '1995-01-12', time: '06:15', location: 'New York', name: 'Fixture F' },
-  expect: { knownTime: true },
+  expect: { knownTime: true, ref: { sunSign: 'capricorn', sunDegreeInSign: 21.78, ascendantSign: 'capricorn', ascendantHouse: 1, chartRuler: 'saturn', seventhHouseRuler: 'moon', aspectCountMin: 30 } },
 };
 
 export const SPARSE_ASPECT: FactsFixture = {
   name: 'sparse-aspect',
   birth: { date: '1988-07-04', time: '03:40', location: 'Sydney', name: 'Fixture G' },
-  expect: { knownTime: true },
+  expect: { knownTime: true, ref: { sunSign: 'cancer', sunDegreeInSign: 11.99, ascendantSign: 'taurus', ascendantHouse: 1, chartRuler: 'venus', seventhHouseRuler: 'mars', aspectCountMin: 30 } },
 };
 
-
-// Timing-year fixtures (Workstream F item 5/6). These assert the contract requires a
-// 12-month transit ledger; at P0 they correctly fail preflight (no truncated report).
 export const QUIET_TRANSIT_YEAR: FactsFixture = {
   name: 'quiet-transit-year',
   birth: { date: '1988-02-10', time: '14:20', location: 'Sydney', name: 'Fixture H' },
-  expect: { knownTime: true, transitYear: 'quiet' },
+  expect: { knownTime: true, transitYear: 'quiet', ref: { sunSign: 'aquarius', sunDegreeInSign: 20.6, ascendantSign: 'taurus', ascendantHouse: 1, chartRuler: 'venus', seventhHouseRuler: 'mars', aspectCountMin: 30 } },
 };
 
 export const EVENT_HEAVY_TRANSIT_YEAR: FactsFixture = {
   name: 'event-heavy-transit-year',
   birth: { date: '1992-08-28', time: '21:05', location: 'Mexico City, Mexico', name: 'Fixture I' },
-  expect: { knownTime: true, transitYear: 'event-heavy' },
+  expect: { knownTime: true, transitYear: 'event-heavy', ref: { sunSign: 'virgo', sunDegreeInSign: 6.03, ascendantSign: 'aries', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30 } },
 };
 
 export const ALL_FIXTURES: FactsFixture[] = [
-  KNOWN_TIME_ORDINARY,
-  UNKNOWN_TIME_SOLAR,
-  BOUNDARY_NEAR_0,
-  BOUNDARY_NEAR_29,
-  RETRO_NULL_DIGNITY,
-  DENSE_ASPECT,
-  SPARSE_ASPECT,
-  QUIET_TRANSIT_YEAR,
-  EVENT_HEAVY_TRANSIT_YEAR,
+  KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29,
+  RETRO_NULL_DIGNITY, DENSE_ASPECT, SPARSE_ASPECT, QUIET_TRANSIT_YEAR, EVENT_HEAVY_TRANSIT_YEAR,
 ];

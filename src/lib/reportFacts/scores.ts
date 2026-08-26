@@ -19,18 +19,26 @@ export const SCORE_SCALE = 20; // each unit of summed aspect-weight moves the sc
 export const SCORE_MIN = 40;
 export const SCORE_MAX = 100;
 
+// R2-B12: locked score shape is { value, drivers, label, band }. `value` is the
+// 40-100 integer; `label` is the human dimension; `band` is low|moderate|high;
+// `drivers` are resolvable fact ids; `rule` is the documented, reviewable rule.
+// A constant baseline (no relevant aspect) is represented as an EXPLICIT,
+// non-celestial rule -- never as false Moon-phase provenance.
+export type ScoreBandLevel = 'low' | 'moderate' | 'high';
 export interface ScoreBand {
-  score: number; // 40-100
-  drivers: string[]; // fact ids that produced it (resolvable in the ledger)
-  rule: string; // documented, reviewable rule
+  value: number; // 40-100 integer
+  drivers: string[]; // fact ids that produced it (may be empty for a constant baseline)
+  label: string; // dimension label
+  band: ScoreBandLevel;
+  rule: string; // documented, reviewable rule (explicit when constant)
 }
 
 export interface RelationshipScores {
-  emotionalConnection: ScoreBand;
-  passion: ScoreBand;
+  emotionalStyle: ScoreBand;
+  desire: ScoreBand;
   communication: ScoreBand;
-  stability: ScoreBand;
-  growth: ScoreBand;
+  commitment: ScoreBand;
+  attachment: ScoreBand;
 }
 
 function aspectId(common: CommonDerived, a: string, b: string): string | null {
@@ -60,26 +68,28 @@ function clampScore(n: number): number {
 }
 
 // Build a band from a set of aspect pairs. Baseline + scaled weighted sum.
+// When no relevant aspect exists the baseline is CONSTANT (documented explicitly);
+// drivers stays empty rather than citing an unrelated fact as a false cause.
 function band(common: CommonDerived, pairs: [string, string][], label: string): ScoreBand {
   const { total, drivers } = weightedSum(common, pairs);
-  // Fallback driver when no relevant aspect exists: the baseline must still be a
-  // resolvable fact id (the common chart ruler / Moon phase), never an empty driver.
-  const resolvedDrivers = drivers.length > 0 ? drivers : ['common.moonPhase'];
-  return {
-    score: clampScore(SCORE_BASELINE + SCORE_SCALE * total),
-    drivers: resolvedDrivers,
-    rule: `${label}: baseline ${SCORE_BASELINE} + ${SCORE_SCALE} * Σ(aspect weights over ${pairs.length} pair[s]) = ${total.toFixed(2)}`,
-  };
+  const value = clampScore(SCORE_BASELINE + SCORE_SCALE * total);
+  const bandLevel: ScoreBandLevel = value < 55 ? 'low' : value < 75 ? 'moderate' : 'high';
+  const rule = drivers.length > 0
+    ? `${label}: baseline ${SCORE_BASELINE} (constant) + ${SCORE_SCALE} * Σ(aspect weights over ${pairs.length} pair[s]) = ${total.toFixed(2)}`
+    : `${label}: constant baseline ${SCORE_BASELINE} (no relevant aspect found; not derived from any celestial cause)`;
+  return { value, drivers, label, band: bandLevel, rule };
 }
 
-// relationship: five deterministic dimensions with traceable drivers.
+// relationship: five DISTINCT deterministic dimensions (R2-B12). Each uses a
+// different aspect-pair set so dimensions are never duplicates, and no dimension
+// cites Moon phase as a causal provenance for a constant baseline.
 export function relationshipScores(common: CommonDerived): RelationshipScores {
   return {
-    emotionalConnection: band(common, [['moon', 'venus'], ['sun', 'venus'], ['venus', 'mars']], 'emotionalConnection'),
-    passion: band(common, [['venus', 'mars'], ['moon', 'mars']], 'passion'),
+    emotionalStyle: band(common, [['moon', 'venus'], ['sun', 'venus'], ['mercury', 'venus']], 'emotional style'),
+    desire: band(common, [['venus', 'mars'], ['moon', 'mars']], 'desire'),
     communication: band(common, [['mercury', 'venus'], ['mercury', 'mars']], 'communication'),
-    stability: band(common, [['venus', 'saturn'], ['sun', 'saturn'], ['moon', 'saturn']], 'stability'),
-    growth: band(common, [['sun', 'venus'], ['moon', 'venus'], ['venus', 'mars']], 'growth'),
+    commitment: band(common, [['venus', 'saturn'], ['sun', 'saturn']], 'commitment'),
+    attachment: band(common, [['moon', 'venus'], ['venus', 'jupiter']], 'attachment/security'),
   };
 }
 
@@ -126,7 +136,7 @@ export function karmicScores(common: CommonDerived): { axis: string; drivers: st
   const chiron = common.aspects
     .filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron')
     .map((a) => a.id);
-  const drivers = ['common.northNode', 'common.southNode', ...nodeSq, ...chiron];
+  const drivers = ['natal.northnode.position', 'natal.southnode.position', ...nodeSq, ...chiron];
   const rule = `nodal axis ${common.northNode.signLabel}/${common.southNode.signLabel}; ${nodeSq.length} nodal squares; ${chiron.length} Chiron aspects`;
   return { axis: `${common.northNode.signLabel} / ${common.southNode.signLabel}`, drivers, hasSquares: nodeSq.length > 0, rule };
 }
@@ -136,12 +146,13 @@ export function karmicScores(common: CommonDerived): { axis: string; drivers: st
 export function validateScoreBands(scores: Record<string, ScoreBand>): { ok: boolean; errors: string[] } {
   const errors: string[] = [];
   for (const [k, b] of Object.entries(scores)) {
-    if (typeof b.score !== 'number' || b.score < SCORE_MIN || b.score > SCORE_MAX) {
-      errors.push(`${k}: score ${b.score} out of range ${SCORE_MIN}-${SCORE_MAX}`);
+    if (typeof b.value !== 'number' || b.value < SCORE_MIN || b.value > SCORE_MAX) {
+      errors.push(`${k}: value ${b.value} out of range ${SCORE_MIN}-${SCORE_MAX}`);
     }
-    if (!Array.isArray(b.drivers) || b.drivers.length === 0) {
-      errors.push(`${k}: empty drivers`);
-    }
+    if (b.band !== 'low' && b.band !== 'moderate' && b.band !== 'high') errors.push(`${k}: missing band`);
+    if (typeof b.label !== 'string' || !b.label) errors.push(`${k}: missing label`);
+    if (!Array.isArray(b.drivers)) errors.push(`${k}: drivers not array`);
+    if (b.drivers.length === 0 && !/constant baseline/.test(b.rule)) errors.push(`${k}: empty drivers without constant-baseline rule`);
     if (!b.rule) errors.push(`${k}: missing rule`);
   }
   return { ok: errors.length === 0, errors };
