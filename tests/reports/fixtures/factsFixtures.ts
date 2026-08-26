@@ -44,6 +44,15 @@ export const UNKNOWN_TIME_SOLAR: FactsFixture = {
   expect: { knownTime: false, ref: { sunSign: 'gemini', sunDegreeInSign: 25.05, moonSign: undefined, aspectCountMin: 0 } },
 };
 
+// F6-8: distinct unknown-time fixture where the Moon stays in ONE sign across the
+// entire local birth date (Berlin 1990-06-11: Moon in Capricorn 00:00..23:59). The
+// Moon sign is INVARIANT and must be safely included with invariant:true.
+export const UNKNOWN_TIME_INVARIANT_MOON: FactsFixture = {
+  name: 'unknown-time-invariant-moon',
+  birth: { date: '1990-06-11', location: 'Berlin', unknownTime: true, name: 'Fixture C' },
+  expect: { knownTime: false, ref: { sunSign: 'gemini', sunDegreeInSign: 20.23, moonSign: 'capricorn', aspectCountMin: 0 } },
+};
+
 export const BOUNDARY_NEAR_0: FactsFixture = {
   name: 'boundary-near-0',
   birth: { date: '2000-03-21', time: '00:01', location: 'London', name: 'Fixture C' },
@@ -88,6 +97,6 @@ export const EVENT_HEAVY_TRANSIT_YEAR: FactsFixture = {
 };
 
 export const ALL_FIXTURES: FactsFixture[] = [
-  KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29,
+  KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, UNKNOWN_TIME_INVARIANT_MOON, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29,
   RETRO_NULL_DIGNITY, DENSE_ASPECT, SPARSE_ASPECT, QUIET_TRANSIT_YEAR, EVENT_HEAVY_TRANSIT_YEAR,
 ];

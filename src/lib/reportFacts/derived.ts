@@ -404,6 +404,9 @@ function moonPhaseLabel(phase: number): string {
 // F4-11/F5-7: named thresholds for aspect determination (full-precision error)
 export const EXACT_ASPECT_EPSILON = 0.1; // degrees; exact aspect threshold
 export const TIGHT_ASPECT_THRESHOLD = 1.0; // degrees; tight aspect threshold
+// F6-11: exact/tight predicates use strict < so equality at the threshold is FALSE.
+export function isExactAspect(errorDeg: number): boolean { return errorDeg < EXACT_ASPECT_EPSILON; }
+export function isTightAspect(errorDeg: number): boolean { return errorDeg < TIGHT_ASPECT_THRESHOLD; }
 
 // Aspects from FULL-precision longitudes, locked major + minor set (T3-3).
 // Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
@@ -420,9 +423,9 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
         const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
         const orbLimit = getOrbForBodies(def, a.key, b.key);
         if (error <= orbLimit) {
-          // F4-11/F5-7: exact + tight from named full-precision thresholds
-          const exact = error < EXACT_ASPECT_EPSILON;
-          const tight = error < TIGHT_ASPECT_THRESHOLD;
+          // F4-11/F5-7: exact + tight from named full-precision thresholds (strict <)
+          const exact = isExactAspect(error);
+          const tight = isTightAspect(error);
           const orb = round2(error);
           // F5-8: canonicalize endpoints (sorted by key) for stable id/provenance/values
           const [first, second] = a.key <= b.key ? [a, b] : [b, a];
@@ -472,18 +475,21 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
 
   // --- Stellium: 3+ planets in the same sign ---
   const bySign: Record<string, string[]> = {};
-  for (const p of planets) (bySign[p.sign] ||= []).push(p.label);
+  for (const p of planets) (bySign[p.sign] ||= []).push(p.key);
   let sIdx = 0;
   for (const sign of Object.keys(bySign)) {
     if (bySign[sign].length >= 3) {
-      const parts = bySign[sign];
-      const ids = parts.map((l) => `natal.${l.toLowerCase()}.position`).filter((id) => presentIds.has(id));
-      const degs = parts.map((l) => (planets.find((x) => x.label === l)!.degreeInSign));
+      // F6-10: canonicalize participants (sorted by body key) so the fact is identical
+      // across all chart-input permutations.
+      const sortedKeys = [...bySign[sign]].sort();
+      const sortedLabels = sortedKeys.map((k) => labelOf(k));
+      const ids = sortedKeys.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
+      const degs = sortedKeys.map((k) => (planets.find((x) => x.key === k)!.degreeInSign));
       const tightness = round2(Math.max(...degs) - Math.min(...degs));
       out.push({
         id: `natal.pattern.stellium-${sign}-${sIdx}`, kind: 'pattern', source: 'derived-deterministic',
-        display: `Stellium in ${getSign(sign as any)!.label}: ${parts.join(', ')} (span ${tightness}°)`,
-        value: { name: 'Stellium', participants: parts, tightness, tightnessSemantics: 'angular-span' }, provenance: ids,
+        display: `Stellium in ${getSign(sign as any)!.label}: ${sortedLabels.join(', ')} (span ${tightness}°)`,
+        value: { name: 'Stellium', participants: sortedLabels, tightness, tightnessSemantics: 'angular-span' }, provenance: ids,
       });
       sIdx++;
     }

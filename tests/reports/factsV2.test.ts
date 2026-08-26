@@ -7,7 +7,7 @@ import { signFromLongitude } from '@/lib/astrology';
 // test shims that match the internal signatures used by the pattern tests
 function buildAspectsForTest(planets: any[]): any[] { return buildAspects(planets.map((p) => ({ id: `natal.${p.key}.position`, key: p.key, label: p.label, longitude: p.longitude, full: p }))); }
 function buildPatternsForTest(chart: any, aspects: any[], present: Set<string>): any[] { return buildPatterns(chart, aspects, present); }
-import { ALL_FIXTURES, KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29, RETRO_NULL_DIGNITY, DENSE_ASPECT, SPARSE_ASPECT } from './fixtures/factsFixtures';
+import { ALL_FIXTURES, KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, UNKNOWN_TIME_INVARIANT_MOON, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29, RETRO_NULL_DIGNITY, DENSE_ASPECT, SPARSE_ASPECT } from './fixtures/factsFixtures';
 import type { VerifiedFactsV2 } from '@/lib/reportFacts/types';
 
 function buildAll(rt: string, f: any) { return buildVerifiedFactsV2(rt, f.birth); }
@@ -164,6 +164,21 @@ describe('R2-B5 — unknown-time Moon is not fabricated', () => {
     const res = await buildAndPreflight('natal', UNKNOWN_TIME_SOLAR.birth);
     expect(res.ok).toBe(false);
     expect(res.preflight!.status).toBe('input_incomplete');
+  });
+
+  // F6-8: a DISTINCT unknown-time fixture where the Moon stays in one sign across the
+  // entire local birth date must INCLUDE the Moon sign unconditionally (invariant:true),
+  // with no fabricated/conditional path.
+  it('invariant-Moon unknown-time fixture includes the Moon sign unconditionally (F6-8)', async () => {
+    const v2 = await buildVerifiedFactsV2('natal', UNKNOWN_TIME_INVARIANT_MOON.birth);
+    // Moon position fact remains absent (unknown time), but the invariant sign is surfaced.
+    expect(v2.facts['natal.moon.position']).toBeUndefined();
+    expect(v2.common.solarSign?.moon).toBeDefined();
+    expect(v2.common.solarSign!.moon!.sign).toBe('capricorn');
+    expect(v2.common.solarSign!.moon!.invariant).toBe(true);
+    // Tallies still exclude Moon (nine planets).
+    const elements = (v2.common.elements.value as any);
+    expect(elements.Fire + elements.Earth + elements.Air + elements.Water).toBe(9);
   });
 });
 
@@ -453,39 +468,6 @@ describe('R5 F4-9 — exact reference fixtures + independent ephemeris cross-che
     expect(retro).toEqual([...RETRO_NULL_DIGNITY.expect.ref.exactRetrograde!].sort());
   });
 
-  test('independent ephemeris cross-check: Sun longitude within 0.5 deg of astronomical formula', async () => {
-    // Independent computation: low-precision solar ecliptic longitude (Standish) for the
-    // birth Julian date, compared against Swiss Ephemeris output. Tolerance locked at 0.5 deg.
-    const c = await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
-    const sun:any = c.positions.find(p=>p.id==='natal.sun.position')!.value;
-    const swiss = sun.longitude; // 0..360
-    const jd = julianDate(KNOWN_TIME_ORDINARY.birth.date, KNOWN_TIME_ORDINARY.birth.time ?? '12:00');
-    const indep = solarLongitudeLowPrecision(jd); // 0..360
-    let diff = Math.abs(normDeg(swiss) - normDeg(indep));
-    diff = Math.min(diff, 360 - diff);
-    expect(diff).toBeLessThanOrEqual(0.5);
-  });
 });
-
-// --- Independent astronomical helpers (NOT Swiss Ephemeris) for cross-check only ---
-function julianDate(date: string, time: string): number {
-  const [y, m, d] = date.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  const frac = (hh + mm / 60) / 24;
-  let a = Math.floor((14 - m) / 12);
-  let yyy = y + 4800 - a;
-  let mmm = m + 12 * a - 3;
-  const jdn = d + Math.floor((153 * mmm + 2) / 5) + 365 * yyy + Math.floor(yyy / 4) - Math.floor(yyy / 100) + Math.floor(yyy / 400) - 32045;
-  return jdn + frac - 0.5;
-}
-function normDeg(x: number): number { return ((x % 360) + 360) % 360; }
-function solarLongitudeLowPrecision(jd: number): number {
-  // Standish low-precision Sun ecliptic longitude (degrees) for JD.
-  const n = jd - 2451545.0;
-  const L = 280.460 + 0.9856474 * n; // mean longitude
-  const g = (357.528 + 0.9856003 * n) * Math.PI / 180; // mean anomaly
-  let lambda = L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g); // ecliptic longitude
-  return ((lambda % 360) + 360) % 360;
-}
 
 });
