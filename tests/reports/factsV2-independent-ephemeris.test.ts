@@ -1,14 +1,17 @@
-// F7-1: independent reference corpus tests.
+// F8-1: TRACEABLE EXTERNAL REFERENCE CORPUS tests.
 //
 // PRIMARY: production output is compared DIRECTLY to fixed expected constants checked
-// into independentReferenceCorpus.ts (computed from Meeus 1998, an independent source,
-// NOT the production Swiss Ephemeris engine). Expected values are NOT computed at test
-// runtime.
+// into independentReferenceCorpus.ts. Those constants are parsed from RAW external
+// NASA/JPL Horizons API responses committed under tests/reports/fixtures/jpl-raw/*.json
+// (source signature {"source":"NASA/JPL Horizons API","version":"1.2"}). Expected values
+// are NOT computed at test runtime.
 //
-// SECONDARY (clearly labeled): the Meeus implementation is recomputed at runtime as a
-// cross-check only; it is not the authoritative expected corpus.
+// SECONDARY (clearly labeled): Meeus angle calculation is recomputed at runtime for
+// ASC/MC/node only as cross-check; it is not the authoritative corpus.
 
 import { computeVerifiedCommon } from '@/lib/reportFacts/derived';
+import * as fs from 'fs';
+import * as path from 'path';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 import {
   REFERENCE_INSTANT, SOURCE_METADATA, FIXED_EXPECTED, TOLERANCES,
@@ -21,49 +24,71 @@ function angularDiff(a: number, b: number): number {
   return Math.min(x, 360 - x);
 }
 const signOf = (lon: number) => SIGNS[Math.floor(norm360(lon) / 30)];
+const JPL_DIR = path.join(__dirname, 'fixtures', 'jpl-raw');
 
-describe('F7-1 — independent Meeus reference corpus (fixed constants)', () => {
+describe('F8-1 — external JPL reference corpus (fixed constants)', () => {
   let eng: any;
   beforeAll(async () => { eng = await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth); });
   const lon = (id: string) => eng.positions.find((p: any) => p.id === id).value.longitude;
 
-  test('Sun longitude matches fixed independent reference within tolerance', () => {
+  test('raw JPL responses are committed (traceable external source)', () => {
+    const files = fs.readdirSync(JPL_DIR);
+    expect(files.length).toBeGreaterThanOrEqual(8);
+    const sunRaw = JSON.parse(fs.readFileSync(path.join(JPL_DIR, 'sun_paris_1990-06-15T10.json'), 'utf8'));
+    expect(sunRaw.signature?.source).toContain('NASA/JPL Horizons API');
+  });
+
+  test('Sun longitude matches fixed JPL reference within tolerance', () => {
     expect(angularDiff(lon('natal.sun.position'), FIXED_EXPECTED.sun.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
     expect(signOf(lon('natal.sun.position'))).toBe(FIXED_EXPECTED.sun.sign);
   });
-  test('Moon longitude matches fixed independent reference within tolerance', () => {
+  test('Moon longitude matches fixed JPL reference within tolerance', () => {
     expect(angularDiff(lon('natal.moon.position'), FIXED_EXPECTED.moon.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
     expect(signOf(lon('natal.moon.position'))).toBe(FIXED_EXPECTED.moon.sign);
   });
-  test('ASC longitude matches fixed independent reference within tolerance', () => {
-    expect(angularDiff(lon('natal.ascendant.position'), FIXED_EXPECTED.ascendant.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
-    expect(signOf(lon('natal.ascendant.position'))).toBe(FIXED_EXPECTED.ascendant.sign);
-  });
-  test('MC longitude matches fixed independent reference within tolerance', () => {
-    expect(angularDiff(lon('natal.midheaven.position'), FIXED_EXPECTED.midheaven.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
-    expect(signOf(lon('natal.midheaven.position'))).toBe(FIXED_EXPECTED.midheaven.sign);
-  });
-  test('North Node within documented mean/true node spread and same sign', () => {
-    const engNode = lon('natal.northnode.position');
-    expect(angularDiff(engNode, FIXED_EXPECTED.northNodeMean.longitude)).toBeLessThanOrEqual(TOLERANCES.nodeLongitude);
-    expect(signOf(engNode)).toBe(FIXED_EXPECTED.northNodeMean.sign);
-  });
-  test('Retrograde set equals the fixed independent determination', () => {
+  test('Retrograde set equals the fixed JPL direction determination', () => {
     const engRetro = eng.positions.filter((p: any) => p.value.retrograde).map((p: any) => p.value.key).sort();
     expect(engRetro).toEqual([...FIXED_EXPECTED.retrograde].sort());
+  });
+
+  // SECONDARY (Meeus angle calc, not JPL): ASC/MC/node.
+  test('ASC longitude matches fixed Meeus secondary reference within tolerance', () => {
+    expect(angularDiff(lon('natal.ascendant.position'), FIXED_EXPECTED.secondary.ascendant.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
+    expect(signOf(lon('natal.ascendant.position'))).toBe(FIXED_EXPECTED.secondary.ascendant.sign);
+  });
+  test('MC longitude matches fixed Meeus secondary reference within tolerance', () => {
+    expect(angularDiff(lon('natal.midheaven.position'), FIXED_EXPECTED.secondary.midheaven.longitude)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
+    expect(signOf(lon('natal.midheaven.position'))).toBe(FIXED_EXPECTED.secondary.midheaven.sign);
+  });
+  test('North Node within documented mean/true node spread and same sign (Meeus secondary)', () => {
+    const engNode = lon('natal.northnode.position');
+    expect(angularDiff(engNode, FIXED_EXPECTED.secondary.northNodeMean.longitude)).toBeLessThanOrEqual(TOLERANCES.nodeLongitude);
+    expect(signOf(engNode)).toBe(FIXED_EXPECTED.secondary.northNodeMean.sign);
   });
 
   test('reference metadata is recorded (UTC instant, coordinates, source, tolerances)', () => {
     expect(REFERENCE_INSTANT.utc).toBe('1990-06-15T10:00:00Z');
     expect(REFERENCE_INSTANT.location).toBe('Paris');
-    expect(SOURCE_METADATA.product).toContain('Meeus');
+    expect(SOURCE_METADATA.primary).toContain('JPL');
+    expect(SOURCE_METADATA.secondary).toContain('Meeus');
     expect(SOURCE_METADATA.zodiac).toBe('tropical');
     expect(TOLERANCES.bodyLongitude).toBe(0.5);
+  });
+
+  test('unknown-time fixture Moon boundaries fixed from JPL with local-to-UTC conversion', () => {
+    const solar = FIXED_EXPECTED.unknownTimeSolar;
+    expect(solar.moonStart.utc).toBe('1990-06-15T22:00:00Z');
+    expect(solar.moonEnd.utc).toBe('1990-06-16T21:59:00Z');
+    const inv = FIXED_EXPECTED.unknownTimeInvariantMoon;
+    expect(inv.moonStart.utc).toBe('1990-06-10T22:00:00Z');
+    expect(inv.moonEnd.utc).toBe('1990-06-11T21:59:00Z');
+    expect(typeof solar.moonStart.longitude).toBe('number');
+    expect(typeof inv.moonEnd.longitude).toBe('number');
   });
 });
 
 // SECONDARY cross-check only: Meeus recomputed at runtime (not the authoritative corpus).
-describe('F7-1 secondary — Meeus runtime recomputation cross-check (not authoritative)', () => {
+describe('F8-1 secondary — Meeus runtime recomputation cross-check (not authoritative)', () => {
   const PARIS_LON = REFERENCE_INSTANT.lon, PARIS_LAT = REFERENCE_INSTANT.lat;
   function jdFromUTC(y: number, m: number, d: number, h: number, min: number): number {
     const frac = (h + min / 60) / 24;

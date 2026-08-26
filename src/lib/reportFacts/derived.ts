@@ -260,7 +260,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     const sCond = dignityFor(sRk, sRulerSign.sign.key) as Dignity;
     nodalRulers = {
       north: {
-        house: 0, ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
+        house: 'nodal', ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
         sign: nRulerSign.sign.key,
         degreeInSign: round2(nRulerSign.degreeInSign),
         house_of_ruler: nRulerPlanet.house ?? null,
@@ -270,7 +270,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
         provenance: ['natal.northnode.position', `natal.${nRk}.position`],
       },
       south: {
-        house: 0, ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
+        house: 'nodal', ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
         sign: sRulerSign.sign.key,
         degreeInSign: round2(sRulerSign.degreeInSign),
         house_of_ruler: sRulerPlanet.house ?? null,
@@ -476,22 +476,22 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
   // --- Stellium: 3+ planets in the same sign ---
   const bySign: Record<string, string[]> = {};
   for (const p of planets) (bySign[p.sign] ||= []).push(p.key);
-  let sIdx = 0;
   for (const sign of Object.keys(bySign)) {
     if (bySign[sign].length >= 3) {
-      // F6-10: canonicalize participants (sorted by body key) so the fact is identical
-      // across all chart-input permutations.
+      // F6-10/F8-4: canonicalize participants (sorted by body key) AND build the ID from
+      // the sign plus the canonical participant keys (no traversal counter). This makes the
+      // fact identical across all chart-input permutations, including multiple Stelliums.
       const sortedKeys = [...bySign[sign]].sort();
+      const canonical = sortedKeys.join('-');
       const sortedLabels = sortedKeys.map((k) => labelOf(k));
       const ids = sortedKeys.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
       const degs = sortedKeys.map((k) => (planets.find((x) => x.key === k)!.degreeInSign));
       const tightness = round2(Math.max(...degs) - Math.min(...degs));
       out.push({
-        id: `natal.pattern.stellium-${sign}-${sIdx}`, kind: 'pattern', source: 'derived-deterministic',
+        id: `natal.pattern.stellium-${sign}-${canonical}`, kind: 'pattern', source: 'derived-deterministic',
         display: `Stellium in ${getSign(sign as any)!.label}: ${sortedLabels.join(', ')} (span ${tightness}°)`,
         value: { name: 'Stellium', participants: sortedLabels, tightness, tightnessSemantics: 'angular-span' }, provenance: ids,
       });
-      sIdx++;
     }
   }
 

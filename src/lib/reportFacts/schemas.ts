@@ -101,9 +101,11 @@ function validateAspectId(v2: VerifiedFactsV2, ev: any, expectedEndpoints: [stri
   const fact = factById(v2, ev.aspectId);
   if (!fact || fact.kind !== 'aspect') return `aspectId ${ev.aspectId} does not resolve to an aspect fact`;
   const av: any = fact.value;
-  const pair = `${av.bodyA}-${av.bodyB}`;
-  const rev = `${av.bodyB}-${av.bodyA}`;
-  if (pair !== expectedPair && rev !== expectedPair) return `aspectId endpoints ${pair} != expected ${expectedPair}`;
+  // F8-9: compare endpoint TUPLES directly in either orientation. Never concatenate
+  // endpoint keys for identity (keys may contain hyphens; concatenation is not injective).
+  const fwd = av.bodyA === a && av.bodyB === b;
+  const rev = av.bodyA === b && av.bodyB === a;
+  if (!fwd && !rev) return `aspectId endpoints [${av.bodyA},${av.bodyB}] != expected [${a},${b}]`;
   if (av.aspectType !== ev.aspectType) return `aspectId type ${av.aspectType} != evidence ${ev.aspectType}`;
   // F6-4: hit provenance MUST EQUAL [aspectId] exactly. No extras, no missing.
   if (!Array.isArray(ev.provenance) || ev.provenance.length !== 1 || ev.provenance[0] !== ev.aspectId) {
@@ -166,14 +168,90 @@ function requireExactAspectSet(got: any, expected: string[], label: string): str
   if (JSON.stringify(g) !== JSON.stringify(expected)) return `${label}: set differs from authoritative complete set`;
   return null;
 }
-// F7-5: common.aspects must equal the complete canonical aspect-fact set from v2.facts.
+// F8-6: common.aspects must equal the complete canonical aspect-fact set from v2.facts
+// by FULL content (ID, kind, source, display, full value, provenance), not IDs only.
+// Reject duplicate IDs explicitly.
 function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
-  const canonical = canonicalAspectFacts(v2).map((a: any) => a.id).sort();
-  const common = (commonField(v2, 'aspects') || []).map((a: any) => a.id).sort();
-  if (JSON.stringify(common) !== JSON.stringify(canonical)) {
-    return `common.aspects (${common.length}) != complete canonical aspect set (${canonical.length})`;
+  const canonical = canonicalAspectFacts(v2);
+  const common: any[] = commonField(v2, 'aspects') || [];
+  // Reject duplicate IDs in the common index.
+  const seen = new Set<string>();
+  for (const a of common) {
+    if (!a || typeof a.id !== 'string') return 'common.aspects contains a non-aspect entry';
+    if (seen.has(a.id)) return `common.aspects duplicate id: ${a.id}`;
+    seen.add(a.id);
+  }
+  if (common.length !== canonical.length) {
+    return `common.aspects count ${common.length} != canonical ${canonical.length}`;
+  }
+  // Build ID-keyed maps and compare full content (ignoring key order).
+  const canonById = new Map(canonical.map((f: any) => [f.id, f]));
+  const commonById = new Map(common.map((f: any) => [f.id, f]));
+  for (const id of canonById.keys()) {
+    if (!commonById.has(id)) return `common.aspects missing canonical aspect ${id}`;
+    const c: any = canonById.get(id);
+    const m: any = commonById.get(id);
+    if (c.kind !== m.kind) return `aspect ${id} kind ${m.kind} != ${c.kind}`;
+    if (c.source !== m.source) return `aspect ${id} source ${m.source} != ${c.source}`;
+    if (c.display !== m.display) return `aspect ${id} display ${m.display} != ${c.display}`;
+    if (JSON.stringify([...(m.provenance || [])].sort()) !== JSON.stringify([...(c.provenance || [])].sort())) {
+      return `aspect ${id} provenance mismatch`;
+    }
+    if (JSON.stringify(m.value) !== JSON.stringify(c.value)) return `aspect ${id} value mismatch`;
   }
   return null;
+}
+
+// F8-8: validate a single cusp fact by full content. The critical check is that the
+// declared sign/signLabel agree with the canonical sign derived from cuspLongitude, so a
+// tampered cusp (sign changed, longitude kept) is caught BEFORE the ruler is derived.
+function validateCuspFact(v2: VerifiedFactsV2, cuspId: string): string | null {
+  const f: any = factById(v2, cuspId);
+  if (!f) return `cusp ${cuspId} missing`;
+  if (f.kind !== 'point') return `cusp ${cuspId} kind ${f.kind} != point`;
+  const num = Number(cuspId.replace('common.cusp.', ''));
+  if (!Number.isInteger(num) || num < 1 || num > 12) return `cusp id ${cuspId} does not encode a house number`;
+  const v: any = f.value;
+  if (typeof v.num !== 'number' || v.num !== num) return `cusp ${cuspId} num ${v.num} != ${num}`;
+  if (typeof v.cuspLongitude !== 'number' || v.cuspLongitude < 0 || v.cuspLongitude >= 360) return `cusp ${cuspId} cuspLongitude ${v.cuspLongitude} out of range`;
+  const expectedSign = signFromLongitude(v.cuspLongitude);
+  if (v.sign !== expectedSign.sign.key) return `cusp ${cuspId} sign ${v.sign} != derived ${expectedSign.sign.key} from cuspLongitude ${v.cuspLongitude}`;
+  if (v.signLabel !== expectedSign.sign.label) return `cusp ${cuspId} signLabel ${v.signLabel} != ${expectedSign.sign.label}`;
+  if (typeof f.source !== 'string' || !f.source) return `cusp ${cuspId} source missing`;
+  if (!Array.isArray(f.provenance)) return `cusp ${cuspId} provenance not an array`;
+  return null;
+}
+// F8-8: common.houses must equal the complete flat cusp-fact set by full content.
+function requireHousesEqualCusps(v2: VerifiedFactsV2): string | null {
+  const houses: any = commonField(v2, 'houses');
+  if (!Array.isArray(houses)) return 'common.houses missing or not an array';
+  const cusps = (commonField(v2, 'aspects') && []) as any[]; // placeholder (unused)
+  const flatCusps = Object.keys(v2.facts)
+    .filter((id) => id.startsWith('common.cusp.'))
+    .sort();
+  const houseIds = [...houses].map((h: any) => `common.cusp.${h.num ?? h.house}`).sort();
+  if (JSON.stringify(houseIds) !== JSON.stringify(flatCusps)) {
+    return `common.houses (${houseIds.length}) != flat cusp facts (${flatCusps.length})`;
+  }
+  // Full-content equality for each house vs its cusp fact.
+  for (const h of houses) {
+    const id = `common.cusp.${h.num ?? h.house}`;
+    const f: any = factById(v2, id);
+    if (!f) return `house ${id} has no matching cusp fact`;
+    const fv: any = f.value;
+    if (JSON.stringify(fv) !== JSON.stringify(h)) return `house ${id} content != cusp fact content`;
+  }
+  return null;
+}
+// F8-10: expected contextual house for a ruler, derived from its context fact id.
+// House rulers map to their house number; nodal rulers use a locked sentinel.
+function expectedRulerHouse(contextId: string): number | string {
+  if (contextId === 'common.cusp.7') return 7;
+  if (contextId === 'common.cusp.2') return 2;
+  if (contextId === 'common.cusp.6') return 6;
+  if (contextId === 'common.cusp.10') return 10;
+  if (contextId === 'natal.northnode.position' || contextId === 'natal.southnode.position') return 'nodal';
+  return -1;
 }
 
 // F7-3: Ruler validator is given ONLY the canonical context (cusp or node fact id),
@@ -190,9 +268,14 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   if (!['domicile','exaltation','detriment','fall',null].includes(v.dignity)) return 'invalid dignity';
   if (typeof v.condition !== 'string' || !v.condition) return 'missing condition';
   if (typeof v.rulerLabel !== 'string' || !v.rulerLabel) return 'missing rulerLabel';
-  // Resolve the context fact and derive the expected ruler from its sign (authoritative table).
+  // F8-8: validate the context cusp fact by full content BEFORE deriving the ruler.
+  // Only cusp facts (common.cusp.N) are cusp-shaped; node contexts are planet positions.
+  if (contextId.startsWith('common.cusp.')) {
+    const cuspErr = validateCuspFact(v2, contextId);
+    if (cuspErr) return `context ${contextId}: ${cuspErr}`;
+  }
+  // Resolve the context sign from the (validated) cusp/node fact.
   const ctx: any = factById(v2, contextId);
-  if (!ctx) return `context ${contextId} missing`;
   // Cusp facts are kind 'point'; node facts are kind 'position'. Unwrap to the value.
   const ctxVal: any = (ctx.kind === 'position' || ctx.kind === 'point') ? ctx.value : ctx;
   const ctxSign = ctxVal.sign;
@@ -203,6 +286,14 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   if (v.ruler !== expectedRuler) return `ruler ${v.ruler} != derived ${expectedRuler} from ${contextId} sign ${ctxSign}`;
   const expectedLabel = getPlanet(expectedRuler)?.label ?? expectedRuler;
   if (v.rulerLabel !== expectedLabel) return `rulerLabel ${v.rulerLabel} != ${expectedLabel}`;
+  // F8-10: validate the contextual house field independently of house_of_ruler.
+  const expHouse = expectedRulerHouse(contextId);
+  if (expHouse === -1) return `unknown ruler context ${contextId}`;
+  if (expHouse === 'nodal') {
+    if (v.house !== 'nodal') return `ruler house ${v.house} != nodal sentinel for ${contextId}`;
+  } else {
+    if (typeof v.house !== 'number' || v.house !== expHouse) return `ruler house ${v.house} != expected ${expHouse} for ${contextId}`;
+  }
   // Resolve the ruler planet position internally (canonical fact).
   const rulerPositionId = `natal.${expectedRuler}.position`;
   const rpos = factById(v2, rulerPositionId);
@@ -270,10 +361,17 @@ function positionsEqual(alias: any, factValue: any, isPof: boolean): string | nu
     ['house', (alias.house ?? null) === (factValue.house ?? null), alias.house, factValue.house],
     ['retrograde', alias.retrograde === factValue.retrograde, alias.retrograde, factValue.retrograde],
     ['dignity', alias.dignity === factValue.dignity, alias.dignity, factValue.dignity],
-    ['uncertainty', (alias.uncertainty ?? null) === (factValue.uncertainty ?? null), alias.uncertainty, factValue.uncertainty],
+    // F8-7: use the ACTUAL contract field `uncertain` (production writes v.uncertain = true),
+    // not a phantom `uncertainty` field. Reject contradictory or unexpected metadata.
+    ['uncertain', (alias.uncertain ?? null) === (factValue.uncertain ?? null), alias.uncertain, factValue.uncertain],
   ];
   for (const [name, ok, a, b] of checks) {
     if (!ok) return `${name}: alias ${JSON.stringify(a)} != fact ${JSON.stringify(b)}`;
+  }
+  // F8-7: reject unexpected metadata keys (contract only allows the checked fields).
+  const allowed = new Set(['key','label','sign','signLabel','longitude','degreeInSign','house','retrograde','dignity','uncertain','display','sect','formula']);
+  for (const k of Object.keys(alias)) {
+    if (!allowed.has(k)) return `alias unexpected metadata key: ${k}`;
   }
   if (isPof) {
     if (alias.sect !== factValue.sect) return `POF sect ${alias.sect} != ${factValue.sect}`;
@@ -308,12 +406,26 @@ const COMMON_CONSISTENCY: FieldCheck = {
       const eqErr = positionsEqual(cv, fv, isPof);
       if (eqErr) return `${alias}: ${eqErr}`;
     }
-    // POF full validation for every known-time report.
+    // F8-2: fully validate BOTH POF wrappers after serialization.
     const pof = commonField(v2, 'partOfFortune');
     const perr = isPartOfFortune(v2, pof);
     if (perr) return `partOfFortune: ${perr}`;
+    // Flat fact wrapper semantics: source must be derived-deterministic, provenance exact
+    // ASC/Moon/Sun, and its value must equal the canonical alias value (wrapper vs alias).
+    const flatPof = factById(v2, 'natal.partoffortune.position');
+    if (!flatPof) return 'flat partoffortune fact missing';
+    if (flatPof.source !== 'derived-deterministic') return `flat POF source ${flatPof.source} != derived-deterministic`;
+    const expFlatProv = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'].sort();
+    const gotFlatProv = [...(flatPof.provenance || [])].sort();
+    if (JSON.stringify(gotFlatProv) !== JSON.stringify(expFlatProv)) return `flat POF provenance ${gotFlatProv} != ASC/Moon/Sun`;
+    const flatVal: any = flatPof.value;
+    const aliasVal: any = (pof.kind === 'position' ? pof.value : pof);
+    const pofEq = positionsEqual(flatVal, aliasVal, true);
+    if (pofEq) return `flat POF value != alias value: ${pofEq}`;
     // F7-5: common.aspects must equal the complete canonical aspect-fact set.
     const commonChk = requireCommonAspectsComplete(v2); if (commonChk) return commonChk;
+    // F8-8: common.houses must equal the complete flat cusp-fact set by full content.
+    const housesChk = requireHousesEqualCusps(v2); if (housesChk) return housesChk;
     return null;
   },
 };
@@ -363,9 +475,13 @@ function loveBlueprintEvidenceCheck(v2: VerifiedFactsV2): string | null {
     const expected = authoritativeAspectSet(v2, (av: any) => ((av.bodyA === 'chiron' || av.bodyB === 'chiron') && (av.bodyA === 'venus' || av.bodyA === 'moon' || av.bodyB === 'venus' || av.bodyB === 'moon')));
     const e = requireExactAspectSet(ev.chironAspects, expected, 'chironAspects'); if (e) return e;
   }
-  // F5-4: explicit Chiron present/absent state
+  // F8-3: Chiron state derives from the authoritative set. present === (set.length > 0).
+  const chironAuth = authoritativeAspectSet(v2, (av: any) => ((av.bodyA === 'chiron' || av.bodyB === 'chiron') && (av.bodyA === 'venus' || av.bodyA === 'moon' || av.bodyB === 'venus' || av.bodyB === 'moon')));
   if (!ev.chironEvidence || typeof ev.chironEvidence !== 'object') return 'missing chironEvidence';
   if (typeof ev.chironEvidence.present !== 'boolean') return 'chironEvidence.present must be boolean';
+  if (ev.chironEvidence.present !== (chironAuth.length > 0)) {
+    return `chironEvidence.present ${ev.chironEvidence.present} != (authoritative set length ${chironAuth.length} > 0)`;
+  }
   if (ev.chironEvidence.present) {
     if (!Array.isArray(ev.chironEvidence.ids) || ev.chironEvidence.ids.length === 0) return 'chironEvidence.present=true requires nonempty ids';
     // ids must equal chironAspects
@@ -374,7 +490,8 @@ function loveBlueprintEvidenceCheck(v2: VerifiedFactsV2): string | null {
     if (JSON.stringify(ids) !== JSON.stringify(aspects)) return 'chironEvidence.ids must equal chironAspects';
     if (ev.chironEvidence.reason !== undefined) return 'chironEvidence.present=true must not have reason';
   } else {
-    if (Array.isArray(ev.chironEvidence.ids) && ev.chironEvidence.ids.length > 0) return 'chironEvidence.present=false requires empty ids';
+    if (!Array.isArray(ev.chironEvidence.ids) || ev.chironEvidence.ids.length !== 0) return 'chironEvidence.present=false requires explicit empty ids: []';
+    if (chironAuth.length !== 0) return 'chironEvidence.present=false but authoritative set is nonempty';
     if (ev.chironEvidence.reason !== 'No qualifying Chiron-to-Venus-or-Moon tie was found in this chart') return `chironEvidence.present=false reason must be exact, got ${ev.chironEvidence.reason}`;
   }
   if (typeof ev.northNodeSign !== 'string') return 'missing north node sign';
@@ -383,41 +500,51 @@ function loveBlueprintEvidenceCheck(v2: VerifiedFactsV2): string | null {
 function vocationEvidenceCheck(v2: VerifiedFactsV2): string | null {
   const ev = reportField(v2, 'vocationEvidence');
   if (!ev || typeof ev !== 'object') return 'vocationEvidence absent';
+  // F8-5: ACCUMULATE all Vocation semantic errors; the career-window blocker is appended
+  // independently and must NOT suppress (nor be suppressed by) any semantic error.
+  const semanticErrors: string[] = [];
   // F6-3: full RulerFact validation for all three rulers with context
-  { const e = isRulerFact(ev.mcRuler, 'common.cusp.10', v2); if (e) return `mcRuler: ${e}`; }
-  { const e = isRulerFact(ev.secondRuler, 'common.cusp.2', v2); if (e) return `secondRuler: ${e}`; }
-  { const e = isRulerFact(ev.sixthRuler, 'common.cusp.6', v2); if (e) return `sixthRuler: ${e}`; }
+  { const e = isRulerFact(ev.mcRuler, 'common.cusp.10', v2); if (e) semanticErrors.push(`mcRuler: ${e}`); }
+  { const e = isRulerFact(ev.secondRuler, 'common.cusp.2', v2); if (e) semanticErrors.push(`secondRuler: ${e}`); }
+  { const e = isRulerFact(ev.sixthRuler, 'common.cusp.6', v2); if (e) semanticErrors.push(`sixthRuler: ${e}`); }
   // F7-2: literal structured endpoint tuples (no pair.split('-') identity path).
   for (const [k, endpoints] of [['saturnAspect',['saturn','midheaven']],['jupiterAspect',['jupiter','midheaven']],['plutoAspect',['pluto','midheaven']]] as const) {
-    const e = validateNamedAspect(v2, ev[k], endpoints as unknown as [string, string]); if (e) return `aspect ${k}: ${e}`;
+    const e = validateNamedAspect(v2, ev[k], endpoints as unknown as [string, string]); if (e) semanticErrors.push(`aspect ${k}: ${e}`);
   }
   // F6-6: wealth indicators must exactly equal the unique 2nd/6th/10th ruler positions.
   const expectedWealth = [...new Set([`natal.${ev.secondRuler.ruler}.position`, `natal.${ev.sixthRuler.ruler}.position`, `natal.${ev.mcRuler.ruler}.position`])].sort();
   const gotWealth = [...(ev.wealthIndicators || [])].sort();
-  if (JSON.stringify(gotWealth) !== JSON.stringify(expectedWealth)) return `wealthIndicators ${gotWealth} != unique 2nd/6th/10th ${expectedWealth}`;
+  if (JSON.stringify(gotWealth) !== JSON.stringify(expectedWealth)) semanticErrors.push(`wealthIndicators ${gotWealth} != unique 2nd/6th/10th ${expectedWealth}`);
   // F5-9: complete MC package
-  if (ev.mcPositionId !== 'natal.midheaven.position') return `mcPositionId must be natal.midheaven.position, got ${ev.mcPositionId}`;
+  if (ev.mcPositionId !== 'natal.midheaven.position') semanticErrors.push(`mcPositionId must be natal.midheaven.position, got ${ev.mcPositionId}`);
   // F6-5: MC sign/degree must match the canonical MC position fact.
   const mc = factById(v2, 'natal.midheaven.position');
-  if (!mc || mc.kind !== 'position') return 'natal.midheaven.position missing';
-  const mcv: any = mc.value;
-  if (ev.mcSign !== mcv.sign) return `mcSign ${ev.mcSign} != ${mcv.sign}`;
-  if (Math.abs(ev.mcDegreeInSign - mcv.degreeInSign) > 0.01) return `mcDegreeInSign ${ev.mcDegreeInSign} != ${mcv.degreeInSign}`;
+  if (!mc || mc.kind !== 'position') semanticErrors.push('natal.midheaven.position missing');
+  else {
+    const mcv: any = mc.value;
+    if (ev.mcSign !== mcv.sign) semanticErrors.push(`mcSign ${ev.mcSign} != ${mcv.sign}`);
+    if (Math.abs(ev.mcDegreeInSign - mcv.degreeInSign) > 0.01) semanticErrors.push(`mcDegreeInSign ${ev.mcDegreeInSign} != ${mcv.degreeInSign}`);
+  }
   // F7-5: mcAspects must equal the complete authoritative set derived from canonical facts.
   const expectedMcAspects = authoritativeAspectSet(v2, (av: any) => av.bodyA === 'midheaven' || av.bodyB === 'midheaven');
   const gotMcAspects = [...(ev.mcAspects || [])].sort();
-  if (JSON.stringify(gotMcAspects) !== JSON.stringify(expectedMcAspects)) return `mcAspects count ${gotMcAspects.length} != authoritative ${expectedMcAspects.length}`;
+  if (JSON.stringify(gotMcAspects) !== JSON.stringify(expectedMcAspects)) semanticErrors.push(`mcAspects count ${gotMcAspects.length} != authoritative ${expectedMcAspects.length}`);
   // F7-5: common.aspects must equal the complete canonical aspect-fact set.
-  const commonChk = requireCommonAspectsComplete(v2); if (commonChk) return commonChk;
+  const commonChk = requireCommonAspectsComplete(v2); if (commonChk) semanticErrors.push(commonChk);
   // F6-5: surfaced evidence-fact provenance must equal MC position + every MC aspect + required drivers.
   const surfaced = v2.facts['reportData.vocationEvidence'];
-  if (!surfaced) return 'surfaced vocationEvidence fact missing';
-  const expectedProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', ev.mcPositionId, ...expectedMcAspects].sort();
-  const gotProv = [...(surfaced.provenance || [])].sort();
-  if (JSON.stringify(gotProv) !== JSON.stringify(expectedProv)) return `surfaced provenance ${gotProv} != ${expectedProv}`;
-  // T3-7: Vocation fails closed until exact 24-month career windows exist
-  if (typeof ev.careerWindowsDeclared !== 'boolean') return 'missing careerWindowsDeclared';
-  if (ev.careerWindowsDeclared !== true) return 'career windows not yet implemented';
+  if (!surfaced) semanticErrors.push('surfaced vocationEvidence fact missing');
+  else {
+    const expectedProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', ev.mcPositionId, ...expectedMcAspects].sort();
+    const gotProv = [...(surfaced.provenance || [])].sort();
+    if (JSON.stringify(gotProv) !== JSON.stringify(expectedProv)) semanticErrors.push(`surfaced provenance ${gotProv} != ${expectedProv}`);
+  }
+  // T3-7: Vocation fails closed until exact 24-month career windows exist. This is appended
+  // independently of the semantic errors collected above (neither suppresses the other).
+  const careerBlocker = (typeof ev.careerWindowsDeclared !== 'boolean') ? 'missing careerWindowsDeclared'
+    : (ev.careerWindowsDeclared !== true ? 'career windows not yet implemented' : null);
+  if (careerBlocker) semanticErrors.push(careerBlocker);
+  if (semanticErrors.length > 0) return semanticErrors.join(' | ');
   return null;
 }
 function karmicEvidenceCheck(v2: VerifiedFactsV2): string | null {
@@ -445,9 +572,13 @@ function karmicEvidenceCheck(v2: VerifiedFactsV2): string | null {
     const expected = authoritativeAspectSet(v2, (av: any) => ((av.bodyA === 'chiron' || av.bodyB === 'chiron') && (av.bodyA === 'northnode' || av.bodyA === 'southnode' || av.bodyB === 'northnode' || av.bodyB === 'southnode')));
     const e = requireExactAspectSet(ev.chironAspects, expected, 'chironAspects'); if (e) return e;
   }
-  // F5-4: explicit Chiron present/absent state with consistency
+  // F8-3: Chiron state derives from the authoritative set. present === (set.length > 0).
+  const chironAuth = authoritativeAspectSet(v2, (av: any) => ((av.bodyA === 'chiron' || av.bodyB === 'chiron') && (av.bodyA === 'northnode' || av.bodyA === 'southnode' || av.bodyB === 'northnode' || av.bodyB === 'southnode')));
   if (!ev.chironEvidence || typeof ev.chironEvidence !== 'object') return 'missing chironEvidence';
   if (typeof ev.chironEvidence.present !== 'boolean') return 'chironEvidence.present must be boolean';
+  if (ev.chironEvidence.present !== (chironAuth.length > 0)) {
+    return `chironEvidence.present ${ev.chironEvidence.present} != (authoritative set length ${chironAuth.length} > 0)`;
+  }
   if (ev.chironEvidence.present) {
     if (!Array.isArray(ev.chironEvidence.ids) || ev.chironEvidence.ids.length === 0) return 'chironEvidence.present=true requires nonempty ids';
     const ids = [...ev.chironEvidence.ids].sort();
@@ -455,7 +586,8 @@ function karmicEvidenceCheck(v2: VerifiedFactsV2): string | null {
     if (JSON.stringify(ids) !== JSON.stringify(aspects)) return 'chironEvidence.ids must equal chironAspects';
     if (ev.chironEvidence.reason !== undefined) return 'chironEvidence.present=true must not have reason';
   } else {
-    if (Array.isArray(ev.chironEvidence.ids) && ev.chironEvidence.ids.length > 0) return 'chironEvidence.present=false requires empty ids';
+    if (!Array.isArray(ev.chironEvidence.ids) || ev.chironEvidence.ids.length !== 0) return 'chironEvidence.present=false requires explicit empty ids: []';
+    if (chironAuth.length !== 0) return 'chironEvidence.present=false but authoritative set is nonempty';
     if (ev.chironEvidence.reason !== 'No qualifying Chiron-to-node tie was found in this chart') return `chironEvidence.present=false reason must be exact, got ${ev.chironEvidence.reason}`;
   }
   return null;
