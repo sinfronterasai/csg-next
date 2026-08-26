@@ -55,6 +55,21 @@ export const SPARSE_ASPECT: FactsFixture = {
   expect: { knownTime: true },
 };
 
+
+// Timing-year fixtures (Workstream F item 5/6). These assert the contract requires a
+// 12-month transit ledger; at P0 they correctly fail preflight (no truncated report).
+export const QUIET_TRANSIT_YEAR: FactsFixture = {
+  name: 'quiet-transit-year',
+  birth: { date: '1988-02-10', time: '14:20', location: 'Sydney', name: 'Fixture H' },
+  expect: { knownTime: true, transitYear: 'quiet' },
+};
+
+export const EVENT_HEAVY_TRANSIT_YEAR: FactsFixture = {
+  name: 'event-heavy-transit-year',
+  birth: { date: '1992-08-28', time: '21:05', location: 'Mexico City, Mexico', name: 'Fixture I' },
+  expect: { knownTime: true, transitYear: 'event-heavy' },
+};
+
 export const ALL_FIXTURES: FactsFixture[] = [
   KNOWN_TIME_ORDINARY,
   UNKNOWN_TIME_SOLAR,
@@ -63,4 +78,6 @@ export const ALL_FIXTURES: FactsFixture[] = [
   RETRO_NULL_DIGNITY,
   DENSE_ASPECT,
   SPARSE_ASPECT,
+  QUIET_TRANSIT_YEAR,
+  EVENT_HEAVY_TRANSIT_YEAR,
 ];

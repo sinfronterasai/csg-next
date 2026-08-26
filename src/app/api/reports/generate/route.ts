@@ -6,7 +6,7 @@ import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
-import { buildVerifiedFactsForReport, V2PreflightError } from '@/lib/reportFacts/integrate';
+import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 
@@ -102,6 +102,20 @@ export async function POST(request: Request) {
       // Generate ONE reportId and thread it through the locked consume (which
       // stores it in report_orders.report_id AND the reading result JSON) and the
       // n8n dispatch. The callback later locates the reading by this exact value.
+      const correlated = await query(
+        `SELECT r.id AS reading_id, r.result->>'reportId' AS report_id, r.pipeline_status
+         FROM report_orders o JOIN readings r ON r.id = o.reading_id
+         WHERE o.purchase_id = $1 LIMIT 1`,
+        [purchaseId],
+      );
+      if (correlated.rows.length > 0) {
+        return buildRepeatResponse(
+          Number(correlated.rows[0].reading_id),
+          correlated.rows[0].report_id,
+          correlated.rows[0].pipeline_status,
+        );
+      }
+
       const reportId = crypto.randomUUID();
       // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
       // input_incomplete we fail closed with 422 and never touch the purchase.
@@ -113,6 +127,12 @@ export async function POST(request: Request) {
           return NextResponse.json(
             { error: 'Report facts incomplete for this birth data', mode: 'preflight_failed', missing: e.preflight.missing },
             { status: 422 },
+          );
+        }
+        if (e instanceof V2BuildError) {
+          return NextResponse.json(
+            { error: 'Invalid report request', detail: e.message },
+            { status: 400 },
           );
         }
         throw e;
@@ -163,7 +183,16 @@ export async function POST(request: Request) {
     }
     const c = rows[0];
     const chart = await buildBirthInfo(c, user);
-    const v2 = await buildVerifiedFactsForReport(type, chart);
+    const contractTypeFree = mapReportType(type)!;
+    let v2;
+    try {
+      v2 = await buildVerifiedFactsForReport(contractTypeFree, chart);
+    } catch (e) {
+      if (e instanceof V2BuildError) {
+        return NextResponse.json({ error: 'Invalid report request', detail: (e as Error).message }, { status: 400 });
+      }
+      throw e;
+    }
     if (!v2.ok) {
       // Fail closed: do not insert or dispatch a report whose required facts are
       // missing. No purchase is consumed (free path) and the client gets a
@@ -256,7 +285,7 @@ async function buildReadingInput(opts: {
   const c = rows[0];
   const chart = await buildBirthInfo(c, user);
   const contractType = mapReportType(type)!;
-  const v2 = await buildVerifiedFactsForReport(type, chart);
+  const v2 = await buildVerifiedFactsForReport(contractType, chart);
   if (!v2.ok) throw new V2PreflightError(v2.preflight);
   const verifiedFacts = v2.ledger;
   const title = REPORT_META[type].title;

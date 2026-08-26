@@ -3,9 +3,10 @@
 // Workstream F fixture corpus (boundaries, retrograde, null dignity).
 
 import { buildVerifiedFactsV2, buildAndPreflight } from '@/lib/reportFacts/build';
+import { buildVerifiedFactsForReport } from '@/lib/reportFacts/integrate';
 import { buildAspects } from '@/lib/reportFacts/derived';
-import { preflightReport } from '@/lib/reportFacts/schemas';
-import { ALL_FIXTURES, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29, RETRO_NULL_DIGNITY, UNKNOWN_TIME_SOLAR } from './fixtures/factsFixtures';
+import { preflightReport, validateFactResolution } from '@/lib/reportFacts/schemas';
+import { ALL_FIXTURES, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29, RETRO_NULL_DIGNITY, UNKNOWN_TIME_SOLAR, QUIET_TRANSIT_YEAR, EVENT_HEAVY_TRANSIT_YEAR, KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 import type { VerifiedFact } from '@/lib/reportFacts/types';
 
 function positionFacts(facts: Record<string, VerifiedFact>): VerifiedFact[] {
@@ -27,13 +28,33 @@ describe('VerifiedFactsV2 ledger shape', () => {
     expect(v2.common.partOfFortune).toBeDefined();
     expect(v2.common.moonPhase).toBeDefined();
     // Tallies cover the four elements and three modalities.
-    expect(Object.keys(v2.common.elements).sort()).toEqual(['Air', 'Earth', 'Fire', 'Water']);
-    expect(Object.keys(v2.common.modalities).sort()).toEqual(['Cardinal', 'Fixed', 'Mutable']);
+    expect(Object.keys((v2.common.elements as any).value).sort()).toEqual(['Air', 'Earth', 'Fire', 'Water']);
+    expect(Object.keys((v2.common.modalities as any).value).sort()).toEqual(['Cardinal', 'Fixed', 'Mutable']);
   });
 
   it('asOfDate is immutable: passing a stored date keeps it stable', async () => {
     const v2 = await buildVerifiedFactsV2('natal', { date: '1990-06-15', time: '12:00', location: 'Paris' }, '2026-01-01');
     expect(v2.asOfDate).toBe('2026-01-01');
+  });
+});
+
+
+describe('B1 transit alias normalization (route regression)', () => {
+  it('raw pipeline alias "transit" is rejected before build/preflight/dispatch', async () => {
+    // The route normalizes 'transit' -> 'yearlytransit' before calling the builder.
+    // If the alias leaked through, buildVerifiedFactsForReport would reject it. This
+    // is the unmocked regression the review required: an un-normalized alias must fail.
+    await expect(buildVerifiedFactsForReport('transit', KNOWN_TIME_ORDINARY.birth)).rejects.toThrow();
+    // Canonical yearlytransit is accepted by the builder contract (still fails preflight
+    // at P0 for the missing transit ledger, which is the correct closed behavior).
+    const out = await buildVerifiedFactsForReport('yearlytransit', KNOWN_TIME_ORDINARY.birth);
+    expect(out.ok).toBe(false);
+    expect(out.preflight?.missing).toContain('reportData.transitLedger');
+  });
+
+  it('canonical yearlytransit build validates the type', async () => {
+    const v2 = await buildVerifiedFactsV2('yearlytransit', KNOWN_TIME_ORDINARY.birth);
+    expect(v2.reportType).toBe('yearlytransit');
   });
 });
 
@@ -192,6 +213,74 @@ describe('preflight failure mode (Workstream B)', () => {
     expect(out.ok).toBe(false);
     expect(out.preflight?.status).toBe('input_incomplete');
     expect(out.ledger).toBeUndefined();
+  });
+});
+
+
+describe('B7 negative tests — per required field group', () => {
+  it('natal missing angles/ruler fails with the exact missing ids', async () => {
+    // Build a ledger then delete a common fact to simulate an incomplete build.
+    const v2 = await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth);
+    const { common, facts, ...rest } = v2;
+    const strippedCommon = { ...common } as any;
+    delete strippedCommon.ascendant;
+    delete strippedCommon.chartRuler;
+    const strippedFacts = { ...facts };
+    delete strippedFacts['natal.ascendant.position'];
+    const stripped = { ...rest, common: strippedCommon, facts: strippedFacts } as any;
+    const res = preflightReport('natal', stripped);
+    expect(res.status).toBe('input_incomplete');
+    expect(res.missing).toContain('common.ascendant');
+    expect(res.missing).toContain('facts.natal.ascendant.position');
+    expect(res.missing).toContain('common.chartRuler');
+  });
+
+  it('relationship missing a score band fails closed', async () => {
+    const v2 = await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth);
+    const strippedReportData = { ...v2.reportData } as any;
+    delete strippedReportData.relationshipScores;
+    const stripped = { ...v2, reportData: strippedReportData } as any;
+    const res = preflightReport('relationship', stripped);
+    expect(res.status).toBe('input_incomplete');
+    expect(res.missing).toContain('reportData.relationshipScores');
+  });
+
+  it('karmicshadow missing nodal axis fails closed', async () => {
+    const v2 = await buildVerifiedFactsV2('karmicshadow', KNOWN_TIME_ORDINARY.birth);
+    const stripped = { ...v2, reportData: {} } as any;
+    const res = preflightReport('karmicshadow', stripped);
+    expect(res.status).toBe('input_incomplete');
+    expect(res.missing).toContain('reportData.karmic');
+  });
+
+  it('timing reports (quiet + event-heavy years) fail closed without a transit ledger', async () => {
+    for (const fx of [QUIET_TRANSIT_YEAR, EVENT_HEAVY_TRANSIT_YEAR]) {
+      const v2 = await buildVerifiedFactsV2('yearlytransit', fx.birth);
+      const res = preflightReport('yearlytransit', v2);
+      expect(res.status).toBe('input_incomplete');
+      expect(res.missing).toContain('reportData.transitLedger');
+    }
+  });
+});
+
+describe('B2 dangling provenance / driver resolution', () => {
+  it('a complete known-time natal/relationship ledger resolves every id', async () => {
+    for (const t of ['natal', 'relationship', 'loveblueprint', 'vocation', 'karmicshadow'] as const) {
+      const v2 = await buildVerifiedFactsV2(t, KNOWN_TIME_ORDINARY.birth);
+      const res = validateFactResolution(v2);
+      expect(res.ok).toBe(true);
+      expect(res.dangling).toEqual([]);
+    }
+  });
+
+  it('a dangling driver is detected and reported', async () => {
+    const v2 = await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth);
+    // Corrupt a score driver so it no longer resolves to a fact.
+    const broken = JSON.parse(JSON.stringify(v2));
+    broken.reportData.relationshipScores.emotionalConnection.drivers = ['facts.natal.doesnotexist.position'];
+    const res = validateFactResolution(broken);
+    expect(res.ok).toBe(false);
+    expect(res.dangling.length).toBeGreaterThan(0);
   });
 });
 

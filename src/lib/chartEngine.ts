@@ -73,6 +73,7 @@ export const PLANET_BODIES: { key: string; se: number }[] = [
   { key: 'neptune', se: Constants.SE_NEPTUNE },
   { key: 'pluto', se: Constants.SE_PLUTO },
   { key: 'chiron', se: Constants.SE_CHIRON },
+  { key: 'juno', se: Constants.SE_JUNO },
   { key: 'northnode', se: Constants.SE_TRUE_NODE },
 ];
 
@@ -87,7 +88,9 @@ export function getEph(): Promise<SwissEph> {
 }
 
 // Convert a local wall-clock datetime + IANA timezone to a UTC Julian Day.
-function localToJulianDay(year: number, month: number, day: number, hour: number, minute: number, tzId: string): number {
+// Exported so any derived-body computation (e.g. Juno) reuses the EXACT same
+// Julian Day and timezone as the rest of the chart (no server-tz drift).
+export function localToJulianDay(year: number, month: number, day: number, hour: number, minute: number, tzId: string): number {
   const localISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   // Offset in minutes east of UTC for this instant.
   const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tzId, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
