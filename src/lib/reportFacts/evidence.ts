@@ -67,10 +67,12 @@ export function vocationEvidence(common: CommonDerived): VocationEvidence {
   if (!tenth || !second || !sixth) throw new Error('vocation evidence requires 2nd/6th/10th rulers');
   return {
     mcRuler: tenth, secondRuler: second, sixthRuler: sixth,
-    saturnAspect: aspectEvidence(common, 'saturn', 'sun'),
-    jupiterAspect: aspectEvidence(common, 'jupiter', 'sun'),
-    plutoAspect: aspectEvidence(common, 'pluto', 'sun'),
-    wealthIndicators: [second.ruler, sixth.ruler, tenth.ruler],
+    // F4-7: aspects to the Midheaven / career axis (not Sun substitutes).
+    saturnAspect: aspectEvidence(common, 'saturn', 'midheaven'),
+    jupiterAspect: aspectEvidence(common, 'jupiter', 'midheaven'),
+    plutoAspect: aspectEvidence(common, 'pluto', 'midheaven'),
+    // F4-6: wealth indicators are stable cited fact IDs (the 2nd/6th/10th ruler positions)
+    wealthIndicators: [`natal.${second.ruler}.position`, `natal.${sixth.ruler}.position`, `natal.${tenth.ruler}.position`],
     careerWindowsDeclared: false, // 24-month windows are P6/P7; declared + fail closed
   };
 }
@@ -88,9 +90,19 @@ export function karmicEvidence(common: CommonDerived): KarmicEvidence {
     nodalAspects, nodalSquares,
     saturnEvidence: aspectEvidence(common, 'saturn', 'sun'),
     plutoEvidence: aspectEvidence(common, 'pluto', 'sun'),
+    // F4-8: explicit optional-evidence state for Chiron (present-with-citations or absent-with-reason)
     chironAspects: common.aspects.filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron').map((a) => a.id),
-    chironDeclared: true,
+    chironEvidence: buildOptionalEvidence(
+      common.aspects.filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron').map((a) => a.id),
+      'Chiron aspects not computed in this chart build',
+    ),
   };
+}
+
+// F4-8: explicit optional-evidence state: present-with-citations or absent-with-reason.
+function buildOptionalEvidence(ids: string[], absentReason: string): { present: boolean; ids: string[]; reason?: string } {
+  if (ids.length > 0) return { present: true, ids };
+  return { present: false, ids: [], reason: absentReason };
 }
 
 // Surface an evidence bundle as a stable VerifiedFact (kind 'score' is wrong here;

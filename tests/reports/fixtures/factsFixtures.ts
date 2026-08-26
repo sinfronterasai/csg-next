@@ -20,6 +20,12 @@ export interface FactsFixture {
       ascendantHouse?: number;
       chartRuler?: string;
       seventhHouseRuler?: string;
+      mcSign?: string; // Midheaven sign (F4-9 exact reference)
+      mcRuler?: string; // 10th-house ruler key
+      northNodeRuler?: string; // nodal ruler planet key
+      southNodeRuler?: string;
+      exactRetrograde?: string[]; // planet keys that are retrograde (F4-9)
+      nullDignityBody?: string; // body with no essential dignity (F4-9)
       aspectCountMin: number;
       hasRetrograde?: boolean;
     };
@@ -29,7 +35,7 @@ export interface FactsFixture {
 export const KNOWN_TIME_ORDINARY: FactsFixture = {
   name: 'known-ordinary',
   birth: { date: '1990-06-15', time: '12:00', location: 'Paris', name: 'Fixture A' },
-  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', aspectCountMin: 30, hasRetrograde: true } },
+  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', mcSign: 'taurus', mcRuler: 'venus', northNodeRuler: 'saturn', southNodeRuler: 'sun', exactRetrograde: ['saturn','uranus','neptune','pluto'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const UNKNOWN_TIME_SOLAR: FactsFixture = {
@@ -44,16 +50,17 @@ export const BOUNDARY_NEAR_0: FactsFixture = {
   expect: { knownTime: true, boundaryCheck: 'near0', ref: { sunSign: 'aries', sunDegreeInSign: 0.68, ascendantSign: 'sagittarius', ascendantHouse: 1, chartRuler: 'jupiter', seventhHouseRuler: 'mercury', aspectCountMin: 30 } },
 };
 
+// F4-9: genuine 29.xx° boundary. Sun sits at ~29° Aries (just before Taurus ingress).
 export const BOUNDARY_NEAR_29: FactsFixture = {
   name: 'boundary-near-29',
-  birth: { date: '2000-04-19', time: '23:50', location: 'London', name: 'Fixture D' },
-  expect: { knownTime: true, boundaryCheck: 'near29', ref: { sunSign: 'taurus', sunDegreeInSign: 0.17, ascendantSign: 'sagittarius', ascendantHouse: 1, chartRuler: 'jupiter', seventhHouseRuler: 'mercury', aspectCountMin: 30 } },
+  birth: { date: '2000-04-18', time: '21:30', location: 'London', name: 'Fixture D' },
+  expect: { knownTime: true, boundaryCheck: 'near29', ref: { sunSign: 'aries', sunDegreeInSign: 29.1, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30 } },
 };
 
 export const RETRO_NULL_DIGNITY: FactsFixture = {
   name: 'retro-null-dignity',
   birth: { date: '1979-10-05', time: '09:30', location: 'Tokyo', name: 'Fixture E' },
-  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30, hasRetrograde: true } },
+  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', mcSign: 'virgo', mcRuler: 'mercury', northNodeRuler: 'mercury', southNodeRuler: 'jupiter', exactRetrograde: ['northnode'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const DENSE_ASPECT: FactsFixture = {

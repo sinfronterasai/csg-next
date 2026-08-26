@@ -45,6 +45,9 @@ export interface PositionValue {
   // True when the exact longitude is not authoritative (e.g. unknown-time noon
   // approximation) so the writer will not cite it as precise evidence.
   uncertain?: boolean;
+  // F4-4: Part of Fortune sect/formula metadata
+  sect?: 'day' | 'night';
+  formula?: string; // stable formula identifier, e.g. 'day:ASC+MOON-SUN' or 'night:ASC+SUN-MOON'
 }
 
 export interface NodeValue extends PositionValue {
@@ -79,11 +82,15 @@ export interface HouseCusp {
 }
 
 export interface RulerFact {
-  house: number;
+  house: number; // house number (0 for nodal rulers)
   ruler: string; // planet key, e.g. 'venus'
   rulerLabel: string;
-  sign: string;
-  condition: string; // dignity condition string
+  sign: string; // actual ruler planet's natal sign
+  degreeInSign: number; // actual ruler planet's degree within sign
+  house_of_ruler: number | null; // house placement of the ruler planet
+  retrograde: boolean; // retrograde status of the ruler planet
+  dignity: Dignity; // explicit dignity/condition enum
+  condition: string; // dignity condition string (derived from dignity)
   provenance: string[]; // source fact ids (the cusp + the ruler planet position)
 }
 
@@ -144,6 +151,12 @@ export interface VocationEvidence {
   careerWindowsDeclared: boolean; // 24-month windows are P6/P7; declared + fail closed
 }
 
+export interface OptionalEvidence {
+  present: boolean; // true if cited, false if explicitly absent
+  ids: string[]; // fact ids when present
+  reason?: string; // deterministic reason when absent
+}
+
 export interface KarmicEvidence {
   northNodeHouse: number | null;
   southNodeHouse: number | null;
@@ -154,7 +167,7 @@ export interface KarmicEvidence {
   saturnEvidence: AspectEvidence;
   plutoEvidence: AspectEvidence;
   chironAspects: string[];
-  chironDeclared: boolean; // conditional Chiron structure declared
+  chironEvidence: OptionalEvidence; // F4-8: explicit present/absent
 }
 
 export interface VerifiedFactsV2 {
@@ -176,7 +189,7 @@ export interface CommonDerived {
   northNode: NodeValue;
   southNode: NodeValue;
   juno: NodeValue;
-  partOfFortune?: VerifiedFact;
+  partOfFortune?: VerifiedFact; // value includes sect + formula metadata (F4-4)
   moonPhase?: VerifiedFact;
   elements: VerifiedFact;
   modalities: VerifiedFact;

@@ -416,4 +416,76 @@ describe('R2-B9 supplementary — exact-value assertions (not false-green)', () 
     expect(kar.northNodeRuler.ruler).toBeDefined();
     expect(kar.southNodeRuler.ruler).toBeDefined();
   });
+
+describe('R5 F4-9 — exact reference fixtures + independent ephemeris cross-check', () => {
+  test('KNOWN_TIME_ORDINARY exact references match computation', async () => {
+    const c = await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const sun:any = c.positions.find(p=>p.id==='natal.sun.position')!.value;
+    const mc:any = c.positions.find(p=>p.id==='natal.midheaven.position')!.value;
+    expect(sun.sign).toBe(KNOWN_TIME_ORDINARY.expect.ref.sunSign);
+    expect(sun.degreeInSign).toBeCloseTo(KNOWN_TIME_ORDINARY.expect.ref.sunDegreeInSign, 1);
+    expect(mc.sign).toBe(KNOWN_TIME_ORDINARY.expect.ref.mcSign);
+    expect(c.rulers!.tenth!.ruler).toBe(KNOWN_TIME_ORDINARY.expect.ref.mcRuler);
+    expect(c.nodalRulers!.north.ruler).toBe(KNOWN_TIME_ORDINARY.expect.ref.northNodeRuler);
+    expect(c.nodalRulers!.south.ruler).toBe(KNOWN_TIME_ORDINARY.expect.ref.southNodeRuler);
+    const retro = c.positions.filter(p=>(p.value as any).retrograde).map(p=>(p.value as any).key).sort();
+    expect(retro).toEqual([...KNOWN_TIME_ORDINARY.expect.ref.exactRetrograde!].sort());
+    const nd = c.positions.find(p=>(p.value as any).key===KNOWN_TIME_ORDINARY.expect.ref.nullDignityBody)!.value as any;
+    expect(nd.dignity).toBeNull();
+  });
+
+  test('BOUNDARY_NEAR_29 exercises the 29.xx boundary', async () => {
+    const c = await computeVerifiedCommon(BOUNDARY_NEAR_29.birth);
+    const sun:any = c.positions.find(p=>p.id==='natal.sun.position')!.value;
+    expect(sun.degreeInSign).toBeGreaterThanOrEqual(29);
+    expect(sun.degreeInSign).toBeLessThan(30);
+    expect(sun.degreeInSign).toBeCloseTo(BOUNDARY_NEAR_29.expect.ref.sunDegreeInSign, 1);
+  });
+
+  test('RETRO_NULL_DIGNITY exact retrograde + null-dignity + MC/nodal references', async () => {
+    const c = await computeVerifiedCommon(RETRO_NULL_DIGNITY.birth);
+    const mc:any = c.positions.find(p=>p.id==='natal.midheaven.position')!.value;
+    expect(mc.sign).toBe(RETRO_NULL_DIGNITY.expect.ref.mcSign);
+    expect(c.rulers!.tenth!.ruler).toBe(RETRO_NULL_DIGNITY.expect.ref.mcRuler);
+    expect(c.nodalRulers!.north.ruler).toBe(RETRO_NULL_DIGNITY.expect.ref.northNodeRuler);
+    expect(c.nodalRulers!.south.ruler).toBe(RETRO_NULL_DIGNITY.expect.ref.southNodeRuler);
+    const retro = c.positions.filter(p=>(p.value as any).retrograde).map(p=>(p.value as any).key).sort();
+    expect(retro).toEqual([...RETRO_NULL_DIGNITY.expect.ref.exactRetrograde!].sort());
+  });
+
+  test('independent ephemeris cross-check: Sun longitude within 0.5 deg of astronomical formula', async () => {
+    // Independent computation: low-precision solar ecliptic longitude (Standish) for the
+    // birth Julian date, compared against Swiss Ephemeris output. Tolerance locked at 0.5 deg.
+    const c = await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const sun:any = c.positions.find(p=>p.id==='natal.sun.position')!.value;
+    const swiss = sun.longitude; // 0..360
+    const jd = julianDate(KNOWN_TIME_ORDINARY.birth.date, KNOWN_TIME_ORDINARY.birth.time ?? '12:00');
+    const indep = solarLongitudeLowPrecision(jd); // 0..360
+    let diff = Math.abs(normDeg(swiss) - normDeg(indep));
+    diff = Math.min(diff, 360 - diff);
+    expect(diff).toBeLessThanOrEqual(0.5);
+  });
+});
+
+// --- Independent astronomical helpers (NOT Swiss Ephemeris) for cross-check only ---
+function julianDate(date: string, time: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  const frac = (hh + mm / 60) / 24;
+  let a = Math.floor((14 - m) / 12);
+  let yyy = y + 4800 - a;
+  let mmm = m + 12 * a - 3;
+  const jdn = d + Math.floor((153 * mmm + 2) / 5) + 365 * yyy + Math.floor(yyy / 4) - Math.floor(yyy / 100) + Math.floor(yyy / 400) - 32045;
+  return jdn + frac - 0.5;
+}
+function normDeg(x: number): number { return ((x % 360) + 360) % 360; }
+function solarLongitudeLowPrecision(jd: number): number {
+  // Standish low-precision Sun ecliptic longitude (degrees) for JD.
+  const n = jd - 2451545.0;
+  const L = 280.460 + 0.9856474 * n; // mean longitude
+  const g = (357.528 + 0.9856003 * n) * Math.PI / 180; // mean anomaly
+  let lambda = L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g); // ecliptic longitude
+  return ((lambda % 360) + 360) % 360;
+}
+
 });

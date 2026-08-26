@@ -67,6 +67,54 @@ function isAspectEvidence(v: any): string | null {
   return null;
 }
 
+
+// F4-5: validate that a non-null aspectId resolves to a real aspect fact whose
+// endpoints and type match the evidence object.
+function validateAspectId(v2: VerifiedFactsV2, ev: any, expectedPair: string): string | null {
+  if (ev.aspectId === null || ev.aspectId === undefined) return null; // absence allowed
+  const fact = factById(v2, ev.aspectId);
+  if (!fact || fact.kind !== 'aspect') return `aspectId ${ev.aspectId} does not resolve to an aspect fact`;
+  const av: any = fact.value;
+  const pair = `${av.bodyA}-${av.bodyB}`;
+  const rev = `${av.bodyB}-${av.bodyA}`;
+  if (pair !== expectedPair && rev !== expectedPair) return `aspectId endpoints ${pair} != expected ${expectedPair}`;
+  if (av.aspectType !== ev.aspectType) return `aspectId type ${av.aspectType} != evidence ${ev.aspectType}`;
+  return null;
+}
+
+// F4-5: validate exact named pair for a relationship aspect field.
+function validateNamedAspect(v2: VerifiedFactsV2, ev: any, expectedPair: string): string | null {
+  const base = isAspectEvidence(ev);
+  if (base) return base;
+  if (ev.pair !== expectedPair) return `pair ${ev.pair} != expected ${expectedPair}`;
+  const aid = validateAspectId(v2, ev, expectedPair);
+  if (aid) return aid;
+  return null;
+}
+
+// F4-6: validate a semantic evidence-ID array: every member must resolve to a real
+// fact of the expected kind with matching endpoints/type (for aspects).
+function validateIdArray(
+  v2: VerifiedFactsV2, arr: any, kind: string, expectType?: string, expectBodies?: string[],
+): string | null {
+  if (!Array.isArray(arr)) return 'not an array';
+  const resolvableKind = kind === 'aspect' ? 'aspect' : 'position';
+  for (const id of arr) {
+    if (typeof id !== 'string' || !id) return `invalid id entry: ${id}`;
+    const fact = factById(v2, id);
+    if (!fact) return `dangling id: ${id}`;
+    if (fact.kind !== resolvableKind) return `id ${id} is ${fact.kind}, expected ${resolvableKind}`;
+    if (kind === 'aspect') {
+      const av: any = fact.value;
+      if (expectType && av.aspectType !== expectType) return `id ${id} type ${av.aspectType} != ${expectType}`;
+      if (expectBodies && !(expectBodies.includes(av.bodyA) && expectBodies.includes(av.bodyB))) {
+        return `id ${id} bodies ${av.bodyA}/${av.bodyB} not in ${expectBodies?.join(',')}`;
+      }
+    }
+  }
+  return null;
+}
+
 interface FieldCheck { path: string; check: (v2: VerifiedFactsV2) => string | null; }
 
 // ---- common position facts (must be valid PositionValue shapes) ----
@@ -94,8 +142,8 @@ function relationshipEvidenceCheck(v2: VerifiedFactsV2): string | null {
   if (!ev || typeof ev !== 'object') return 'relationshipEvidence absent';
   if (!ev.seventhHouseRuler || typeof ev.seventhHouseRuler.ruler !== 'string') return 'missing 7th-house ruler';
   if (!ev.seventhHouseOccupants || !Array.isArray(ev.seventhHouseOccupants.occupants)) return 'missing 7th-house occupants';
-  for (const k of ['venusMars', 'mercuryVenus', 'moonVenus', 'venusSaturn'] as const) {
-    const e = isAspectEvidence(ev.aspects?.[k]); if (e) return `aspect ${k}: ${e}`;
+  for (const [k, pair] of [['venusMars','venus-mars'],['mercuryVenus','mercury-venus'],['moonVenus','moon-venus'],['venusSaturn','venus-saturn']] as const) {
+    const e = validateNamedAspect(v2, ev.aspects?.[k], pair as string); if (e) return `aspect ${k}: ${e}`;
   }
   if (typeof ev.junoCondition !== 'string') return 'missing juno condition';
   if (!Array.isArray(ev.scoreDrivers) || ev.scoreDrivers.length === 0) return 'missing score drivers';
@@ -115,7 +163,7 @@ function loveBlueprintEvidenceCheck(v2: VerifiedFactsV2): string | null {
   for (const k of ['moonVenus', 'venusMars', 'junoSaturn'] as const) {
     const e = isAspectEvidence(ev.aspects?.[k]); if (e) return `aspect ${k}: ${e}`;
   }
-  if (!Array.isArray(ev.chironAspects)) return 'missing chiron aspects';
+  { const e = validateIdArray(v2, ev.chironAspects, 'aspect'); if (e) return `chironAspects: ${e}`; }
   if (typeof ev.northNodeSign !== 'string') return 'missing north node sign';
   return null;
 }
@@ -128,7 +176,7 @@ function vocationEvidenceCheck(v2: VerifiedFactsV2): string | null {
   for (const k of ['saturnAspect', 'jupiterAspect', 'plutoAspect'] as const) {
     const e = isAspectEvidence(ev[k]); if (e) return `aspect ${k}: ${e}`;
   }
-  if (!Array.isArray(ev.wealthIndicators) || ev.wealthIndicators.length === 0) return 'missing wealth indicators';
+  { const e = validateIdArray(v2, ev.wealthIndicators, 'position'); if (e) return `wealthIndicators: ${e}`; }
   // T3-7: Vocation fails closed until exact 24-month career windows exist
   if (typeof ev.careerWindowsDeclared !== 'boolean') return 'missing careerWindowsDeclared';
   if (ev.careerWindowsDeclared !== true) return 'career windows not yet implemented';
@@ -138,12 +186,13 @@ function karmicEvidenceCheck(v2: VerifiedFactsV2): string | null {
   const ev = reportField(v2, 'karmicEvidence');
   if (!ev || typeof ev !== 'object') return 'karmicEvidence absent';
   if (!ev.northNodeRuler || !ev.southNodeRuler) return 'missing nodal rulers';
-  if (!Array.isArray(ev.nodalAspects)) return 'missing nodal aspects';
+  { const e = validateIdArray(v2, ev.nodalAspects, 'aspect'); if (e) return `nodalAspects: ${e}`; }
+  { const e = validateIdArray(v2, ev.nodalSquares, 'aspect', 'square'); if (e) return `nodalSquares: ${e}`; }
   for (const k of ['saturnEvidence', 'plutoEvidence'] as const) {
-    const e = isAspectEvidence(ev[k]); if (e) return `aspect ${k}: ${e}`;
+    const e = validateNamedAspect(v2, ev[k], k === 'saturnEvidence' ? 'saturn-sun' : 'pluto-sun'); if (e) return `aspect ${k}: ${e}`;
   }
-  if (!Array.isArray(ev.chironAspects)) return 'missing chiron aspects';
-  if (typeof ev.chironDeclared !== 'boolean') return 'missing chironDeclared';
+  { const e = validateIdArray(v2, ev.chironAspects, 'aspect'); if (e) return `chironAspects: ${e}`; }
+  if (!ev.chironEvidence || typeof ev.chironEvidence.present !== 'boolean') return 'missing chironEvidence';
   return null;
 }
 
@@ -252,5 +301,23 @@ export function validateFactResolution(v2: VerifiedFactsV2): { ok: boolean; dang
     }
   };
   scanDrivers(v2.reportData, 'reportData');
+  // F4-6: also validate the explicit semantic evidence-ID arrays field-by-field.
+  const v: any = v2.reportData;
+  const idArrays: [string, string[] | undefined, string][] = [
+    ['vocationEvidence.wealthIndicators', (v.vocationEvidence as any)?.wealthIndicators, 'position'],
+    ['karmicEvidence.nodalAspects', (v.karmicEvidence as any)?.nodalAspects, 'aspect'],
+    ['karmicEvidence.nodalSquares', (v.karmicEvidence as any)?.nodalSquares, 'aspect'],
+    ['karmicEvidence.chironAspects', (v.karmicEvidence as any)?.chironAspects, 'aspect'],
+    ['loveBlueprintEvidence.chironAspects', (v.loveBlueprintEvidence as any)?.chironAspects, 'aspect'],
+  ];
+  for (const [label, arr, kind] of idArrays) {
+    if (!arr) continue;
+    for (const id of arr) {
+      if (typeof id !== 'string' || !id) { dangling.push(`${id} (${label})`); continue; }
+      const fact = v2.facts[id];
+      if (!fact) { dangling.push(`${id} (${label})`); continue; }
+      if (fact.kind !== kind) { dangling.push(`${id} (${label}: kind ${fact.kind} != ${kind})`); }
+    }
+  }
   return { ok: dangling.length === 0, dangling };
 }

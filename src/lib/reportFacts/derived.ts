@@ -13,7 +13,7 @@ import { computeChart, normDeg, houseForLongitude, type ChartData, type PlanetPl
 import { signFromLongitude, dignityFor, getSign, getPlanet, SIGNS } from '@/lib/astrology';
 import { ASPECT_DEFS, angularDistance } from '@/lib/transit';
 import type {
-  CommonDerived, NodeValue, PositionValue, AspectFact, PatternFact, VerifiedFact,
+  CommonDerived, NodeValue, PositionValue, AspectFact, PatternFact, PatternValue, VerifiedFact,
   Dignity, FactSource, HouseCusp, RulerFact, HouseOccupants,
 } from './types';
 
@@ -57,11 +57,11 @@ function isLuminary(key: string): boolean {
   return key === 'sun' || key === 'moon';
 }
 
-// Determine the orb for an aspect based on body types
+// F4-10: luminary 10° when EITHER endpoint is a luminary (Sun or Moon)
 function getOrbForBodies(def: typeof ASPECT_ORBS[0], bodyA: string, bodyB: string): number {
   if (def.minor) return 2; // All minor aspects use 2° orb
-  // Major aspects: 10° if both are luminaries, 8° otherwise
-  if (isLuminary(bodyA) && isLuminary(bodyB)) return 10;
+  // Major aspects: 10° if either endpoint is a luminary, 8° otherwise
+  if (isLuminary(bodyA) || isLuminary(bodyB)) return 10;
   return 8;
 }
 
@@ -92,26 +92,25 @@ function rulerKeyForSign(signKey: string): string {
 
 // Build a RulerFact for a house (by its cusp sign). Provenance = the ruler planet
 // position fact + the cusp reference (surfaced as a cusp fact).
+// F4-2: houseRuler derives all placement fields from the ruler planet's actual natal
+// position fact, not the cusp sign. Fail closed if the ruler position is absent.
 function houseRuler(cusp: HouseCusp, houseNum: number, cuspId: string, chart: ChartData): RulerFact {
   const rk = rulerKeyForSign(cusp.sign);
   const info = getPlanet(rk) || { label: rk };
-  // T3-4: Look up the ruler planet's actual natal position, not the cusp sign
   const rulerPlanet = chart.planets.find(p => p.key === rk);
-  if (!rulerPlanet) {
-    // Fallback if ruler not found (shouldn't happen with valid chart)
-    const cond = dignityFor(rk, cusp.sign);
-    const condition = cond ? DIGNITY_LABEL[cond] : `in ${getSign(cusp.sign as any)?.label}`;
-    return {
-      house: houseNum, ruler: rk, rulerLabel: info.label, sign: cusp.sign,
-      condition, provenance: [cuspId, `natal.${rk}.position`],
-    };
-  }
-  const rulerSign = rulerPlanet.sign;
-  const cond = dignityFor(rk, rulerSign);
-  const condition = cond ? DIGNITY_LABEL[cond] : `in ${getSign(rulerSign as any)?.label}`;
+  if (!rulerPlanet) throw new Error(`ruler planet ${rk} position not found for house ${houseNum}`);
+  const { sign, degreeInSign } = signFromLongitude(rulerPlanet.longitude);
+  const cond = dignityFor(rk, sign.key) as Dignity;
+  const condition = cond ? DIGNITY_LABEL[cond] : `in ${sign.label}`;
   return {
-    house: houseNum, ruler: rk, rulerLabel: info.label, sign: rulerSign,
-    condition, provenance: [cuspId, `natal.${rk}.position`],
+    house: houseNum, ruler: rk, rulerLabel: info.label,
+    sign: sign.key,
+    degreeInSign: round2(degreeInSign),
+    house_of_ruler: rulerPlanet.house ?? null,
+    retrograde: rulerPlanet.retrograde,
+    dignity: cond,
+    condition,
+    provenance: [cuspId, `natal.${rk}.position`],
   };
 }
 
@@ -187,16 +186,23 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     midheaven = toNodeValue(midheavenFact);
     icumcoeli = toNodeValue(icumcoeliFact);
 
-    // T3-5: Part of Fortune uses day/night formula based on Sun's house
+    // F4-3/F4-4: compute Part of Fortune exactly ONCE. Reuse identical full-precision
+    // point for the fact, its house, and the aspect grid. Emit sect/formula metadata.
     // Day (Sun in houses 7-12): ASC + Moon - Sun
     // Night (Sun in houses 1-6): ASC + Sun - Moon
     const sunHouse = chart.sun.house;
     const isDay = sunHouse !== null && sunHouse >= 7 && sunHouse <= 12;
+    const sect: 'day' | 'night' = isDay ? 'day' : 'night';
+    const formula = isDay ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
     const pofLong = isDay
       ? normDeg(ascLong + moonLong - sunLong)
       : normDeg(ascLong + sunLong - moonLong);
     const pofHouse = houseForLongitude(pofLong, chart.cusps);
-    partOfFortune = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, pofHouse, false, 'derived-deterministic', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position']);
+    const pofFact = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, pofHouse, false, 'derived-deterministic', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position']);
+    // Inject sect/formula metadata into the POF value (F4-4)
+    (pofFact.value as any).sect = sect;
+    (pofFact.value as any).formula = formula;
+    partOfFortune = pofFact;
     positions.push(partOfFortune);
     byKey['natal.partoffortune.position'] = partOfFortune;
 
@@ -241,12 +247,37 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
         .map((p) => ({ body: p.key, label: p.label, positionId: `natal.${p.key}.position` })),
     }));
 
-    // Nodal rulers: sign rulers of north/south node signs.
+    // F4-1: nodal rulers resolved from the ACTUAL ruler planet position (not node sign).
     const nRk = rulerKeyForSign(northNode.sign);
     const sRk = rulerKeyForSign(southNode.sign);
+    const nRulerPlanet = chart.planets.find(p => p.key === nRk);
+    const sRulerPlanet = chart.planets.find(p => p.key === sRk);
+    if (!nRulerPlanet || !sRulerPlanet) throw new Error('nodal ruler planet position not found');
+    const nRulerSign = signFromLongitude(nRulerPlanet.longitude);
+    const sRulerSign = signFromLongitude(sRulerPlanet.longitude);
+    const nCond = dignityFor(nRk, nRulerSign.sign.key) as Dignity;
+    const sCond = dignityFor(sRk, sRulerSign.sign.key) as Dignity;
     nodalRulers = {
-      north: { house: 0, ruler: nRk, rulerLabel: getPlanet(nRk)!.label, sign: northNode.sign, condition: dignityFor(nRk, northNode.sign) ? DIGNITY_LABEL[dignityFor(nRk, northNode.sign)!] : 'node ruler', provenance: ['natal.northnode.position'] },
-      south: { house: 0, ruler: sRk, rulerLabel: getPlanet(sRk)!.label, sign: southNode.sign, condition: dignityFor(sRk, southNode.sign) ? DIGNITY_LABEL[dignityFor(sRk, southNode.sign)!] : 'node ruler', provenance: ['natal.southnode.position'] },
+      north: {
+        house: 0, ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
+        sign: nRulerSign.sign.key,
+        degreeInSign: round2(nRulerSign.degreeInSign),
+        house_of_ruler: nRulerPlanet.house ?? null,
+        retrograde: nRulerPlanet.retrograde,
+        dignity: nCond,
+        condition: nCond ? DIGNITY_LABEL[nCond] : `in ${nRulerSign.sign.label}`,
+        provenance: ['natal.northnode.position', `natal.${nRk}.position`],
+      },
+      south: {
+        house: 0, ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
+        sign: sRulerSign.sign.key,
+        degreeInSign: round2(sRulerSign.degreeInSign),
+        house_of_ruler: sRulerPlanet.house ?? null,
+        retrograde: sRulerPlanet.retrograde,
+        dignity: sCond,
+        condition: sCond ? DIGNITY_LABEL[sCond] : `in ${sRulerSign.sign.label}`,
+        provenance: ['natal.southnode.position', `natal.${sRk}.position`],
+      },
     };
   }
 
@@ -271,14 +302,14 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     // the aspect computation (R2-B13) so MC/nodal/POF aspects can actually exist
     // for vocation (MC aspects) and karmic (South-Node aspects) evidence.
     const southLong = normDeg(northNode.longitude + 180);
-    const pofLong = normDeg(chart.ascendant.longitude + chart.moon.longitude - chart.sun.longitude);
+    // F4-3: reuse the IDENTICAL full-precision pofLong computed above (no recompute)
     const extra: BodyLong[] = [
       { id: 'natal.ascendant.position', key: 'ascendant', label: 'Ascendant', longitude: chart.ascendant.longitude, full: chart.planets[0] },
       { id: 'natal.descendant.position', key: 'descendant', label: 'Descendant', longitude: normDeg(chart.ascendant.longitude + 180), full: chart.planets[0] },
       { id: 'natal.midheaven.position', key: 'midheaven', label: 'Midheaven', longitude: chart.midheaven.longitude, full: chart.planets[0] },
       { id: 'natal.icumcoeli.position', key: 'icumcoeli', label: 'Imum Coeli', longitude: normDeg(chart.midheaven.longitude + 180), full: chart.planets[0] },
       { id: 'natal.southnode.position', key: 'southnode', label: 'South Node', longitude: southLong, full: chart.planets[0] },
-      { id: 'natal.partoffortune.position', key: 'partoffortune', label: 'Part of Fortune', longitude: pofLong, full: chart.planets[0] },
+      { id: 'natal.partoffortune.position', key: 'partoffortune', label: 'Part of Fortune', longitude: (partOfFortune!.value as any).longitude, full: chart.planets[0] },
     ];
     aspectBodies.push(...extra);
   }
@@ -368,6 +399,9 @@ function moonPhaseLabel(phase: number): string {
   return 'Waning Crescent';
 }
 
+// F4-11: named epsilon for exact-aspect determination
+export const EXACT_ASPECT_EPSILON = 0.1; // degrees; full-precision error threshold
+
 // Aspects from FULL-precision longitudes, locked major + minor set (T3-3).
 // Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
 // Output sorted by ascending orb.
@@ -382,12 +416,14 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
         const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
         const orbLimit = getOrbForBodies(def, a.key, b.key);
         if (error <= orbLimit) {
+          // F4-11: compute exactness from FULL-precision error before display rounding
+          const exact = error < EXACT_ASPECT_EPSILON;
           const orb = round2(error);
           const id = `natal.aspect.${a.key}-${b.key}-${def.type}`;
           out.push({
             id, kind: 'aspect', source: 'derived-deterministic',
             display: `${a.label} ${def.type} ${b.label} (orb ${orb}°)`,
-            value: { bodyA: a.key, bodyB: b.key, aspectType: def.type, orb, tight: orb < 1, exact: orb < 0.1, bodyALabel: a.label, bodyBLabel: b.label, weight: aspectWeight(def.type, orb), minor: def.minor },
+            value: { bodyA: a.key, bodyB: b.key, aspectType: def.type, orb, tight: orb < 1, exact, bodyALabel: a.label, bodyBLabel: b.label, weight: aspectWeight(def.type, orb), minor: def.minor },
             provenance: [a.id, b.id],
           });
         }
@@ -448,15 +484,20 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
   // --- T-square: 2 opposite + a third square to BOTH ---
   // --- Yod: 2 sextile + a third quincunx (150°) to BOTH ---
   const keys = planets.map((p) => p.key);
-  const pushPattern = (name: 'GrandTrine' | 'TSquare' | 'Yod', trio: string[], orbs: number[]) => {
+  // F4-12: canonicalize participant keys (sorted) for stable ID across all permutations,
+  // while preserving semantic roles (base/apex) in the structured value.
+  const pushPattern = (name: 'GrandTrine' | 'TSquare' | 'Yod', trio: string[], orbs: number[], roles?: { base: string[]; apex: string }) => {
     const labels = trio.map(labelOf);
     const ids = trio.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
     const tightness = round2(Math.max(...orbs));
+    const canonical = [...trio].sort().join('-');
+    const value: PatternValue = { name, participants: labels, tightness, tightnessSemantics: 'max-orb' };
+    if (roles) (value as any).roles = roles;
     out.push({
-      id: `natal.pattern.${name.toLowerCase()}-${trio.join('-')}`,
+      id: `natal.pattern.${name.toLowerCase()}-${canonical}`,
       kind: 'pattern', source: 'derived-deterministic',
       display: `${name}: ${labels.join(', ')} (max orb ${tightness}°)`,
-      value: { name, participants: labels, tightness, tightnessSemantics: 'max-orb' }, provenance: ids,
+      value, provenance: ids,
     });
   };
   for (let i = 0; i < keys.length; i++) {
@@ -476,7 +517,7 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
           const sq1 = aspectBetween(trio[apex], trio[a], 'square');
           const sq2 = aspectBetween(trio[apex], trio[b], 'square');
           if (op && sq1 && sq2) {
-            pushPattern('TSquare', trio, [op.value.orb, sq1.value.orb, sq2.value.orb]);
+            pushPattern('TSquare', trio, [op.value.orb, sq1.value.orb, sq2.value.orb], { base: [trio[a], trio[b]], apex: trio[apex] });
             break;
           }
         }
@@ -487,7 +528,7 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
           const q1 = aspectBetween(trio[apex], trio[a], 'quincunx') || aspectBetween(trio[apex], trio[a], 'inconjunct');
           const q2 = aspectBetween(trio[apex], trio[b], 'quincunx') || aspectBetween(trio[apex], trio[b], 'inconjunct');
           if (sext && q1 && q2) {
-            pushPattern('Yod', trio, [sext.value.orb, q1.value.orb, q2.value.orb]);
+            pushPattern('Yod', trio, [sext.value.orb, q1.value.orb, q2.value.orb], { base: [trio[a], trio[b]], apex: trio[apex] });
             break;
           }
         }
