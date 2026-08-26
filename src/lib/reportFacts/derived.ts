@@ -260,7 +260,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     const sCond = dignityFor(sRk, sRulerSign.sign.key) as Dignity;
     nodalRulers = {
       north: {
-        house: 'nodal', ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
+        house: 0, ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
         sign: nRulerSign.sign.key,
         degreeInSign: round2(nRulerSign.degreeInSign),
         house_of_ruler: nRulerPlanet.house ?? null,
@@ -270,7 +270,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
         provenance: ['natal.northnode.position', `natal.${nRk}.position`],
       },
       south: {
-        house: 'nodal', ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
+        house: 0, ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
         sign: sRulerSign.sign.key,
         degreeInSign: round2(sRulerSign.degreeInSign),
         house_of_ruler: sRulerPlanet.house ?? null,
@@ -555,6 +555,10 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
       }
     }
   }
+  // F9-10: canonicalize the final pattern array order (by id) so raw serialized output is
+  // stable across all chart-input permutations, including multiple Stelliums. Tests compare
+  // the complete raw arrays without reviewer-side sorting.
+  out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return out;
 }
 

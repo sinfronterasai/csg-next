@@ -82,7 +82,7 @@ export interface HouseCusp {
 }
 
 export interface RulerFact {
-  house: number | 'nodal'; // house number; 'nodal' is the locked sentinel for node rulers
+  house: number; // house number (0 for nodal rulers)
   ruler: string; // planet key, e.g. 'venus'
   rulerLabel: string;
   sign: string; // actual ruler planet's natal sign

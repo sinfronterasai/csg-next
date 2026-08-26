@@ -40,8 +40,13 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
     const a=[...ps,...rest];
     const b=[...ps.slice(3),...ps.slice(0,3),...rest];
     const ids=new Set(ps.map((p:any)=>`natal.${p.key}.position`));
-    const pick=(arr:any[])=>buildPatterns({...base,planets:arr},[],ids).filter((p:any)=>p.value.name==='Stellium').sort((x:any,y:any)=>x.display.localeCompare(y.display));
-    expect(pick(b)).toEqual(pick(a));
+    // F9-10: compare the COMPLETE RAW serialized arrays without reviewer-side sorting.
+    // buildPatterns canonicalizes final order by id, so permutation invariance holds raw.
+    const pick=(arr:any[])=>buildPatterns({...base,planets:arr},[],ids).filter((p:any)=>p.value.name==='Stellium');
+    const ra=pick(a), rb=pick(b);
+    expect(rb).toEqual(ra);
+    for (const s of [...ra, ...rb]) {
+    }
   });
 
   test('Vocation reports semantic corruption and career-window blocker together',async()=>{
@@ -95,12 +100,46 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
     expect(preflightReport('vocation',v).status).toBe('input_incomplete'); // still fails closed (career windows)
   });
 
-  test('node rulers use the locked nodal sentinel house; wrong house fails',async()=>{
+  test('node rulers use the locked numeric 0 sentinel house; wrong house fails',async()=>{
     const v:any=clone(await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth));
     const r=v.reportData.karmicEvidence.northNodeRuler;
-    expect(r.house).toBe('nodal');
+    expect(r.house).toBe(0); // F9-9: numeric 0 for nodal rulers
     r.house=5;
     expect(preflightReport('karmicshadow',v).status).toBe('input_incomplete');
     expect(miss('karmicshadow',v)).toMatch(/house/);
+  });
+
+  test('missing South Node context returns incomplete instead of throwing',async()=>{
+    const v:any=clone(await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth));
+    delete v.facts['natal.southnode.position'];
+    expect(() => preflightReport('karmicshadow', v)).not.toThrow();
+    expect(preflightReport('karmicshadow', v).status).toBe('input_incomplete');
+  });
+
+  test('missing Vocation mcRuler returns incomplete instead of throwing',async()=>{
+    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    delete v.reportData.vocationEvidence.mcRuler;
+    expect(() => preflightReport('vocation', v)).not.toThrow();
+    const r = preflightReport('vocation', v);
+    expect(r.status).toBe('input_incomplete');
+    expect(r.missing.join(' | ')).toMatch(/mcRuler/);
+  });
+
+  test('missing Vocation secondRuler returns incomplete instead of throwing',async()=>{
+    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    delete v.reportData.vocationEvidence.secondRuler;
+    expect(() => preflightReport('vocation', v)).not.toThrow();
+    const r = preflightReport('vocation', v);
+    expect(r.status).toBe('input_incomplete');
+    expect(r.missing.join(' | ')).toMatch(/secondRuler/);
+  });
+
+  test('missing Vocation sixthRuler returns incomplete instead of throwing',async()=>{
+    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    delete v.reportData.vocationEvidence.sixthRuler;
+    expect(() => preflightReport('vocation', v)).not.toThrow();
+    const r = preflightReport('vocation', v);
+    expect(r.status).toBe('input_incomplete');
+    expect(r.missing.join(' | ')).toMatch(/sixthRuler/);
   });
 });

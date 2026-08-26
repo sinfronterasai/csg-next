@@ -103,8 +103,7 @@ describe('fourth independent review adversarial cases',()=>{
     for(const r of [c.rulers!.dsc!,c.rulers!.second!,c.rulers!.sixth!,c.rulers!.tenth!,c.nodalRulers!.north,c.nodalRulers!.south]){
       const x:any=r;
       expect(typeof x.degreeInSign).toBe('number');
-      // Node rulers use the locked 'nodal' sentinel; house rulers use a number.
-      expect(typeof x.house === 'number' || x.house === 'nodal').toBe(true);
+      expect(typeof x.house).toBe('number');
       expect(typeof x.retrograde).toBe('boolean');
       expect(Object.prototype.hasOwnProperty.call(x,'dignity')).toBe(true);
       expect(x.provenance).toContain(`natal.${x.ruler}.position`);

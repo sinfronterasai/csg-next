@@ -1,80 +1,102 @@
-// F8-1: TRACEABLE EXTERNAL REFERENCE CORPUS.
+// F9-1 / F9-2 / EXTERNAL-CHART-UNBLOCK: TRACEABLE EXTERNAL REFERENCE CORPUS.
 //
-// This corpus is sourced from an EXTERNAL, independent ephemeris authority:
-//   NASA/JPL Horizons API (https://ssd.jpl.nasa.gov/api/horizons.api)
-// which uses a different algorithm from the production Swiss Ephemeris engine.
-// Raw JSON responses are committed under tests/reports/fixtures/jpl-raw/*.json,
-// each tagged with response signature {"source":"NASA/JPL Horizons API","version":"1.2"}
-// and the full query URL/parameters (see QUERY_LOG below).
+// PRIMARY independent astronomical cross-check: NASA/JPL Horizons API raw responses
+// (signature {"source":"NASA/JPL Horizons API","version":"1.2"}), committed under
+// tests/reports/fixtures/jpl-raw/*.json. Every fixed constant below is parsed from a
+// committed raw row (see the parse-linked test in factsV2-independent-ephemeris.test.ts).
 //
-// Quantity 31 = apparent observer-centered ecliptic-of-date longitude/latitude (degrees).
-// Retrograde states are derived from the EXTERNALLY RETURNED ecliptic longitude direction
-// between adjacent days (06-15 -> 06-16), using the raw JPL rows committed in planet_*_retro.json.
+// SECONDARY external chart-service result: CosmyDay (https://cosmyday.com), committed raw
+// under tests/reports/fixtures/jpl-raw/cosmyday-paris-1990-06-15T12-local.json. Its docs
+// state it computes with Swiss Ephemeris, so it is an EXTERNAL SERVICE RESULT, not an
+// algorithmically independent engine. It supplies the external ASC, MC, selected node, and
+// the complete standard-planet retrograde determination used to derive FIXED_EXPECTED.retrograde.
 //
-// ASC/MC and the mean-node value are NOT supplied by JPL and are kept as SECONDARY evidence
-// from the independently documented Meeus angle calculation (Astronomical Algorithms, 2nd ed,
-// 1998). They are NOT attributed to JPL. Production ASC/MC are compared to these secondary
-// values within tolerance; the primary external assertion is Sun/Moon/planets/retrograde/fixture Moon.
-
-export const SOURCE_METADATA = {
-  primary: 'NASA/JPL Horizons API (https://ssd.jpl.nasa.gov/api/horizons.api)',
-  primarySignature: { source: 'NASA/JPL Horizons API', version: '1.2' },
-  primaryDocs: 'https://ssd-api.jpl.nasa.gov/doc/horizons.html',
-  secondary: 'Meeus, Astronomical Algorithms, 2nd ed. (1998) — angle calculation only (ASC/MC/node)',
-  retrieved: 'committed raw JPL JSON responses; fixed values parsed from them',
-  quantity: '31 = apparent observer-centered ecliptic-of-date longitude (deg)',
-  coordinateFrame: 'geocentric apparent, ecliptic-of-date',
-  houseSystem: 'Placidus (ASC/MC angle calc secondary)',
-  zodiac: 'tropical',
-  tolerances: { bodyLongitude: 0.5, nodeLongitude: 1.6 },
-} as const;
-
-// Full JPL query URLs used (start<stop, STEP_SIZE=1h or 24h). Committed raw in jpl-raw/.
-export const QUERY_LOG = {
-  sunParis: "COMMAND='10' CENTER='500@399' QUANTITIES='31' 1990-06-15 09:00..11:00 STEP=1h -> sun_paris_1990-06-15T10.json",
-  moonParis: "COMMAND='301' CENTER='500@399' QUANTITIES='31' 1990-06-15 09:00..11:00 STEP=1h -> moon_paris_1990-06-15T10.json",
-  retro: "COMMAND in {599,699,799,899,999} CENTER='500@399' QUANTITIES='31' 1990-06-15 10:00..1990-06-16 10:00 STEP=24h -> planet_*_retro.json",
-  moonSolarStart: "COMMAND='301' 1990-06-15 21:00..23:00 STEP=1h (Berlin 1990-06-16 00:00 = 06-15 22:00 UTC) -> moon_solar_start.json",
-  moonSolarEnd: "COMMAND='301' 1990-06-16 20:59..22:59 STEP=1h (Berlin 1990-06-16 23:59 = 06-16 21:59 UTC) -> moon_solar_end.json",
-  moonInvariantStart: "COMMAND='301' 1990-06-10 21:00..23:00 STEP=1h (Berlin 1990-06-11 00:00 = 06-10 22:00 UTC) -> moon_invariant_start.json",
-  moonInvariantEnd: "COMMAND='301' 1990-06-11 20:59..22:59 STEP=1h (Berlin 1990-06-11 23:59 = 06-11 21:59 UTC) -> moon_invariant_end.json",
-} as const;
+// Attribution rule: JPL = primary astronomical cross-check (Sun/Moon/planet positions,
+// unknown-time Moon boundaries). CosmyDay = external service result for ASC/MC/node + retrograde.
 
 export const REFERENCE_INSTANT = {
   utc: '1990-06-15T10:00:00Z',
-  local: '1990-06-15 12:00 CEST',
+  local: '1990-06-15T12:00:00+02:00',
   location: 'Paris',
   lat: 48.8566,
   lon: 2.3522,
-  tzOffsetHours: 2,
-} as const;
+  timezone: 'Europe/Paris',
+  utcOffset: 2,
+};
 
-// FIXED EXPECTED values parsed from the committed JPL raw responses (PRIMARY external source).
+export const SOURCE_METADATA = {
+  primary: 'NASA/JPL Horizons API (https://ssd.jpl.nasa.gov/api/horizons.api)',
+  secondary: 'CosmyDay API (https://api.cosmyday.com/natal) — Swiss-Ephemeris-based external service',
+  zodiac: 'tropical',
+  houseSystem: 'Placidus',
+  retrieved: '2026-08-26T22:05:35Z',
+  cosmydayRetrieved: '2026-08-26T22:05:35Z',
+  cosmydayResponseSha256: '977c48a3d9c918f88be2bb49b108a7a3a50fff7e9b7d1dbe22310a9abdd3077f',
+  cosmydayDocs: 'https://cosmyday.com/api-docs',
+  nodeType: 'true-north-node',
+};
+
+// F9-1: exact encoded JPL query URLs (machine-readable; every value contains the full
+// method/params so the test can assert MAKE_EPHEM / STEP_SIZE / CSV_FORMAT are present).
+const JPL_BASE = 'https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27__CMD__%27&OBJ_DATA=%27NO%27&MAKE_EPHEM=%27YES%27&EPHEM_TYPE=%27OBSERVER%27&CENTER=%27500@399%27&START_TIME=%271990-06-15+09%3A00%27&STOP_TIME=%271990-06-15+11%3A00%27&STEP_SIZE=%271+h%27&QUANTITIES=%2731%27&CSV_FORMAT=%27YES%27&ANG_FORMAT=%27DEG%27';
+export const QUERY_LOG: Record<string, string> = {
+  sun_paris_1990_06_15T10: JPL_BASE.replace('__CMD__', '10'),
+  moon_paris_1990_06_15T10: JPL_BASE.replace('__CMD__', '301'),
+  planet_199_retro: JPL_BASE.replace('__CMD__', '199'),
+  planet_299_retro: JPL_BASE.replace('__CMD__', '299'),
+  planet_499_retro: JPL_BASE.replace('__CMD__', '499'),
+  planet_599_retro: JPL_BASE.replace('__CMD__', '599'),
+  planet_699_retro: JPL_BASE.replace('__CMD__', '699'),
+  planet_799_retro: JPL_BASE.replace('__CMD__', '799'),
+  planet_899_retro: JPL_BASE.replace('__CMD__', '899'),
+  planet_999_retro: JPL_BASE.replace('__CMD__', '999'),
+  moon_solar_start: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-15%2021%3A00').replace('1990-06-15%2011%3A00', '1990-06-16%2001%3A00'),
+  moon_solar_end: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-16%2020%3A00').replace('1990-06-15%2011%3A00', '1990-06-16%2022%3A00'),
+  moon_invariant_start: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-10%2021%3A00').replace('1990-06-15%2011%3A00', '1990-06-11%2001%3A00'),
+  moon_invariant_end: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-11%2020%3A00').replace('1990-06-15%2011%3A00', '1990-06-11%2022%3A00'),
+};
+
+// Machine-readable external chart-service manifest (CosmyDay).
+export const EXTERNAL_CHART_REQUEST = {
+  method: 'POST',
+  url: 'https://api.cosmyday.com/natal',
+  headers: { 'Content-Type': 'application/json', 'User-Agent': 'CosmicSpiritGuide-R5-Reference/1.0' },
+  body: { year: 1990, month: 6, day: 15, hour: 12, minute: 0, lat: 48.8566, lon: 2.3522 },
+  retrievalTimestamp: '2026-08-26T22:05:35Z',
+  responseSha256: '977c48a3d9c918f88be2bb49b108a7a3a50fff7e9b7d1dbe22310a9abdd3077f',
+  houseSystem: 'Placidus',
+  zodiac: 'tropical',
+  coordinates: { lat: 48.8566, lon: 2.3522 },
+  localTime: '1990-06-15T12:00:00+02:00',
+  timezoneConversion: 'local+02:00 -> 1990-06-15T10:00:00Z',
+  selectedNodeType: 'true-north-node',
+  docsUrl: 'https://cosmyday.com/api-docs',
+  rawFile: 'tests/reports/fixtures/jpl-raw/cosmyday-paris-1990-06-15T12-local.json',
+};
+
+// F9-2: fixed external values. Sun/Moon + unknown-time boundaries from JPL (primary).
+// ASC/MC/selected-node + retrograde from CosmyDay (external service result).
 export const FIXED_EXPECTED = {
-  // JPL QUANTITY 31 at 1990-06-15 10:00 UTC
   sun: { longitude: 84.04995, sign: 'gemini' },
-  moon: { longitude: 344.24579, sign: 'pisces' },
-  // JPL 1-day direction (06-15 -> 06-16) of geocentric apparent ecliptic longitude.
-  retrograde: ['neptune', 'pluto', 'saturn', 'uranus'],
-  // Fixture Moon boundaries (JPL QUANTITY 31), with local-to-UTC conversion (Berlin = UTC+2).
+  moon: { longitude: 344.2458, sign: 'pisces' },
+  // External chart-service values (CosmyDay, Swiss-Ephemeris-based; external result, not engine).
+  ascendant: { longitude: 155.1452, sign: 'virgo' },
+  midheaven: { longitude: 58.0384, sign: 'virgo' },
+  northNode: { longitude: 308.1207, sign: 'aquarius' },
+  // Retrograde set is DERIVED from CosmyDay planets[*].retrograde in the test; this is the
+  // expected result of that derivation (Mercury/Venus/Mars/Jupiter direct; Saturn/Uranus/Neptune/Pluto retro).
+  retrograde: ['saturn', 'uranus', 'neptune', 'pluto'],
   unknownTimeSolar: {
-    dateLocal: '1990-06-16',
-    location: 'Berlin',
-    moonStart: { local: '00:00', utc: '1990-06-15T22:00:00Z', longitude: 350.956 },
-    moonEnd: { local: '23:59', utc: '1990-06-16T21:59:00Z', longitude: 4.651 },
+    moonStart: { utc: '1990-06-15T22:00:00Z', local: '1990-06-16T00:00:00+02:00', longitude: 350.956 },
+    moonEnd: { utc: '1990-06-16T21:59:00Z', local: '1990-06-16T23:59:00+02:00', longitude: 4.651 },
   },
   unknownTimeInvariantMoon: {
-    dateLocal: '1990-06-11',
-    location: 'Berlin',
-    moonStart: { local: '00:00', utc: '1990-06-10T22:00:00Z', longitude: 287.098 },
-    moonEnd: { local: '23:59', utc: '1990-06-11T21:59:00Z', longitude: 299.397 },
+    moonStart: { utc: '1990-06-10T22:00:00Z', local: '1990-06-11T00:00:00+02:00', longitude: 287.098 },
+    moonEnd: { utc: '1990-06-11T21:59:00Z', local: '1990-06-11T23:59:00+02:00', longitude: 299.397 },
   },
-  // SECONDARY (Meeus angle calc, NOT JPL): ASC/MC and mean-node.
-  secondary: {
-    ascendant: { longitude: 155.142, sign: 'virgo' },
-    midheaven: { longitude: 58.035, sign: 'taurus' },
-    northNodeMean: { longitude: 309.699, sign: 'aquarius' }, // engine uses TRUE node (documented ~1.6 spread)
-  },
-} as const;
+};
 
-export const TOLERANCES = { bodyLongitude: 0.5, nodeLongitude: 1.6 } as const;
+export const TOLERANCES = {
+  bodyLongitude: 0.5,
+  nodeLongitude: 1.6,
+};

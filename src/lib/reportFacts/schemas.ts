@@ -194,10 +194,35 @@ function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
     if (c.kind !== m.kind) return `aspect ${id} kind ${m.kind} != ${c.kind}`;
     if (c.source !== m.source) return `aspect ${id} source ${m.source} != ${c.source}`;
     if (c.display !== m.display) return `aspect ${id} display ${m.display} != ${c.display}`;
-    if (JSON.stringify([...(m.provenance || [])].sort()) !== JSON.stringify([...(c.provenance || [])].sort())) {
-      return `aspect ${id} provenance mismatch`;
+    // F9-5: provenance order matters (exact serialized equality, not set equality).
+    if (JSON.stringify(m.provenance || []) !== JSON.stringify(c.provenance || [])) {
+      return `aspect ${id} provenance order/content mismatch`;
     }
     if (JSON.stringify(m.value) !== JSON.stringify(c.value)) return `aspect ${id} value mismatch`;
+    // F9-5: independently validate the CANONICAL aspect fact itself. Agreement between two
+    // corrupted copies must not establish authority; the canonical fact must be sound.
+    const canonErr = validateCanonicalAspectFact(v2, c);
+    if (canonErr) return `aspect ${id} canonical fact invalid: ${canonErr}`;
+  }
+  return null;
+}
+// F9-5: independently validate a canonical aspect fact: source, id, structured endpoints,
+// type, value semantics, and exact ordered endpoint provenance.
+function validateCanonicalAspectFact(v2: VerifiedFactsV2, fact: any): string | null {
+  if (!fact || fact.kind !== 'aspect') return 'not an aspect fact';
+  if (fact.source !== 'derived-deterministic') return `aspect ${fact.id} source ${fact.source} != derived-deterministic`;
+  const av: any = fact.value;
+  if (!av || typeof av.bodyA !== 'string' || typeof av.bodyB !== 'string') return `aspect ${fact.id} missing endpoints`;
+  if (av.bodyA === av.bodyB) return `aspect ${fact.id} degenerate endpoints`;
+  // exact ordered endpoint provenance: [natal.bodyA.position, natal.bodyB.position]
+  const expProv = [`natal.${av.bodyA}.position`, `natal.${av.bodyB}.position`];
+  if (JSON.stringify(fact.provenance) !== JSON.stringify(expProv)) {
+    return `aspect ${fact.id} provenance ${JSON.stringify(fact.provenance)} != ${JSON.stringify(expProv)}`;
+  }
+  // each endpoint must resolve to a real position fact
+  for (const b of [av.bodyA, av.bodyB]) {
+    const pf = factById(v2, `natal.${b}.position`);
+    if (!pf || pf.kind !== 'position') return `aspect ${fact.id} endpoint ${b} unresolved`;
   }
   return null;
 }
@@ -217,8 +242,10 @@ function validateCuspFact(v2: VerifiedFactsV2, cuspId: string): string | null {
   const expectedSign = signFromLongitude(v.cuspLongitude);
   if (v.sign !== expectedSign.sign.key) return `cusp ${cuspId} sign ${v.sign} != derived ${expectedSign.sign.key} from cuspLongitude ${v.cuspLongitude}`;
   if (v.signLabel !== expectedSign.sign.label) return `cusp ${cuspId} signLabel ${v.signLabel} != ${expectedSign.sign.label}`;
-  if (typeof f.source !== 'string' || !f.source) return `cusp ${cuspId} source missing`;
-  if (!Array.isArray(f.provenance)) return `cusp ${cuspId} provenance not an array`;
+  // F9-4: cusp wrapper source/provenance must be canonical exact semantics.
+  // Production emits swiss-ephemeris source with the locked empty-provenance convention.
+  if (f.source !== 'swiss-ephemeris') return `cusp ${cuspId} source ${f.source} != swiss-ephemeris`;
+  if (!Array.isArray(f.provenance) || f.provenance.length !== 0) return `cusp ${cuspId} provenance ${JSON.stringify(f.provenance)} != locked empty []`;
   return null;
 }
 // F8-8: common.houses must equal the complete flat cusp-fact set by full content.
@@ -250,7 +277,7 @@ function expectedRulerHouse(contextId: string): number | string {
   if (contextId === 'common.cusp.2') return 2;
   if (contextId === 'common.cusp.6') return 6;
   if (contextId === 'common.cusp.10') return 10;
-  if (contextId === 'natal.northnode.position' || contextId === 'natal.southnode.position') return 'nodal';
+  if (contextId === 'natal.northnode.position' || contextId === 'natal.southnode.position') return 0; // locked numeric sentinel for nodal rulers
   return -1;
 }
 
@@ -274,8 +301,9 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
     const cuspErr = validateCuspFact(v2, contextId);
     if (cuspErr) return `context ${contextId}: ${cuspErr}`;
   }
-  // Resolve the context sign from the (validated) cusp/node fact.
+  // F9-7: guard missing/invalid context BEFORE dereferencing ctx.kind. Never throw.
   const ctx: any = factById(v2, contextId);
+  if (!ctx || typeof ctx !== 'object') return `context ${contextId} missing or invalid`;
   // Cusp facts are kind 'point'; node facts are kind 'position'. Unwrap to the value.
   const ctxVal: any = (ctx.kind === 'position' || ctx.kind === 'point') ? ctx.value : ctx;
   const ctxSign = ctxVal.sign;
@@ -289,11 +317,8 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   // F8-10: validate the contextual house field independently of house_of_ruler.
   const expHouse = expectedRulerHouse(contextId);
   if (expHouse === -1) return `unknown ruler context ${contextId}`;
-  if (expHouse === 'nodal') {
-    if (v.house !== 'nodal') return `ruler house ${v.house} != nodal sentinel for ${contextId}`;
-  } else {
-    if (typeof v.house !== 'number' || v.house !== expHouse) return `ruler house ${v.house} != expected ${expHouse} for ${contextId}`;
-  }
+  // F9-9: exact contextual house. Node contexts require 0; house contexts require 7/2/6/10.
+  if (typeof v.house !== 'number' || v.house !== expHouse) return `ruler house ${v.house} != expected ${expHouse} for ${contextId}`;
   // Resolve the ruler planet position internally (canonical fact).
   const rulerPositionId = `natal.${expectedRuler}.position`;
   const rpos = factById(v2, rulerPositionId);
@@ -318,17 +343,25 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
 // v may be a VerifiedFact wrapper (kind:'position', value holds sect/formula) or a
 // bare position object. Unwrap before reading sect/formula; read provenance from the
 // outer wrapper when present.
-function isPartOfFortune(v2: VerifiedFactsV2, v: any): string | null {
+// F9-3: validate BOTH Part-of-Fortune wrappers across the complete wrapper contract.
+// Requires exact id, kind:'position', source:'derived-deterministic', display, value
+// (sect/formula + position shape), and exact ordered provenance. Rejects unexpected
+// wrapper metadata, not just the nested value.
+function isPartOfFortune(v2: VerifiedFactsV2, v: any, expectedId: string): string | null {
   if (!v || typeof v !== 'object') return 'absent';
-  const value = v.kind === 'position' ? v.value : v;
+  if (v.id !== expectedId) return `POF id ${v.id} != ${expectedId}`;
+  if (v.kind !== 'position') return `POF kind ${v.kind} != position`;
+  if (v.source !== 'derived-deterministic') return `POF source ${v.source} != derived-deterministic`;
+  if (typeof v.display !== 'string' || !v.display) return 'POF missing display';
+  if (!Array.isArray(v.provenance)) return 'POF provenance not array';
+  const value = v.value;
   const posErr = isPositionFact(v);
   if (posErr) return `position: ${posErr}`;
   if (value.sect !== 'day' && value.sect !== 'night') return `invalid sect: ${value.sect}`;
   const expectedFormula = value.sect === 'day' ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
   if (value.formula !== expectedFormula) return `formula ${value.formula} != ${expectedFormula}`;
-  const prov = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'].sort();
-  const got = [...(v.provenance || value.provenance || [])].sort();
-  if (JSON.stringify(got) !== JSON.stringify(prov)) return `POF provenance ${got} != ASC/Sun/Moon`;
+  const prov = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'];
+  if (JSON.stringify(v.provenance) !== JSON.stringify(prov)) return `POF provenance ${JSON.stringify(v.provenance)} != ASC/Sun/Moon (ordered)`;
   return null;
 }
 
@@ -348,7 +381,7 @@ const COMMON_POINT_FIELDS: FieldCheck[] = [
 // against the canonical fact value across every contract field, including key, label,
 // sign/signLabel, longitude, degree, house, retrograde, dignity, uncertainty metadata.
 // POF sect/formula/value identity is checked for the Part-of-Fortune alias.
-function positionsEqual(alias: any, factValue: any, isPof: boolean): string | null {
+function positionsEqual(alias: any, factValue: any, isPof: boolean, factDisplay?: any, aliasDisplay?: any): string | null {
   if (!alias || typeof alias !== 'object') return 'alias absent';
   if (!factValue || typeof factValue !== 'object') return 'fact value absent';
   const checks: [string, boolean, any, any][] = [
@@ -368,10 +401,18 @@ function positionsEqual(alias: any, factValue: any, isPof: boolean): string | nu
   for (const [name, ok, a, b] of checks) {
     if (!ok) return `${name}: alias ${JSON.stringify(a)} != fact ${JSON.stringify(b)}`;
   }
-  // F8-7: reject unexpected metadata keys (contract only allows the checked fields).
+  // F9-3: compare display. The canonical display lives on the fact WRAPPER (not the
+  // inner .value), so callers pass it via factDisplay; fall back to factValue.display.
+  const aliasDisp = (aliasDisplay !== undefined) ? aliasDisplay : (alias.display !== undefined ? alias.display : factValue.display);
+  const factDisp = (factDisplay !== undefined) ? factDisplay : factValue.display;
+  if (aliasDisp !== factDisp) return `display: alias ${JSON.stringify(aliasDisp)} != fact ${JSON.stringify(factDisp)}`;
+  // F9-3 / F9-10: reject unexpected metadata keys on BOTH alias and canonical fact value.
   const allowed = new Set(['key','label','sign','signLabel','longitude','degreeInSign','house','retrograde','dignity','uncertain','display','sect','formula']);
   for (const k of Object.keys(alias)) {
     if (!allowed.has(k)) return `alias unexpected metadata key: ${k}`;
+  }
+  for (const k of Object.keys(factValue)) {
+    if (!allowed.has(k)) return `fact value unexpected metadata key: ${k}`;
   }
   if (isPof) {
     if (alias.sect !== factValue.sect) return `POF sect ${alias.sect} != ${factValue.sect}`;
@@ -403,12 +444,12 @@ const COMMON_CONSISTENCY: FieldCheck = {
       const cv = cf.kind === 'position' ? cf.value : cf;
       const fv: any = ff.value;
       const isPof = alias === 'partOfFortune';
-      const eqErr = positionsEqual(cv, fv, isPof);
+      const eqErr = positionsEqual(cv, fv, isPof, ff.display, cf.display);
       if (eqErr) return `${alias}: ${eqErr}`;
     }
     // F8-2: fully validate BOTH POF wrappers after serialization.
     const pof = commonField(v2, 'partOfFortune');
-    const perr = isPartOfFortune(v2, pof);
+    const perr = isPartOfFortune(v2, pof, 'natal.partoffortune.position');
     if (perr) return `partOfFortune: ${perr}`;
     // Flat fact wrapper semantics: source must be derived-deterministic, provenance exact
     // ASC/Moon/Sun, and its value must equal the canonical alias value (wrapper vs alias).
@@ -420,7 +461,7 @@ const COMMON_CONSISTENCY: FieldCheck = {
     if (JSON.stringify(gotFlatProv) !== JSON.stringify(expFlatProv)) return `flat POF provenance ${gotFlatProv} != ASC/Moon/Sun`;
     const flatVal: any = flatPof.value;
     const aliasVal: any = (pof.kind === 'position' ? pof.value : pof);
-    const pofEq = positionsEqual(flatVal, aliasVal, true);
+    const pofEq = positionsEqual(flatVal, aliasVal, true, flatPof.display, pof.display);
     if (pofEq) return `flat POF value != alias value: ${pofEq}`;
     // F7-5: common.aspects must equal the complete canonical aspect-fact set.
     const commonChk = requireCommonAspectsComplete(v2); if (commonChk) return commonChk;
@@ -431,13 +472,50 @@ const COMMON_CONSISTENCY: FieldCheck = {
 };
 
 // ---- body positions in the flat facts map ----
-const BODY_REQUIRED: FieldCheck[] = [
-  'facts.natal.sun.position', 'facts.natal.moon.position', 'facts.natal.mercury.position', 'facts.natal.venus.position',
-  'facts.natal.mars.position', 'facts.natal.jupiter.position', 'facts.natal.saturn.position', 'facts.natal.uranus.position',
-  'facts.natal.neptune.position', 'facts.natal.pluto.position', 'facts.natal.northnode.position', 'facts.natal.southnode.position',
-  'facts.natal.juno.position', 'facts.natal.ascendant.position', 'facts.natal.descendant.position', 'facts.natal.midheaven.position',
-  'facts.natal.icumcoeli.position', 'facts.natal.partoffortune.position',
-].map((id) => ({ path: id, check: (v2) => isPositionFact(factById(v2, id)) }));
+
+// F9-6: validate root position wrapper source/provenance. Swiss-Ephemeris roots require
+// exact root source and locked empty-provenance convention; derived positions require exact
+// derived source and input provenance.
+function validateRootPositionFact(f: any, isDerived: boolean, expectedProv: string[]): string | null {
+  if (!f || typeof f !== 'object') return 'absent';
+  if (f.kind !== 'position') return `kind ${f.kind} != position`;
+  if (isDerived) {
+    if (f.source !== 'derived-deterministic') return `source ${f.source} != derived-deterministic`;
+    if (JSON.stringify(f.provenance) !== JSON.stringify(expectedProv)) return `derived provenance ${JSON.stringify(f.provenance)} != ${JSON.stringify(expectedProv)}`;
+  } else {
+    if (f.source !== 'swiss-ephemeris') return `source ${f.source} != swiss-ephemeris`;
+    if (f.provenance !== undefined) return `root provenance ${JSON.stringify(f.provenance)} != locked undefined`;
+  }
+  return null;
+}
+// F9-6: every body position must be shape-valid AND carry canonical wrapper source/provenance.
+// Roots (Swiss-Ephemeris): source 'swiss-ephemeris', locked empty provenance (undefined).
+// Derived (South Node / DSC / IC / POF): source 'derived-deterministic', exact input provenance.
+const ROOT_BODY_FACTS = [
+  'natal.sun.position', 'natal.moon.position', 'natal.mercury.position', 'natal.venus.position',
+  'natal.mars.position', 'natal.jupiter.position', 'natal.saturn.position', 'natal.uranus.position',
+  'natal.neptune.position', 'natal.pluto.position', 'natal.northnode.position',
+  'natal.juno.position', 'natal.ascendant.position', 'natal.midheaven.position',
+];
+const DERIVED_BODY_FACTS: Record<string, string[]> = {
+  'natal.southnode.position': ['natal.northnode.position'],
+  'natal.descendant.position': ['natal.ascendant.position'],
+  'natal.icumcoeli.position': ['natal.midheaven.position'],
+  'natal.partoffortune.position': ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'],
+};
+const BODY_REQUIRED: FieldCheck[] = ROOT_BODY_FACTS.map((id) => ({ path: `facts.${id}`, check: (v2) => {
+  const f = factById(v2, id);
+  const shape = isPositionFact(f); if (shape) return shape;
+  return validateRootPositionFact(f, false, []);
+} }));
+// F9-6: derived positions require derived source + exact input provenance.
+const DERIVED_BODY_REQUIRED: FieldCheck[] = Object.entries(DERIVED_BODY_FACTS).map(([id, prov]) => ({
+  path: `facts.${id}`, check: (v2) => {
+    const f = factById(v2, id);
+    const shape = isPositionFact(f); if (shape) return shape;
+    return validateRootPositionFact(f, true, prov);
+  },
+}));
 
 // ---- A4 report-specific evidence bundles (R2-B4) ----
 function relationshipEvidenceCheck(v2: VerifiedFactsV2): string | null {
@@ -511,10 +589,16 @@ function vocationEvidenceCheck(v2: VerifiedFactsV2): string | null {
   for (const [k, endpoints] of [['saturnAspect',['saturn','midheaven']],['jupiterAspect',['jupiter','midheaven']],['plutoAspect',['pluto','midheaven']]] as const) {
     const e = validateNamedAspect(v2, ev[k], endpoints as unknown as [string, string]); if (e) semanticErrors.push(`aspect ${k}: ${e}`);
   }
-  // F6-6: wealth indicators must exactly equal the unique 2nd/6th/10th ruler positions.
-  const expectedWealth = [...new Set([`natal.${ev.secondRuler.ruler}.position`, `natal.${ev.sixthRuler.ruler}.position`, `natal.${ev.mcRuler.ruler}.position`])].sort();
-  const gotWealth = [...(ev.wealthIndicators || [])].sort();
-  if (JSON.stringify(gotWealth) !== JSON.stringify(expectedWealth)) semanticErrors.push(`wealthIndicators ${gotWealth} != unique 2nd/6th/10th ${expectedWealth}`);
+  // F9-8: guard each ruler before deriving wealth IDs. Missing ruler yields a diagnostic
+  // (already collected above by isRulerFact) instead of a thrown TypeError.
+  const hasRulers = ev.secondRuler && ev.sixthRuler && ev.mcRuler;
+  if (hasRulers) {
+    const expectedWealth = [...new Set([`natal.${ev.secondRuler.ruler}.position`, `natal.${ev.sixthRuler.ruler}.position`, `natal.${ev.mcRuler.ruler}.position`])].sort();
+    const gotWealth = [...(ev.wealthIndicators || [])].sort();
+    if (JSON.stringify(gotWealth) !== JSON.stringify(expectedWealth)) semanticErrors.push(`wealthIndicators ${gotWealth} != unique 2nd/6th/10th ${expectedWealth}`);
+  } else {
+    semanticErrors.push('missing one or more Vocation rulers (secondRuler/sixthRuler/mcRuler)');
+  }
   // F5-9: complete MC package
   if (ev.mcPositionId !== 'natal.midheaven.position') semanticErrors.push(`mcPositionId must be natal.midheaven.position, got ${ev.mcPositionId}`);
   // F6-5: MC sign/degree must match the canonical MC position fact.
@@ -632,7 +716,7 @@ const REPORT_REQUIRED: Record<ReportType, FieldCheck[]> = {
 
 export function preflightReport(reportType: ReportType, v2: VerifiedFactsV2): PreflightResult {
   const all: FieldCheck[] = [
-    ...COMMON_POSITION_FIELDS, ...COMMON_POINT_FIELDS, ...BODY_REQUIRED, COMMON_CONSISTENCY, ...(REPORT_REQUIRED[reportType] || []),
+    ...COMMON_POSITION_FIELDS, ...COMMON_POINT_FIELDS, ...BODY_REQUIRED, ...DERIVED_BODY_REQUIRED, COMMON_CONSISTENCY, ...(REPORT_REQUIRED[reportType] || []),
   ];
   const missing: string[] = [];
   for (const f of all) {
