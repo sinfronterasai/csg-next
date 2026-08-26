@@ -207,7 +207,8 @@ export interface AspectValue {
   bodyB: string;
   aspectType: string;
   orb: number;
-  tight: boolean; // orb < 1 (tightness threshold, NOT mathematically exact; see warnings)
+  tight: boolean; // orb < 1 (tightness threshold, editorial)
+  exact: boolean; // orb < epsilon (effectively exact under documented rounding rule)
   bodyALabel: string;
   bodyBLabel: string;
   weight: number;

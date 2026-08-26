@@ -31,11 +31,26 @@ function todayISO(): string {
 
 // R2-B8: asOfDate must be a real ISO date (YYYY-MM-DD). Reject garbage like
 // 'not-a-date' so an invalid period can never be persisted.
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// T3-1: Parse components and reconstruct UTC date to reject impossible dates
+// like 2026-02-30 or 2025-02-29 (non-leap year).
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 export function isValidAsOfDate(d: string): boolean {
-  if (!ISO_DATE.test(d)) return false;
-  const t = Date.parse(d + 'T00:00:00Z');
-  return !Number.isNaN(t);
+  const m = ISO_DATE.exec(d);
+  if (!m) return false;
+  const year = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  const day = parseInt(m[3], 10);
+  // Month must be 1-12
+  if (month < 1 || month > 12) return false;
+  // Day must be 1-31
+  if (day < 1 || day > 31) return false;
+  // Construct UTC date and verify components match exactly
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 }
 
 // Convert a score band into a stable VerifiedFact (kind 'score').

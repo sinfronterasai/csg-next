@@ -127,14 +127,21 @@ describe('R2-B4 — A4 evidence bundles are built and required', () => {
     expect(res.status).toBe('input_incomplete');
     expect(res.missing.join(' ')).toContain('relationshipEvidence');
   });
-  it('loveblueprint / vocation / karmic evidence bundles are present and shape-valid', async () => {
-    for (const rt of ['loveblueprint', 'vocation', 'karmicshadow'] as const) {
+  it('loveblueprint / karmic evidence bundles are present and shape-valid', async () => {
+    for (const rt of ['loveblueprint', 'karmicshadow'] as const) {
       const v2 = await buildVerifiedFactsV2(rt, KNOWN_TIME_ORDINARY.birth);
       const res = preflightReport(rt, v2);
       expect(res.status).toBe('complete');
-      const evKey = rt === 'loveblueprint' ? 'loveBlueprintEvidence' : rt === 'vocation' ? 'vocationEvidence' : 'karmicEvidence';
+      const evKey = rt === 'loveblueprint' ? 'loveBlueprintEvidence' : 'karmicEvidence';
       expect((v2.reportData as any)[evKey]).toBeDefined();
     }
+  });
+  it('vocation fails closed until career windows are implemented (T3-7)', async () => {
+    const v2 = await buildVerifiedFactsV2('vocation', KNOWN_TIME_ORDINARY.birth);
+    const res = preflightReport('vocation', v2);
+    expect(res.status).toBe('input_incomplete');
+    expect(res.missing.join(' ')).toContain('career windows');
+    expect((v2.reportData as any).vocationEvidence).toBeDefined();
   });
 });
 

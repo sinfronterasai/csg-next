@@ -48,10 +48,22 @@ function isScoreBand(v: any): string | null {
 const ALLOWED_ASPECT_TYPES = new Set<string>(ASPECT_ORBS.map((a) => a.type));
 function isAspectEvidence(v: any): string | null {
   if (!v || typeof v !== 'object') return 'absent';
-  if (typeof v.pair !== 'string') return 'missing pair';
+  if (typeof v.pair !== 'string' || !v.pair) return 'missing pair';
   if (v.aspectType !== null && typeof v.aspectType !== 'string') return 'bad aspectType';
   if (v.aspectType !== null && !ALLOWED_ASPECT_TYPES.has(v.aspectType)) return `invalid aspectType: ${v.aspectType}`;
-  if (!Array.isArray(v.provenance)) return 'missing provenance';
+  // T3-6: aspectType null iff aspectId null
+  if ((v.aspectType === null) !== (v.aspectId === null || v.aspectId === undefined)) {
+    return 'aspectType/aspectId null mismatch';
+  }
+  // T3-6: aspectId must be a non-empty string when present
+  if (v.aspectId !== null && v.aspectId !== undefined) {
+    if (typeof v.aspectId !== 'string' || !v.aspectId) return 'invalid aspectId';
+  }
+  if (!Array.isArray(v.provenance) || v.provenance.length === 0) return 'missing provenance';
+  // T3-6: provenance must be non-empty strings
+  for (const p of v.provenance) {
+    if (typeof p !== 'string' || !p) return 'invalid provenance entry';
+  }
   return null;
 }
 
@@ -87,6 +99,13 @@ function relationshipEvidenceCheck(v2: VerifiedFactsV2): string | null {
   }
   if (typeof ev.junoCondition !== 'string') return 'missing juno condition';
   if (!Array.isArray(ev.scoreDrivers) || ev.scoreDrivers.length === 0) return 'missing score drivers';
+  // T3-6: Validate scoreDrivers don't contain dangling IDs
+  const resolvable = new Set<string>(Object.keys(v2.facts));
+  for (const driver of ev.scoreDrivers) {
+    if (typeof driver === 'string' && driver && !resolvable.has(driver)) {
+      return `dangling scoreDriver: ${driver}`;
+    }
+  }
   return null;
 }
 function loveBlueprintEvidenceCheck(v2: VerifiedFactsV2): string | null {
@@ -110,7 +129,9 @@ function vocationEvidenceCheck(v2: VerifiedFactsV2): string | null {
     const e = isAspectEvidence(ev[k]); if (e) return `aspect ${k}: ${e}`;
   }
   if (!Array.isArray(ev.wealthIndicators) || ev.wealthIndicators.length === 0) return 'missing wealth indicators';
+  // T3-7: Vocation fails closed until exact 24-month career windows exist
   if (typeof ev.careerWindowsDeclared !== 'boolean') return 'missing careerWindowsDeclared';
+  if (ev.careerWindowsDeclared !== true) return 'career windows not yet implemented';
   return null;
 }
 function karmicEvidenceCheck(v2: VerifiedFactsV2): string | null {
@@ -196,10 +217,39 @@ export function validateFactResolution(v2: VerifiedFactsV2): { ok: boolean; dang
   for (const nr of [v2.common.nodalRulers?.north, v2.common.nodalRulers?.south]) {
     if (nr) for (const p of nr.provenance) check(p, `nodalRuler.${nr.ruler}`);
   }
+  // T3-6: Enhanced scan for drivers, aspectId, provenance, scoreDrivers
   const scanDrivers = (obj: any, path: string) => {
     if (!obj || typeof obj !== 'object') return;
-    if (Array.isArray(obj.drivers)) for (const d of obj.drivers) check(d, path);
-    for (const k of Object.keys(obj)) scanDrivers(obj[k], `${path}.${k}`);
+    if (Array.isArray(obj)) {
+      obj.forEach((item, i) => scanDrivers(item, `${path}[${i}]`));
+      return;
+    }
+    // Check drivers
+    if (Array.isArray(obj.drivers)) {
+      for (const d of obj.drivers) check(d, `${path}.drivers`);
+    }
+    // Check aspectId resolution
+    if (obj.aspectId && typeof obj.aspectId === 'string') {
+      check(obj.aspectId, `${path}.aspectId`);
+    }
+    // Check nested provenance
+    if (Array.isArray(obj.provenance)) {
+      obj.provenance.forEach((p: string, i: number) => {
+        if (typeof p === 'string' && p) check(p, `${path}.provenance[${i}]`);
+      });
+    }
+    // Check scoreDrivers
+    if (Array.isArray(obj.scoreDrivers)) {
+      obj.scoreDrivers.forEach((d: string, i: number) => {
+        if (typeof d === 'string' && d) check(d, `${path}.scoreDrivers[${i}]`);
+      });
+    }
+    // Recurse into object properties (but not the arrays we already scanned)
+    for (const k of Object.keys(obj)) {
+      if (k !== 'drivers' && k !== 'provenance' && k !== 'scoreDrivers' && k !== 'aspectId') {
+        scanDrivers(obj[k], `${path}.${k}`);
+      }
+    }
   };
   scanDrivers(v2.reportData, 'reportData');
   return { ok: dangling.length === 0, dangling };

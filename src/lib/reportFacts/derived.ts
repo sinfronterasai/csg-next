@@ -34,28 +34,36 @@ interface BodyLong {
   id: string; key: string; label: string; longitude: number; full: PlanetPlacement;
 }
 
-// Approved major + minor aspect set (R2-B7). Orbs are standard reference values;
-// the EXACT minor-orb thresholds are flagged as a product decision in the
-// completion report (the locked brief defines "major/minor" without enumerating
-// minor orbs). Until John signs off, these documented defaults are used and the
-// minor flag is recorded so the writer can treat minor aspects distinctly.
+// T3-3: Locked aspect set from 00-shared-foundation.md.
+// Major: conjunction, opposition, trine, square, sextile
+// Minor: quincunx, semi-sextile, semi-square, sesquisquare
+// Default orbs: luminaries (Sun+Moon) 10°, planets 8°, minor 2°
+// Body-aware orb selection in buildAspects.
 export const ASPECT_ORBS: { type: string; angle: number; orb: number; minor: boolean }[] = [
   { type: 'conjunction', angle: 0, orb: 8, minor: false },
-  { type: 'sextile', angle: 60, orb: 5, minor: false },
-  { type: 'square', angle: 90, orb: 6, minor: false },
-  { type: 'trine', angle: 120, orb: 6, minor: false },
+  { type: 'sextile', angle: 60, orb: 8, minor: false },
+  { type: 'square', angle: 90, orb: 8, minor: false },
+  { type: 'trine', angle: 120, orb: 8, minor: false },
   { type: 'opposition', angle: 180, orb: 8, minor: false },
-  // Minor aspects (documented default orbs; product-decision pending):
+  // Minor aspects (locked 2° orb):
   { type: 'semi-sextile', angle: 30, orb: 2, minor: true },
   { type: 'semi-square', angle: 45, orb: 2, minor: true },
-  { type: 'septile', angle: 51.43, orb: 1.5, minor: true },
-  { type: 'quintile', angle: 72, orb: 2, minor: true },
-  { type: 'sesquiquadrate', angle: 135, orb: 2, minor: true },
-  { type: 'biquintile', angle: 144, orb: 2, minor: true },
-  // Quincunx (a.k.a. inconjunct), 150 degrees. Required for the locked Yod pattern
-  // (R2-B11 / A1). Standard reference orb 3 degrees.
-  { type: 'quincunx', angle: 150, orb: 3, minor: true },
+  { type: 'sesquisquare', angle: 135, orb: 2, minor: true },
+  { type: 'quincunx', angle: 150, orb: 2, minor: true },
 ];
+
+// Check if a body is a luminary (Sun or Moon)
+function isLuminary(key: string): boolean {
+  return key === 'sun' || key === 'moon';
+}
+
+// Determine the orb for an aspect based on body types
+function getOrbForBodies(def: typeof ASPECT_ORBS[0], bodyA: string, bodyB: string): number {
+  if (def.minor) return 2; // All minor aspects use 2° orb
+  // Major aspects: 10° if both are luminaries, 8° otherwise
+  if (isLuminary(bodyA) && isLuminary(bodyB)) return 10;
+  return 8;
+}
 
 function positionFact(id: string, key: string, label: string, longitude: number, house: number | null, retrograde: boolean, source: FactSource = 'swiss-ephemeris', provenance?: string[]): VerifiedFact {
   const { sign, degreeInSign } = signFromLongitude(longitude);
@@ -84,13 +92,25 @@ function rulerKeyForSign(signKey: string): string {
 
 // Build a RulerFact for a house (by its cusp sign). Provenance = the ruler planet
 // position fact + the cusp reference (surfaced as a cusp fact).
-function houseRuler(cusp: HouseCusp, houseNum: number, cuspId: string): RulerFact {
+function houseRuler(cusp: HouseCusp, houseNum: number, cuspId: string, chart: ChartData): RulerFact {
   const rk = rulerKeyForSign(cusp.sign);
   const info = getPlanet(rk) || { label: rk };
-  const cond = dignityFor(rk, cusp.sign);
-  const condition = cond ? DIGNITY_LABEL[cond] : `in ${getSign(cusp.sign as any)?.label}`;
+  // T3-4: Look up the ruler planet's actual natal position, not the cusp sign
+  const rulerPlanet = chart.planets.find(p => p.key === rk);
+  if (!rulerPlanet) {
+    // Fallback if ruler not found (shouldn't happen with valid chart)
+    const cond = dignityFor(rk, cusp.sign);
+    const condition = cond ? DIGNITY_LABEL[cond] : `in ${getSign(cusp.sign as any)?.label}`;
+    return {
+      house: houseNum, ruler: rk, rulerLabel: info.label, sign: cusp.sign,
+      condition, provenance: [cuspId, `natal.${rk}.position`],
+    };
+  }
+  const rulerSign = rulerPlanet.sign;
+  const cond = dignityFor(rk, rulerSign);
+  const condition = cond ? DIGNITY_LABEL[cond] : `in ${getSign(rulerSign as any)?.label}`;
   return {
-    house: houseNum, ruler: rk, rulerLabel: info.label, sign: cusp.sign,
+    house: houseNum, ruler: rk, rulerLabel: info.label, sign: rulerSign,
     condition, provenance: [cuspId, `natal.${rk}.position`],
   };
 }
@@ -167,7 +187,14 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     midheaven = toNodeValue(midheavenFact);
     icumcoeli = toNodeValue(icumcoeliFact);
 
-    const pofLong = normDeg(ascLong + moonLong - sunLong);
+    // T3-5: Part of Fortune uses day/night formula based on Sun's house
+    // Day (Sun in houses 7-12): ASC + Moon - Sun
+    // Night (Sun in houses 1-6): ASC + Sun - Moon
+    const sunHouse = chart.sun.house;
+    const isDay = sunHouse !== null && sunHouse >= 7 && sunHouse <= 12;
+    const pofLong = isDay
+      ? normDeg(ascLong + moonLong - sunLong)
+      : normDeg(ascLong + sunLong - moonLong);
     const pofHouse = houseForLongitude(pofLong, chart.cusps);
     partOfFortune = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, pofHouse, false, 'derived-deterministic', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position']);
     positions.push(partOfFortune);
@@ -200,10 +227,10 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     const sixthCusp = houses[5];
     const tenthCusp = houses[9];
     rulers = {
-      dsc: houseRuler(dscCusp, 7, `common.cusp.7`),
-      second: houseRuler(secondCusp, 2, `common.cusp.2`),
-      sixth: houseRuler(sixthCusp, 6, `common.cusp.6`),
-      tenth: houseRuler(tenthCusp, 10, `common.cusp.10`),
+      dsc: houseRuler(dscCusp, 7, `common.cusp.7`, chart),
+      second: houseRuler(secondCusp, 2, `common.cusp.2`, chart),
+      sixth: houseRuler(sixthCusp, 6, `common.cusp.6`, chart),
+      tenth: houseRuler(tenthCusp, 10, `common.cusp.10`, chart),
     };
 
     // Occupants: bodies in each house.
@@ -341,7 +368,9 @@ function moonPhaseLabel(phase: number): string {
   return 'Waning Crescent';
 }
 
-// Aspects from FULL-precision longitudes, major + minor set (R2-B7).
+// Aspects from FULL-precision longitudes, locked major + minor set (T3-3).
+// Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
+// Output sorted by ascending orb.
 export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
   const out: AspectFact[] = [];
   for (let i = 0; i < bodyList.length; i++) {
@@ -351,24 +380,31 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
       for (const def of ASPECT_ORBS) {
         const dist = angularDistance(a.longitude, b.longitude);
         const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
-        if (error <= def.orb) {
+        const orbLimit = getOrbForBodies(def, a.key, b.key);
+        if (error <= orbLimit) {
           const orb = round2(error);
           const id = `natal.aspect.${a.key}-${b.key}-${def.type}`;
           out.push({
             id, kind: 'aspect', source: 'derived-deterministic',
             display: `${a.label} ${def.type} ${b.label} (orb ${orb}°)`,
-            value: { bodyA: a.key, bodyB: b.key, aspectType: def.type, orb, tight: orb < 1, bodyALabel: a.label, bodyBLabel: b.label, weight: aspectWeight(def.type, orb), minor: def.minor },
+            value: { bodyA: a.key, bodyB: b.key, aspectType: def.type, orb, tight: orb < 1, exact: orb < 0.1, bodyALabel: a.label, bodyBLabel: b.label, weight: aspectWeight(def.type, orb), minor: def.minor },
             provenance: [a.id, b.id],
           });
         }
       }
     }
   }
-  return out;
+  // T3-3: Sort by ascending orb with stable tie-breaking (by type, then bodyA, then bodyB)
+  return out.sort((a, b) => {
+    if (a.value.orb !== b.value.orb) return a.value.orb - b.value.orb;
+    if (a.value.aspectType !== b.value.aspectType) return a.value.aspectType.localeCompare(b.value.aspectType);
+    if (a.value.bodyA !== b.value.bodyA) return a.value.bodyA.localeCompare(b.value.bodyA);
+    return a.value.bodyB.localeCompare(b.value.bodyB);
+  });
 }
 
 export function aspectWeight(type: string, orb: number): number {
-  const base: Record<string, number> = { trine: 1, sextile: 0.6, conjunction: 0, square: -1, opposition: -0.8, 'semi-sextile': 0.2, 'semi-square': -0.4, septile: 0.1, quintile: 0.4, sesquiquadrate: -0.4, biquintile: 0.4 };
+  const base: Record<string, number> = { trine: 1, sextile: 0.6, conjunction: 0, square: -1, opposition: -0.8, 'semi-sextile': 0.2, 'semi-square': -0.4, sesquisquare: -0.4, quincunx: -0.3 };
   const b = base[type] ?? 0;
   const orbFactor = Math.max(0, 1 - orb / 8);
   return Math.round(b * orbFactor * 100) / 100;
@@ -430,18 +466,31 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
         // Grand trine: all three pairs trine.
         const g = [aspectBetween(trio[0], trio[1], 'trine'), aspectBetween(trio[1], trio[2], 'trine'), aspectBetween(trio[0], trio[2], 'trine')];
         if (g.every(Boolean)) pushPattern('GrandTrine', trio, g.map((x) => (x!.value as any).orb));
-        // T-square: pair A-B opposition, C squares both A and B.
-        const op = aspectBetween(trio[0], trio[1], 'opposition');
-        const sq1 = aspectBetween(trio[2], trio[0], 'square');
-        const sq2 = aspectBetween(trio[2], trio[1], 'square');
-        if (op && sq1 && sq2) pushPattern('TSquare', trio, [op.value.orb, sq1.value.orb, sq2.value.orb]);
-        // Yod: the first two bodies form a sextile (the "base"), and the third body
-        // is quincunx (150) to BOTH of them (the apex). The base is a sextile, NOT a
-        // quincunx, so we require sext (A-B) + q1 (C-A quincunx) + q2 (C-B quincunx).
-        const q1 = aspectBetween(trio[2], trio[0], 'quincunx') || aspectBetween(trio[2], trio[0], 'inconjunct');
-        const q2 = aspectBetween(trio[2], trio[1], 'quincunx') || aspectBetween(trio[2], trio[1], 'inconjunct');
-        const sext = aspectBetween(trio[0], trio[1], 'sextile');
-        if (sext && q1 && q2) pushPattern('Yod', trio, [sext.value.orb, q1.value.orb, q2.value.orb]);
+        // T3-2: T-square and Yod detection must be role-order independent.
+        // Check all three pairs for the base aspect, not just trio[0]-trio[1].
+
+        // T-square: find opposition pair, third body squares both
+        const pairs = [[0,1,2], [0,2,1], [1,2,0]]; // [baseA, baseB, apex]
+        for (const [a, b, apex] of pairs) {
+          const op = aspectBetween(trio[a], trio[b], 'opposition');
+          const sq1 = aspectBetween(trio[apex], trio[a], 'square');
+          const sq2 = aspectBetween(trio[apex], trio[b], 'square');
+          if (op && sq1 && sq2) {
+            pushPattern('TSquare', trio, [op.value.orb, sq1.value.orb, sq2.value.orb]);
+            break;
+          }
+        }
+
+        // Yod: find sextile base, third body quincunx to both
+        for (const [a, b, apex] of pairs) {
+          const sext = aspectBetween(trio[a], trio[b], 'sextile');
+          const q1 = aspectBetween(trio[apex], trio[a], 'quincunx') || aspectBetween(trio[apex], trio[a], 'inconjunct');
+          const q2 = aspectBetween(trio[apex], trio[b], 'quincunx') || aspectBetween(trio[apex], trio[b], 'inconjunct');
+          if (sext && q1 && q2) {
+            pushPattern('Yod', trio, [sext.value.orb, q1.value.orb, q2.value.orb]);
+            break;
+          }
+        }
       }
     }
   }
