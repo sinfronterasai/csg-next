@@ -85,7 +85,7 @@ function toNodeValue(fact: VerifiedFact): NodeValue {
 }
 
 // Resolve the ruling planet key for a sign (lowercased planet key).
-function rulerKeyForSign(signKey: string): string {
+export function rulerKeyForSign(signKey: string): string {
   const sign = SIGNS.find((s) => s.key === signKey) || getSign(signKey as any);
   return (sign?.ruler || '').toLowerCase();
 }
