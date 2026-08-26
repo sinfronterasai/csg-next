@@ -164,6 +164,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
   let rulers: CommonDerived['rulers'];
   let occupants: HouseOccupants[] | undefined;
   let nodalRulers: CommonDerived['nodalRulers'];
+  let pofLong: number | undefined; // F5-6: hoisted for aspect computation
 
   if (!unknownTime) {
     const ascLong = chart.ascendant.longitude;
@@ -194,7 +195,7 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     const isDay = sunHouse !== null && sunHouse >= 7 && sunHouse <= 12;
     const sect: 'day' | 'night' = isDay ? 'day' : 'night';
     const formula = isDay ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
-    const pofLong = isDay
+    pofLong = isDay
       ? normDeg(ascLong + moonLong - sunLong)
       : normDeg(ascLong + sunLong - moonLong);
     const pofHouse = houseForLongitude(pofLong, chart.cusps);
@@ -309,7 +310,8 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
       { id: 'natal.midheaven.position', key: 'midheaven', label: 'Midheaven', longitude: chart.midheaven.longitude, full: chart.planets[0] },
       { id: 'natal.icumcoeli.position', key: 'icumcoeli', label: 'Imum Coeli', longitude: normDeg(chart.midheaven.longitude + 180), full: chart.planets[0] },
       { id: 'natal.southnode.position', key: 'southnode', label: 'South Node', longitude: southLong, full: chart.planets[0] },
-      { id: 'natal.partoffortune.position', key: 'partoffortune', label: 'Part of Fortune', longitude: (partOfFortune!.value as any).longitude, full: chart.planets[0] },
+      // F5-6: reuse the SAME full-precision pofLong variable (no rounding) for aspect math
+      { id: 'natal.partoffortune.position', key: 'partoffortune', label: 'Part of Fortune', longitude: pofLong!, full: chart.planets[0] },
     ];
     aspectBodies.push(...extra);
   }
@@ -399,8 +401,9 @@ function moonPhaseLabel(phase: number): string {
   return 'Waning Crescent';
 }
 
-// F4-11: named epsilon for exact-aspect determination
-export const EXACT_ASPECT_EPSILON = 0.1; // degrees; full-precision error threshold
+// F4-11/F5-7: named thresholds for aspect determination (full-precision error)
+export const EXACT_ASPECT_EPSILON = 0.1; // degrees; exact aspect threshold
+export const TIGHT_ASPECT_THRESHOLD = 1.0; // degrees; tight aspect threshold
 
 // Aspects from FULL-precision longitudes, locked major + minor set (T3-3).
 // Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
@@ -413,18 +416,24 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
       if (a.key === b.key) continue;
       for (const def of ASPECT_ORBS) {
         const dist = angularDistance(a.longitude, b.longitude);
+        // F5-6: retain FULL-precision error through all math; round only the display orb
         const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
         const orbLimit = getOrbForBodies(def, a.key, b.key);
         if (error <= orbLimit) {
-          // F4-11: compute exactness from FULL-precision error before display rounding
+          // F4-11/F5-7: exact + tight from named full-precision thresholds
           const exact = error < EXACT_ASPECT_EPSILON;
+          const tight = error < TIGHT_ASPECT_THRESHOLD;
           const orb = round2(error);
-          const id = `natal.aspect.${a.key}-${b.key}-${def.type}`;
+          // F5-8: canonicalize endpoints (sorted by key) for stable id/provenance/values
+          const [first, second] = a.key <= b.key ? [a, b] : [b, a];
+          const id = `natal.aspect.${first.key}-${second.key}-${def.type}`;
           out.push({
             id, kind: 'aspect', source: 'derived-deterministic',
-            display: `${a.label} ${def.type} ${b.label} (orb ${orb}°)`,
-            value: { bodyA: a.key, bodyB: b.key, aspectType: def.type, orb, tight: orb < 1, exact, bodyALabel: a.label, bodyBLabel: b.label, weight: aspectWeight(def.type, orb), minor: def.minor },
-            provenance: [a.id, b.id],
+            display: `${first.label} ${def.type} ${second.label} (orb ${orb}°)`,
+            // F5-8: bodyA/bodyB canonicalized (first.key <= second.key)
+            value: { bodyA: first.key, bodyB: second.key, aspectType: def.type, orb, tight, exact, bodyALabel: first.label, bodyBLabel: second.label, weight: aspectWeight(def.type, orb), minor: def.minor },
+            // F5-2/F5-8: provenance = exact endpoint position ids, canonical order
+            provenance: [first.id, second.id],
           });
         }
       }
@@ -486,13 +495,18 @@ export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentId
   const keys = planets.map((p) => p.key);
   // F4-12: canonicalize participant keys (sorted) for stable ID across all permutations,
   // while preserving semantic roles (base/apex) in the structured value.
+  // F5-8: canonicalize participants (sorted keys) for stable id + value + display.
+  // Semantic roles (base pair + apex) are preserved as typed fields, not injection.
   const pushPattern = (name: 'GrandTrine' | 'TSquare' | 'Yod', trio: string[], orbs: number[], roles?: { base: string[]; apex: string }) => {
-    const labels = trio.map(labelOf);
-    const ids = trio.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
+    const sorted = [...trio].sort();
+    const labels = sorted.map(labelOf);
+    const ids = sorted.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
     const tightness = round2(Math.max(...orbs));
-    const canonical = [...trio].sort().join('-');
-    const value: PatternValue = { name, participants: labels, tightness, tightnessSemantics: 'max-orb' };
-    if (roles) (value as any).roles = roles;
+    const canonical = sorted.join('-');
+    const value: PatternValue = {
+      name, participants: labels, tightness, tightnessSemantics: 'max-orb',
+      roles: roles ? { base: [...roles.base].sort(), apex: roles.apex } : undefined,
+    };
     out.push({
       id: `natal.pattern.${name.toLowerCase()}-${canonical}`,
       kind: 'pattern', source: 'derived-deterministic',

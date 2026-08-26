@@ -40,8 +40,8 @@ export const KNOWN_TIME_ORDINARY: FactsFixture = {
 
 export const UNKNOWN_TIME_SOLAR: FactsFixture = {
   name: 'unknown-time-solar',
-  birth: { date: '1985-03-22', location: 'Berlin', unknownTime: true, name: 'Fixture B' },
-  expect: { knownTime: false, ref: { sunSign: 'aries', sunDegreeInSign: 1.77, moonSign: undefined, aspectCountMin: 0 } },
+  birth: { date: '1990-06-16', location: 'Berlin', unknownTime: true, name: 'Fixture B' },
+  expect: { knownTime: false, ref: { sunSign: 'gemini', sunDegreeInSign: 25.05, moonSign: undefined, aspectCountMin: 0 } },
 };
 
 export const BOUNDARY_NEAR_0: FactsFixture = {

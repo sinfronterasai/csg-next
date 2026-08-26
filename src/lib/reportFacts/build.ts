@@ -146,7 +146,9 @@ export async function buildVerifiedFactsV2(
       display: `Vocation ${arch.code} — ${arch.rule}`, value: arch, provenance: arch.drivers });
     const vocEv = vocationEvidence(common);
     reportData.vocationEvidence = vocEv;
-    push(evidenceFact('reportData.vocationEvidence', vocEv, ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype']));
+    // F5-ref1: surfaced fact provenance includes MC position + every complete MC-aspect ID.
+    const vocProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', vocEv.mcPositionId, ...vocEv.mcAspects];
+    push(evidenceFact('reportData.vocationEvidence', vocEv, vocProv));
   }
   if (rt === 'karmicshadow') {
     const k = karmicScores(common);

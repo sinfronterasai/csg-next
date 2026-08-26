@@ -48,6 +48,12 @@ export function relationshipEvidence(common: CommonDerived): RelationshipEvidenc
 export function loveBlueprintEvidence(common: CommonDerived): LoveBlueprintEvidence {
   const dsc = common.rulers?.dsc;
   if (!dsc) throw new Error('love blueprint evidence requires 7th-house ruler');
+  // F5-10: filter Chiron aspects to Venus/Moon ties only
+  const chironAspects = common.aspects
+    .filter((a) => (a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron') &&
+                   (a.value.bodyA === 'venus' || a.value.bodyB === 'venus' ||
+                    a.value.bodyA === 'moon' || a.value.bodyB === 'moon'))
+    .map((a) => a.id);
   return {
     aspects: {
       moonVenus: aspectEvidence(common, 'moon', 'venus'),
@@ -56,7 +62,12 @@ export function loveBlueprintEvidence(common: CommonDerived): LoveBlueprintEvide
     },
     dscRuler: dsc,
     dscOccupants: { house: 7, occupants: occupantsOf(common, 7) },
-    chironAspects: common.aspects.filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron').map((a) => a.id),
+    chironAspects,
+    // F5-4: explicit Chiron present/absent state
+    chironEvidence: buildOptionalEvidence(
+      chironAspects,
+      'No qualifying Chiron-to-Venus-or-Moon tie was found in this chart',
+    ),
     northNodeSign: common.northNode.sign,
     scoreDrivers: ['score.loveblueprint.archetype', 'score.relationship.emotionalStyle', 'score.relationship.desire'],
   };
@@ -65,14 +76,25 @@ export function loveBlueprintEvidence(common: CommonDerived): LoveBlueprintEvide
 export function vocationEvidence(common: CommonDerived): VocationEvidence {
   const tenth = common.rulers?.tenth; const second = common.rulers?.second; const sixth = common.rulers?.sixth;
   if (!tenth || !second || !sixth) throw new Error('vocation evidence requires 2nd/6th/10th rulers');
+  // F5-9: complete MC package
+  const mcFact = common.positions.find(p => p.id === 'natal.midheaven.position');
+  const mcAspects = common.aspects
+    .filter((a) => a.value.bodyA === 'midheaven' || a.value.bodyB === 'midheaven')
+    .map((a) => a.id)
+    .sort();
   return {
     mcRuler: tenth, secondRuler: second, sixthRuler: sixth,
+    // F5-9: MC position metadata
+    mcPositionId: 'natal.midheaven.position',
+    mcSign: (mcFact?.value as any)?.sign || '',
+    mcDegreeInSign: (mcFact?.value as any)?.degreeInSign || 0,
+    mcAspects,
     // F4-7: aspects to the Midheaven / career axis (not Sun substitutes).
     saturnAspect: aspectEvidence(common, 'saturn', 'midheaven'),
     jupiterAspect: aspectEvidence(common, 'jupiter', 'midheaven'),
     plutoAspect: aspectEvidence(common, 'pluto', 'midheaven'),
-    // F4-6: wealth indicators are stable cited fact IDs (the 2nd/6th/10th ruler positions)
-    wealthIndicators: [`natal.${second.ruler}.position`, `natal.${sixth.ruler}.position`, `natal.${tenth.ruler}.position`],
+    // F4-6/F5-ref2: wealth indicators are exactly the unique intended 2nd/6th/10th ruler-position facts.
+    wealthIndicators: [...new Set([`natal.${second.ruler}.position`, `natal.${sixth.ruler}.position`, `natal.${tenth.ruler}.position`])],
     careerWindowsDeclared: false, // 24-month windows are P6/P7; declared + fail closed
   };
 }
@@ -84,17 +106,22 @@ export function karmicEvidence(common: CommonDerived): KarmicEvidence {
   if (!nodal) throw new Error('karmic evidence requires nodal rulers');
   const nodalAspects = common.aspects.filter((a) => a.value.bodyA.includes('node') || a.value.bodyB.includes('node')).map((a) => a.id);
   const nodalSquares = common.aspects.filter((a) => a.value.aspectType === 'square' && (a.value.bodyA.includes('node') || a.value.bodyB.includes('node'))).map((a) => a.id);
+  // F5-10: filter Chiron aspects to node ties only
+  const chironAspects = common.aspects
+    .filter((a) => (a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron') &&
+                   (a.value.bodyA.includes('node') || a.value.bodyB.includes('node')))
+    .map((a) => a.id);
   return {
     northNodeHouse: northHouse, southNodeHouse: southHouse,
     northNodeRuler: nodal.north, southNodeRuler: nodal.south,
     nodalAspects, nodalSquares,
     saturnEvidence: aspectEvidence(common, 'saturn', 'sun'),
     plutoEvidence: aspectEvidence(common, 'pluto', 'sun'),
-    // F4-8: explicit optional-evidence state for Chiron (present-with-citations or absent-with-reason)
-    chironAspects: common.aspects.filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron').map((a) => a.id),
+    chironAspects,
+    // F5-4: explicit Chiron present/absent state
     chironEvidence: buildOptionalEvidence(
-      common.aspects.filter((a) => a.value.bodyA === 'chiron' || a.value.bodyB === 'chiron').map((a) => a.id),
-      'Chiron aspects not computed in this chart build',
+      chironAspects,
+      'No qualifying Chiron-to-node tie was found in this chart',
     ),
   };
 }

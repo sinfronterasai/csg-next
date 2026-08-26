@@ -135,7 +135,8 @@ export interface LoveBlueprintEvidence {
   };
   dscRuler: RulerFact;
   dscOccupants: HouseOccupants;
-  chironAspects: string[]; // aspect fact ids
+  chironAspects: string[]; // aspect fact ids (filtered to Venus/Moon ties)
+  chironEvidence: OptionalEvidence; // F5-4: explicit present/absent state
   northNodeSign: string;
   scoreDrivers: string[];
 }
@@ -144,7 +145,12 @@ export interface VocationEvidence {
   mcRuler: RulerFact; // 10th house ruler
   secondRuler: RulerFact; // 2nd house ruler
   sixthRuler: RulerFact; // 6th house ruler
-  saturnAspect: AspectEvidence; // to Sun or MC
+  // F5-9: complete MC package
+  mcPositionId: string;
+  mcSign: string;
+  mcDegreeInSign: number;
+  mcAspects: string[]; // sorted aspect fact ids involving MC
+  saturnAspect: AspectEvidence; // to MC
   jupiterAspect: AspectEvidence;
   plutoAspect: AspectEvidence;
   wealthIndicators: string[]; // fact ids / labels
@@ -166,8 +172,8 @@ export interface KarmicEvidence {
   nodalSquares: string[];
   saturnEvidence: AspectEvidence;
   plutoEvidence: AspectEvidence;
-  chironAspects: string[];
-  chironEvidence: OptionalEvidence; // F4-8: explicit present/absent
+  chironAspects: string[]; // aspect fact ids (filtered to node ties)
+  chironEvidence: OptionalEvidence; // F5-4: explicit present/absent
 }
 
 export interface VerifiedFactsV2 {
@@ -233,11 +239,17 @@ export interface AspectValue {
 //  - grandTrine: max orb among the three trine aspects (degrees).
 //  - tSquare: max orb among the three aspects (two squares + one opposition).
 //  - yod: max orb among the three aspects (two quincunxes + one sextile).
+export interface PatternRole {
+  base: string[]; // the two base-participant keys (semantic)
+  apex: string; // the apex-participant key (semantic)
+}
+
 export interface PatternValue {
   name: 'Stellium' | 'GrandTrine' | 'TSquare' | 'Yod';
-  participants: string[];
+  participants: string[]; // canonicalized sorted labels
   tightness: number;
   tightnessSemantics: 'angular-span' | 'max-orb';
+  roles?: PatternRole; // typed semantic roles (base pair + apex)
 }
 
 export interface AspectFact extends VerifiedFact {
