@@ -9,7 +9,7 @@
 // of Fortune, chart ruler, tallies, aspects, patterns, rulers, occupants) are
 // 'derived-deterministic' and MUST carry provenance to their input fact ids.
 
-import { computeChart, normDeg, houseForLongitude, type ChartData, type PlanetPlacement, type HousePlacement } from '@/lib/chartEngine';
+import { computeChart, normDeg, houseForLongitude, PLANET_BODIES, type ChartData, type PlanetPlacement, type HousePlacement } from '@/lib/chartEngine';
 import { signFromLongitude, dignityFor, getSign, getPlanet, SIGNS } from '@/lib/astrology';
 import { ASPECT_DEFS, angularDistance } from '@/lib/transit';
 import type {
@@ -36,6 +36,181 @@ export function normalizePublishedLongitude(n: number): number {
 }
 
 // Engine longitude retained until each deterministic consumer selects its declared precision.
+
+// F13-1: ONE authoritative position registry, derived mechanically from PLANET_BODIES
+// plus the explicit angles and derived points. PLANET_BODIES already includes Chiron
+// (and Juno), so they are included automatically — no second hand-written planet list
+// that can drift. Every generated position wrapper (kind 'position' in the flat facts
+// map) MUST bind to one of these registry keys, with its nested value.key and canonical
+// label identical to the registry. A wrapper whose map key is not in this registry is an
+// escaped position fact and must be rejected.
+export type PositionKind = 'root' | 'angle' | 'derived';
+export interface PositionRegistryEntry {
+  factsKey: string;      // flat-facts map key, e.g. 'natal.sun.position'
+  nestedKey: string;     // value.key, e.g. 'sun'
+  label: string;         // canonical display label, e.g. 'Sun'
+  kind: PositionKind;
+  provenance: string[];  // [] for root/angle, inputs for derived
+}
+const ANGLE_ENTRIES: PositionRegistryEntry[] = [
+  { factsKey: 'natal.ascendant.position', nestedKey: 'ascendant', label: 'Ascendant', kind: 'angle', provenance: [] },
+  { factsKey: 'natal.midheaven.position', nestedKey: 'midheaven', label: 'Midheaven', kind: 'angle', provenance: [] },
+];
+const DERIVED_ENTRIES: PositionRegistryEntry[] = [
+  { factsKey: 'natal.southnode.position', nestedKey: 'southnode', label: 'South Node', kind: 'derived', provenance: ['natal.northnode.position'] },
+  { factsKey: 'natal.descendant.position', nestedKey: 'descendant', label: 'Descendant', kind: 'derived', provenance: ['natal.ascendant.position'] },
+  { factsKey: 'natal.icumcoeli.position', nestedKey: 'icumcoeli', label: 'Imum Coeli', kind: 'derived', provenance: ['natal.midheaven.position'] },
+  { factsKey: 'natal.partoffortune.position', nestedKey: 'partoffortune', label: 'Part of Fortune', kind: 'derived', provenance: ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'] },
+];
+export const POSITION_REGISTRY: PositionRegistryEntry[] = [
+  ...PLANET_BODIES.map((b) => {
+    const info = getPlanet(b.key) || { label: b.key };
+    return { factsKey: `natal.${b.key}.position`, nestedKey: b.key, label: info.label, kind: 'root' as PositionKind, provenance: [] };
+  }),
+  ...ANGLE_ENTRIES,
+  ...DERIVED_ENTRIES,
+];
+export const POSITION_REGISTRY_MAP: Record<string, PositionRegistryEntry> = Object.fromEntries(
+  POSITION_REGISTRY.map((e) => [e.factsKey, e]),
+);
+
+// F13-3: a marker value that a derived-point wrapper must never carry, used to prove the
+// re-derived semantic functions reject a corrupted value (e.g. South Node set to a coordinate
+// that is NOT North Node + 180).
+export const ESCAPED_POSITION = '__escaped_position__';
+
+// F13-1/F13-2: validate a position value against the authoritative registry. Both the
+// nested value.key and the canonical label must equal the registry entry bound to the
+// facts-map key, the longitude must be exactly the normalized 2dp basis, and the dignity
+// must equal dignityFor(key, sign) (null for non-dignity points). Returns null when valid.
+export function validateRegistryPositionValue(
+  factsKey: string,
+  value: any,
+  opts: { uncertainPolicy?: 'optional' | 'forbidden' | 'required-false' | 'required-true'; allowEscape?: boolean } = {},
+): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry) return `position factsKey ${JSON.stringify(factsKey)} is not in the authoritative registry`;
+  if (!value || typeof value !== 'object') return 'position value missing';
+  if (value.key !== entry.nestedKey) return `position value.key ${JSON.stringify(value.key)} != registry ${JSON.stringify(entry.nestedKey)}`;
+  if (value.label !== entry.label) return `position value.label ${JSON.stringify(value.label)} != registry ${JSON.stringify(entry.label)}`;
+  if (opts.allowEscape !== true && value.longitude === ESCAPED_POSITION) return 'escaped position longitude';
+  if (typeof value.longitude !== 'number') return 'longitude not a number';
+  if (value.longitude !== normalizePublishedLongitude(value.longitude)) return `longitude ${value.longitude} not equal to normalizePublishedLongitude(${value.longitude})`;
+  const derived = signFromLongitude(value.longitude);
+  if (value.sign !== derived.sign.key) return `sign ${value.sign} inconsistent with longitude ${value.longitude}`;
+  const expectedDignity = dignityFor(entry.nestedKey, derived.sign.key);
+  if (value.dignity !== expectedDignity) return `dignity ${JSON.stringify(value.dignity)} != dignityFor(${entry.nestedKey}, ${derived.sign.key}) = ${JSON.stringify(expectedDignity)}`;
+  if (opts.uncertainPolicy === 'forbidden' && value.uncertain !== undefined) return 'uncertain must be absent under known-time policy';
+  if (opts.uncertainPolicy === 'required-false') {
+    if (value.uncertain !== false) return `uncertain must be false under unknown-time policy, got ${JSON.stringify(value.uncertain)}`;
+  }
+  if (opts.uncertainPolicy === 'optional' && value.uncertain !== undefined && typeof value.uncertain !== 'boolean') return 'uncertain must be boolean';
+  if (opts.uncertainPolicy === 'required-true') {
+    if (value.uncertain !== true) return `uncertain must be true under unknown-time policy, got ${JSON.stringify(value.uncertain)}`;
+  }
+  return null;
+}
+
+// F13-3: re-derive a derived-point's truth from its canonical provenance and return a
+// comparison error string when the wrapper value does not equal the independent recomputation.
+// No tolerance bands. `longitudes` is the registry of canonical normalized longitudes keyed
+// by nested key (ascendant, midheaven, northnode, sun, moon, ...).
+const ANGLE_HOUSE: Record<string, number> = { ascendant: 1, midheaven: 10, descendant: 7, icumcoeli: 4 };
+export function issueDerivedTruth(
+  factsKey: string,
+  value: any,
+  longitudes: Record<string, number>,
+  cusps: number[],
+): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry || entry.kind !== 'derived') return null;
+  const expectedLong = (() => {
+    switch (entry.nestedKey) {
+      case 'southnode': return normDeg((longitudes['northnode'] ?? 0) + 180);
+      case 'descendant': return normDeg((longitudes['ascendant'] ?? 0) + 180);
+      case 'icumcoeli': return normDeg((longitudes['midheaven'] ?? 0) + 180);
+      case 'partoffortune': {
+        const asc = longitudes['ascendant'] ?? 0;
+        const sun = longitudes['sun'] ?? 0;
+        const moon = longitudes['moon'] ?? 0;
+        const isDay = (longitudes['sunHouse'] ?? 0) >= 7;
+        return normalizePublishedLongitude(isDay ? asc + moon - sun : asc + sun - moon);
+      }
+      default: return undefined;
+    }
+  })();
+  if (expectedLong === undefined) return `derived ${entry.nestedKey} has no truth rule`;
+  const normExpected = normalizePublishedLongitude(expectedLong);
+  if (value.longitude !== normExpected) return `derived ${entry.nestedKey} longitude ${value.longitude} != re-derived ${normExpected}`;
+  if (entry.nestedKey === 'partoffortune') return null; // POF house validated in validatePofValue
+  const expectedHouse = entry.nestedKey === 'descendant' ? 7 : entry.nestedKey === 'icumcoeli' ? 4 : houseForLongitude(normExpected, cusps);
+  if (value.house !== expectedHouse) return `derived ${entry.nestedKey} house ${value.house} != re-derived ${expectedHouse}`;
+  if (value.retrograde !== false) return `derived ${entry.nestedKey} retrograde must be false`;
+  if (value.dignity !== null) return `derived ${entry.nestedKey} dignity must be null`;
+  return null;
+}
+
+// F13-2: lock angle houses to their canonical values (ASC/MC/DSC/IC = 1/10/7/4).
+export function issueAngleHouse(factsKey: string, value: any): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry || entry.kind !== 'angle') return null;
+  const expected = ANGLE_HOUSE[entry.nestedKey];
+  if (value.house !== expected) return `angle ${entry.nestedKey} house ${value.house} != locked ${expected}`;
+  return null;
+}
+
+// F13-4: mechanically generate the complete expected JPL timestamp sequence from a
+// manifest row's start/stop/step. No hand-written timestamp list is trusted.
+export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h' | '1 d'): string[] {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const toHeader = (iso: string) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(iso);
+    if (!m) throw new Error(`bad window value: ${iso}`);
+    return `${m[1]}-${MONTHS[Number(m[2]) - 1]}-${m[3]} ${m[4]}`;
+  };
+  const parse = (iso: string) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(iso)!;
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+  };
+  const fmt = (d: Date) => {
+    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    return toHeader(iso);
+  };
+  const stepMs = step === '1 h' ? 3600_000 : 86_400_000;
+  const out: string[] = [];
+  let cur = parse(start);
+  const end = parse(stop);
+  while (cur.getTime() < end.getTime()) {
+    out.push(fmt(cur));
+    cur = new Date(cur.getTime() + stepMs);
+  }
+  out.push(fmt(end));
+  return out;
+}
+
+// F13-4: assert a raw JPL row sequence is exactly the mechanical expectation and that the
+// selected timestamp + row uniqueness hold. Returns a failure string or null.
+export function enforceJplSequenceAuthority(
+  rawResult: string,
+  row: { start: string; stop: string; step: '1 h' | '1 d'; timeToken: string; file: string },
+): string | null {
+  const JPL_ROW_PATTERN = /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/;
+  const jplRows = (s: string) => s.split('\n').filter((l) => JPL_ROW_PATTERN.test(l));
+  const jplTimestamp = (line: string) => {
+    const m = /(\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2}),/.exec(line);
+    if (!m) throw new Error(`unparseable JPL timestamp row: ${line}`);
+    return m[1];
+  };
+  const timestamps = jplRows(rawResult).map(jplTimestamp);
+  const expected = mechanicalJplTimestamps(row.start, row.stop, row.step);
+  if (JSON.stringify(timestamps) !== JSON.stringify(expected)) {
+    return `JPL sequence ${JSON.stringify(timestamps)} != mechanical ${JSON.stringify(expected)}`;
+  }
+  if (new Set(timestamps).size !== timestamps.length) return 'JPL timestamps not unique';
+  if (timestamps.filter((t) => t === row.timeToken).length !== 1) return `selected token ${row.timeToken} not unique`;
+  return null;
+}
+
 interface BodyLong {
   id: string; key: string; label: string; longitude: number; full: PlanetPlacement;
 }

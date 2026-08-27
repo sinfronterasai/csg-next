@@ -10,7 +10,7 @@
 
 import type { ReportType, VerifiedFactsV2, PreflightResult, VerifiedFact } from './types';
 import type { ScoreBand } from './scores';
-import { ASPECT_ORBS, rulerKeyForSign, aspectWeight, compareAspectFacts, normalizePublishedLongitude } from './derived';
+import { ASPECT_ORBS, rulerKeyForSign, aspectWeight, compareAspectFacts, normalizePublishedLongitude, POSITION_REGISTRY, validateRegistryPositionValue, issueDerivedTruth, issueAngleHouse, ESCAPED_POSITION } from './derived';
 import { dignityFor, signFromLongitude, getPlanet, getSign } from '@/lib/astrology';
 
 // Mirror of derived.ts DIGNITY_LABEL (not exported there).
@@ -693,36 +693,88 @@ const COMMON_CONSISTENCY: FieldCheck = {
 
 // ---- body positions in the flat facts map ----
 
-// F12-2/F12-3: every body position uses the single canonical wrapper/value/display validator.
-// Roots (Swiss-Ephemeris): source 'swiss-ephemeris', locked empty provenance (undefined).
-// Derived (South Node / DSC / IC / POF): source 'derived-deterministic', exact input provenance.
-const ROOT_BODY_FACTS = [
-  'natal.sun.position', 'natal.moon.position', 'natal.mercury.position', 'natal.venus.position',
-  'natal.mars.position', 'natal.jupiter.position', 'natal.saturn.position', 'natal.uranus.position',
-  'natal.neptune.position', 'natal.pluto.position', 'natal.northnode.position',
-  'natal.juno.position', 'natal.ascendant.position', 'natal.midheaven.position',
-];
-const DERIVED_BODY_FACTS: Record<string, string[]> = {
-  'natal.southnode.position': ['natal.northnode.position'],
-  'natal.descendant.position': ['natal.ascendant.position'],
-  'natal.icumcoeli.position': ['natal.midheaven.position'],
-  'natal.partoffortune.position': ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'],
+// F13-1: the authoritative position registry (derived mechanically from PLANET_BODIES +
+// explicit angles + derived points) is the SINGLE source of which position wrappers must
+// exist and what their nested key/label/bindings are. Every position kind === 'position'
+// wrapper in the flat facts map must bind to a registry key; any escapee (including a
+// hand-injected key like 'natal.false.position') is rejected by buildPositionRegistryCheck.
+// Chiron and Juno are covered automatically because PLANET_BODIES carries them.
+function buildPositionRegistryCheck(entry: { factsKey: string; nestedKey: string; kind: 'root' | 'angle' | 'derived'; provenance: string[] }): FieldCheck {
+  const { factsKey, nestedKey, kind, provenance } = entry;
+  // Unknown-time solar fallback carries no Ascendant, so the known-time uncertainty policy
+  // (uncertain forbidden) does not apply; there, the builder sets uncertain:true on the
+  // time-sensitive planets (all but sun/northnode/southnode/juno) and absent elsewhere.
+  const UNCERTAIN_EXEMPT = new Set(['sun', 'northnode', 'southnode', 'juno']);
+  return {
+    path: `facts.${factsKey}`,
+    check: (v2: VerifiedFactsV2) => {
+      const fact: any = factById(v2, factsKey);
+      if (!fact || typeof fact !== 'object') return `position wrapper ${factsKey} absent`;
+      if (fact.kind !== 'position') return `position wrapper ${factsKey} kind ${JSON.stringify(fact.kind)} != position`;
+      if (fact.id !== factsKey) return `position wrapper id ${JSON.stringify(fact.id)} != facts key ${factsKey}`;
+      const isPof = nestedKey === 'partoffortune';
+      if (isPof) {
+        return validateCanonicalPositionFact(v2, factsKey, fact, 'derived', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'], true);
+      }
+      const knownTime = !!v2.common.ascendant;
+      let uncertainPolicy: 'forbidden' | 'required-true' | 'required-false' | 'optional' = 'forbidden';
+      if (!knownTime) uncertainPolicy = UNCERTAIN_EXEMPT.has(nestedKey) ? 'forbidden' : 'required-true';
+      // F13-1/F13-2: nested identity (key+label) + exact normalization + dignityFor semantics + uncertainty policy.
+      const regErr = validateRegistryPositionValue(factsKey, fact.value, { uncertainPolicy });
+      if (regErr) return `registry position ${factsKey}: ${regErr}`;
+      // F13-2: angle houses locked; F13-3: derived truth re-derived from provenance.
+      const angleErr = issueAngleHouse(factsKey, fact.value);
+      if (angleErr) return `angle house ${factsKey}: ${angleErr}`;
+      const longitudes = collectRegistryLongitudes(v2);
+      // Rebuild the cusps array in 1..12 form (house N cusp at index N) for houseForLongitude.
+      const cusps = v2.common.houses ? [0, ...v2.common.houses.map((h: any) => h.cuspLongitude)] : [];
+      const derivedErr = issueDerivedTruth(factsKey, fact.value, longitudes, cusps);
+      if (derivedErr) return `derived truth ${factsKey}: ${derivedErr}`;
+      // wrapper display must match the validated value display (full contract, exact provenance).
+      const dispErr = validateCanonicalPositionFact(v2, factsKey, fact, kind === 'derived' ? 'derived' : 'root', provenance, isPof);
+      if (dispErr) return `wrapper ${factsKey}: ${dispErr}`;
+      return null;
+    },
+  };
+}
+
+// F13-3: collect the canonical normalized longitudes for every registry body/angle so the
+// derived-truth re-derivation (South Node = North Node + 180, etc.) reads from provenance, not
+// from the wrapper being validated.
+function collectRegistryLongitudes(v2: VerifiedFactsV2): Record<string, number> {
+  const out: Record<string, number> = {};
+  const get = (id: string): any => factById(v2, id)?.value;
+  for (const e of POSITION_REGISTRY) {
+    const v: any = get(e.factsKey);
+    if (v && typeof v.longitude === 'number') out[e.nestedKey] = v.longitude;
+  }
+  const sun: any = get('natal.sun.position');
+  if (sun && typeof sun.house === 'number') out['sunHouse'] = sun.house;
+  return out;
+}
+
+const BODY_REQUIRED: FieldCheck[] = POSITION_REGISTRY
+  .filter((e) => e.kind !== 'derived')
+  .map((e) => buildPositionRegistryCheck(e));
+const DERIVED_BODY_REQUIRED: FieldCheck[] = POSITION_REGISTRY
+  .filter((e) => e.kind === 'derived')
+  .map((e) => buildPositionRegistryCheck(e));
+
+// F13-1: every generated position wrapper must account to the registry. Any wrapper whose
+// facts-map key is not a registry key AND whose kind is 'position' is an escaped position fact.
+const BODY_ESCAPE_CHECK: FieldCheck = {
+  path: 'facts.* (no escaped position wrappers)',
+  check: (v2: VerifiedFactsV2) => {
+    for (const id of Object.keys(v2.facts)) {
+      const f: any = v2.facts[id];
+      if (f && f.kind === 'position' && !POSITION_REGISTRY_MAP_GUARD.has(id)) {
+        return `escaped position wrapper ${id} is not in the authoritative registry`;
+      }
+    }
+    return null;
+  },
 };
-const BODY_REQUIRED: FieldCheck[] = ROOT_BODY_FACTS.map((id) => ({
-  path: `facts.${id}`,
-  check: (v2) => validateCanonicalPositionFact(v2, id, factById(v2, id), 'root', []),
-}));
-const DERIVED_BODY_REQUIRED: FieldCheck[] = Object.entries(DERIVED_BODY_FACTS).map(([id, provenance]) => ({
-  path: `facts.${id}`,
-  check: (v2) => validateCanonicalPositionFact(
-    v2,
-    id,
-    factById(v2, id),
-    'derived',
-    provenance,
-    id === 'natal.partoffortune.position',
-  ),
-}));
+const POSITION_REGISTRY_MAP_GUARD = new Set(POSITION_REGISTRY.map((e) => e.factsKey));
 
 // ---- A4 report-specific evidence bundles (R2-B4) ----
 function relationshipEvidenceCheck(v2: VerifiedFactsV2): string | null {
@@ -923,7 +975,7 @@ const REPORT_REQUIRED: Record<ReportType, FieldCheck[]> = {
 
 export function preflightReport(reportType: ReportType, v2: VerifiedFactsV2): PreflightResult {
   const all: FieldCheck[] = [
-    ...COMMON_POSITION_FIELDS, ...COMMON_POINT_FIELDS, ...BODY_REQUIRED, ...DERIVED_BODY_REQUIRED, COMMON_CONSISTENCY, ...(REPORT_REQUIRED[reportType] || []),
+    ...COMMON_POSITION_FIELDS, ...COMMON_POINT_FIELDS, ...BODY_REQUIRED, ...DERIVED_BODY_REQUIRED, BODY_ESCAPE_CHECK, COMMON_CONSISTENCY, ...(REPORT_REQUIRED[reportType] || []),
   ];
   const missing: string[] = [];
   for (const f of all) {

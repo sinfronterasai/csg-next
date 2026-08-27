@@ -5,14 +5,14 @@
 // selected timestamp, and selected value. ASC/MC/node signs are derived deterministically
 // from the external longitude. CosmyDay SHA-256 is recomputed from exact committed bytes.
 
-import { computeVerifiedCommon } from '@/lib/reportFacts/derived';
+import { computeVerifiedCommon, mechanicalJplTimestamps, enforceJplSequenceAuthority } from '@/lib/reportFacts/derived';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 import {
   REFERENCE_INSTANT, SOURCE_METADATA, FIXED_EXPECTED, TOLERANCES, QUERY_LOG, EXTERNAL_CHART_REQUEST,
-  JPL_MANIFEST, JPL_LON_DP,
+  JPL_MANIFEST, JPL_LON_DP, deriveStepMinutes,
 } from './fixtures/independentReferenceCorpus';
 import type { JplManifestRow } from './fixtures/independentReferenceCorpus';
 
@@ -38,10 +38,16 @@ function jplTimestamps(result: string): string[] {
   return jplRows(result).map(jplTimestamp);
 }
 function expectJplTimestampSequence(result: string, row: JplManifestRow): void {
+  // F13-4: the expected ordered sequence is MECHANICALLY generated from start/stop/step; the
+  // hand-written row.timestamps list is no longer trusted as a second source of truth.
+  const expected = mechanicalJplTimestamps(row.start, row.stop, row.step);
   const timestamps = jplTimestamps(result);
-  expect(timestamps).toEqual(row.timestamps);
+  expect(timestamps).toEqual(expected);
   expect(new Set(timestamps).size).toBe(timestamps.length);
   expect(timestamps.filter((timestamp) => timestamp === row.timeToken)).toHaveLength(1);
+  // Full authority: the raw unsorted sequence equals the mechanical expectation exactly.
+  const fail = enforceJplSequenceAuthority(result, row);
+  expect(fail).toBeNull();
 }
 // F12-6: selected timestamps are exact and unique, never first-substring-match wins.
 function jplRowFromResult(result: string, file: string, timeToken: string): string {
@@ -144,7 +150,7 @@ function verifyJplArtifact(row: JplManifestRow, d: any = readJpl(row.file)): num
   const rows = jplRows(d.result);
   expect(rows.length).toBe(row.expRows);
   expectJplTimestampSequence(d.result, row);
-  expect(jplHeader(d.result, 'Step-size')).toBe(`${row.stepMinutes} minutes`);
+  expect(jplHeader(d.result, 'Step-size')).toBe(`${deriveStepMinutes(row.step)} minutes`);
   const sel = jplRowFromResult(d.result, row.file, row.timeToken);
   const lon = jplLonFromRow(sel, row.file, row.timeToken);
   // F11-4: EVERY fixed longitude is tied to its parsed selected raw row at the manifest's
@@ -244,11 +250,10 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
     }
   });
 
-  test('every JPL manifest row locks the complete ordered timestamp sequence and raw step', () => {
+  test('every JPL manifest row locks the complete ordered timestamp sequence (mechanical authority)', () => {
     for (const row of JPL_MANIFEST) {
       const raw = readJpl(row.file);
       expectJplTimestampSequence(raw.result, row);
-      expect(jplHeader(raw.result, 'Step-size')).toBe(`${row.stepMinutes} minutes`);
       const params = decodeQueryParams(QUERY_LOG[row.queryKey]);
       expect(params.STEP_SIZE).toBe(`'${row.step}'`);
     }
@@ -256,7 +261,7 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
 
   test('duplicate selected timestamp replacing an expected row fails the sequence contract', () => {
     const row = JPL_MANIFEST.find((candidate) => candidate.file === 'sun_paris_1990-06-15T10.json')!;
-    expect(row.timestamps).toEqual([
+    expect(mechanicalJplTimestamps(row.start, row.stop, row.step)).toEqual([
       '1990-Jun-15 09:00',
       '1990-Jun-15 10:00',
       '1990-Jun-15 11:00',
