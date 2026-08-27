@@ -1,18 +1,15 @@
-// F9-1 / F9-2 / EXTERNAL-CHART-UNBLOCK: TRACEABLE EXTERNAL REFERENCE CORPUS.
+// F10-1 / F10-2 / F9-2 / EXTERNAL-CHART-UNBLOCK: TRACEABLE EXTERNAL REFERENCE CORPUS.
 //
 // PRIMARY independent astronomical cross-check: NASA/JPL Horizons API raw responses
 // (signature {"source":"NASA/JPL Horizons API","version":"1.2"}), committed under
-// tests/reports/fixtures/jpl-raw/*.json. Every fixed constant below is parsed from a
-// committed raw row (see the parse-linked test in factsV2-independent-ephemeris.test.ts).
+// tests/reports/fixtures/jpl-raw/*.json. Every fixed constant is parsed from a committed
+// raw row and linked to its exact query (see factsV2-independent-ephemeris.test.ts).
 //
 // SECONDARY external chart-service result: CosmyDay (https://cosmyday.com), committed raw
 // under tests/reports/fixtures/jpl-raw/cosmyday-paris-1990-06-15T12-local.json. Its docs
 // state it computes with Swiss Ephemeris, so it is an EXTERNAL SERVICE RESULT, not an
 // algorithmically independent engine. It supplies the external ASC, MC, selected node, and
 // the complete standard-planet retrograde determination used to derive FIXED_EXPECTED.retrograde.
-//
-// Attribution rule: JPL = primary astronomical cross-check (Sun/Moon/planet positions,
-// unknown-time Moon boundaries). CosmyDay = external service result for ASC/MC/node + retrograde.
 
 export const REFERENCE_INSTANT = {
   utc: '1990-06-15T10:00:00Z',
@@ -36,25 +33,58 @@ export const SOURCE_METADATA = {
   nodeType: 'true-north-node',
 };
 
-// F9-1: exact encoded JPL query URLs (machine-readable; every value contains the full
-// method/params so the test can assert MAKE_EPHEM / STEP_SIZE / CSV_FORMAT are present).
-const JPL_BASE = 'https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27__CMD__%27&OBJ_DATA=%27NO%27&MAKE_EPHEM=%27YES%27&EPHEM_TYPE=%27OBSERVER%27&CENTER=%27500@399%27&START_TIME=%271990-06-15+09%3A00%27&STOP_TIME=%271990-06-15+11%3A00%27&STEP_SIZE=%271+h%27&QUANTITIES=%2731%27&CSV_FORMAT=%27YES%27&ANG_FORMAT=%27DEG%27';
-export const QUERY_LOG: Record<string, string> = {
-  sun_paris_1990_06_15T10: JPL_BASE.replace('__CMD__', '10'),
-  moon_paris_1990_06_15T10: JPL_BASE.replace('__CMD__', '301'),
-  planet_199_retro: JPL_BASE.replace('__CMD__', '199'),
-  planet_299_retro: JPL_BASE.replace('__CMD__', '299'),
-  planet_499_retro: JPL_BASE.replace('__CMD__', '499'),
-  planet_599_retro: JPL_BASE.replace('__CMD__', '599'),
-  planet_699_retro: JPL_BASE.replace('__CMD__', '699'),
-  planet_799_retro: JPL_BASE.replace('__CMD__', '799'),
-  planet_899_retro: JPL_BASE.replace('__CMD__', '899'),
-  planet_999_retro: JPL_BASE.replace('__CMD__', '999'),
-  moon_solar_start: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-15%2021%3A00').replace('1990-06-15%2011%3A00', '1990-06-16%2001%3A00'),
-  moon_solar_end: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-16%2020%3A00').replace('1990-06-15%2011%3A00', '1990-06-16%2022%3A00'),
-  moon_invariant_start: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-10%2021%3A00').replace('1990-06-15%2011%3A00', '1990-06-11%2001%3A00'),
-  moon_invariant_end: JPL_BASE.replace('__CMD__', '301').replace('1990-06-15%2009%3A00', '1990-06-11%2020%3A00').replace('1990-06-15%2011%3A00', '1990-06-11%2022%3A00'),
+// F10-1: each JPL query is generated from a machine-readable parameter object and encoded
+// deterministically (encodeURIComponent per value + '&' join). No fragile string replacement.
+interface JplQuery {
+  COMMAND: string; OBJ_DATA: string; MAKE_EPHEM: string; EPHEM_TYPE: string; CENTER: string;
+  START_TIME: string; STOP_TIME: string; STEP_SIZE: string; QUANTITIES: string; CSV_FORMAT: string; ANG_FORMAT: string;
+}
+const JPL_BASE_PARAMS: Omit<JplQuery, 'COMMAND' | 'START_TIME' | 'STOP_TIME'> = {
+  OBJ_DATA: "'NO'", MAKE_EPHEM: "'YES'", EPHEM_TYPE: "'OBSERVER'", CENTER: "'500@399'",
+  STEP_SIZE: "'1 h'", QUANTITIES: "'31'", CSV_FORMAT: "'YES'", ANG_FORMAT: "'DEG'",
 };
+function buildJplUrl(cmd: string, start: string, stop: string): string {
+  const q: JplQuery = { ...JPL_BASE_PARAMS, COMMAND: `'${cmd}'`, START_TIME: `'${start}'`, STOP_TIME: `'${stop}'` };
+  const qs = Object.entries(q).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  return `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&${qs}`;
+}
+// F10-JPL: ONE manifest row owns file, queryKey, command/target token, center token, the
+// exact artifact window, row count, selected timestamp and selected longitude. These windows
+// ARE the committed raw artifact header windows — no separate "intended" windows exist.
+// QUERY_LOG is generated from these same rows, so a query and its artifact cannot drift.
+export interface JplManifestRow {
+  file: string;
+  queryKey: string;
+  command: string;
+  target: string;
+  center: string;
+  start: string;
+  stop: string;
+  expRows: number;
+  timeToken: string;
+  expLon: number;
+}
+
+export const JPL_MANIFEST: JplManifestRow[] = [
+  { file: 'sun_paris_1990-06-15T10.json', queryKey: 'sun_paris_1990_06_15T10', command: '10', target: 'Sun (10)', center: 'Earth (399)', start: '1990-06-15 09:00', stop: '1990-06-15 11:00', expRows: 3, timeToken: '1990-Jun-15 10:00', expLon: 84.04995 },
+  { file: 'moon_paris_1990-06-15T10.json', queryKey: 'moon_paris_1990_06_15T10', command: '301', target: 'Moon (301)', center: 'Earth (399)', start: '1990-06-15 09:00', stop: '1990-06-15 11:00', expRows: 3, timeToken: '1990-Jun-15 10:00', expLon: 344.2458 },
+  { file: 'moon_solar_start.json', queryKey: 'moon_solar_start', command: '301', target: 'Moon (301)', center: 'Earth (399)', start: '1990-06-15 21:00', stop: '1990-06-15 23:00', expRows: 3, timeToken: '1990-Jun-15 22:00', expLon: 350.956 },
+  { file: 'moon_solar_end.json', queryKey: 'moon_solar_end', command: '301', target: 'Moon (301)', center: 'Earth (399)', start: '1990-06-16 20:59', stop: '1990-06-16 22:59', expRows: 3, timeToken: '1990-Jun-16 21:59', expLon: 4.651 },
+  { file: 'moon_invariant_start.json', queryKey: 'moon_invariant_start', command: '301', target: 'Moon (301)', center: 'Earth (399)', start: '1990-06-10 21:00', stop: '1990-06-10 23:00', expRows: 3, timeToken: '1990-Jun-10 22:00', expLon: 287.098 },
+  { file: 'moon_invariant_end.json', queryKey: 'moon_invariant_end', command: '301', target: 'Moon (301)', center: 'Earth (399)', start: '1990-06-11 20:59', stop: '1990-06-11 22:59', expRows: 3, timeToken: '1990-Jun-11 21:59', expLon: 299.397 },
+  { file: 'planet_199_retro.json', queryKey: 'planet_199_retro', command: '199', target: 'Mercury (199)', center: 'Earth (399)', start: '1990-06-15 09:00', stop: '1990-06-15 11:00', expRows: 3, timeToken: '1990-Jun-15 10:00', expLon: 65.54785 },
+  { file: 'planet_299_retro.json', queryKey: 'planet_299_retro', command: '299', target: 'Venus (299)', center: 'Earth (399)', start: '1990-06-15 09:00', stop: '1990-06-15 11:00', expRows: 3, timeToken: '1990-Jun-15 10:00', expLon: 48.67959 },
+  { file: 'planet_499_retro.json', queryKey: 'planet_499_retro', command: '499', target: 'Mars (499)', center: 'Earth (399)', start: '1990-06-15 09:00', stop: '1990-06-15 11:00', expRows: 3, timeToken: '1990-Jun-15 10:00', expLon: 10.98138 },
+  { file: 'planet_599_retro.json', queryKey: 'planet_599_retro', command: '599', target: 'Jupiter (599)', center: 'Earth (399)', start: '1990-06-15 10:00', stop: '1990-06-16 10:00', expRows: 2, timeToken: '1990-Jun-15 10:00', expLon: 105.87143 },
+  { file: 'planet_699_retro.json', queryKey: 'planet_699_retro', command: '699', target: 'Saturn (699)', center: 'Earth (399)', start: '1990-06-15 10:00', stop: '1990-06-16 10:00', expRows: 2, timeToken: '1990-Jun-15 10:00', expLon: 294.03681 },
+  { file: 'planet_799_retro.json', queryKey: 'planet_799_retro', command: '799', target: 'Uranus (799)', center: 'Earth (399)', start: '1990-06-15 10:00', stop: '1990-06-16 10:00', expRows: 2, timeToken: '1990-Jun-15 10:00', expLon: 278.16844 },
+  { file: 'planet_899_retro.json', queryKey: 'planet_899_retro', command: '899', target: 'Neptune (899)', center: 'Earth (399)', start: '1990-06-15 10:00', stop: '1990-06-16 10:00', expRows: 2, timeToken: '1990-Jun-15 10:00', expLon: 283.71915 },
+  { file: 'planet_999_retro.json', queryKey: 'planet_999_retro', command: '999', target: 'Pluto (999)', center: 'Earth (399)', start: '1990-06-15 10:00', stop: '1990-06-16 10:00', expRows: 2, timeToken: '1990-Jun-15 10:00', expLon: 225.40317 },
+];
+
+export const QUERY_LOG: Record<string, string> = Object.fromEntries(
+  JPL_MANIFEST.map((r) => [r.queryKey, buildJplUrl(r.command, r.start, r.stop)]),
+);
 
 // Machine-readable external chart-service manifest (CosmyDay).
 export const EXTERNAL_CHART_REQUEST = {
@@ -74,17 +104,14 @@ export const EXTERNAL_CHART_REQUEST = {
   rawFile: 'tests/reports/fixtures/jpl-raw/cosmyday-paris-1990-06-15T12-local.json',
 };
 
-// F9-2: fixed external values. Sun/Moon + unknown-time boundaries from JPL (primary).
-// ASC/MC/selected-node + retrograde from CosmyDay (external service result).
+// F10-2: fixed external values. ASC/MC/node signs are derived deterministically from the
+// EXTERNAL longitude (tropical, 30°/sign). 58.0384° -> Taurus (index 1), NOT Virgo.
 export const FIXED_EXPECTED = {
   sun: { longitude: 84.04995, sign: 'gemini' },
   moon: { longitude: 344.2458, sign: 'pisces' },
-  // External chart-service values (CosmyDay, Swiss-Ephemeris-based; external result, not engine).
   ascendant: { longitude: 155.1452, sign: 'virgo' },
-  midheaven: { longitude: 58.0384, sign: 'virgo' },
+  midheaven: { longitude: 58.0384, sign: 'taurus' },
   northNode: { longitude: 308.1207, sign: 'aquarius' },
-  // Retrograde set is DERIVED from CosmyDay planets[*].retrograde in the test; this is the
-  // expected result of that derivation (Mercury/Venus/Mars/Jupiter direct; Saturn/Uranus/Neptune/Pluto retro).
   retrograde: ['saturn', 'uranus', 'neptune', 'pluto'],
   unknownTimeSolar: {
     moonStart: { utc: '1990-06-15T22:00:00Z', local: '1990-06-16T00:00:00+02:00', longitude: 350.956 },

@@ -10,13 +10,44 @@
 
 import type { ReportType, VerifiedFactsV2, PreflightResult, VerifiedFact } from './types';
 import type { ScoreBand } from './scores';
-import { ASPECT_ORBS, rulerKeyForSign } from './derived';
+import { ASPECT_ORBS, rulerKeyForSign, aspectWeight } from './derived';
 import { dignityFor, signFromLongitude, getPlanet, getSign, SIGNS } from '@/lib/astrology';
 
 // Mirror of derived.ts DIGNITY_LABEL (not exported there).
 const DIGNITY_LABEL: Record<string, string> = {
   domicile: 'in domicile', exaltation: 'exalted', detriment: 'in detriment', fall: 'in fall',
 };
+
+// ---- reusable exact-key validator (F10) ----
+function exactKeys(obj: unknown, required: readonly string[], optional: readonly string[] = []): string | null {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return 'not an object';
+  const allowed = new Set<string>([...required, ...optional]);
+  const keys = Object.keys(obj as Record<string, unknown>);
+  for (const k of required) if (!keys.includes(k)) return `missing required key: ${k}`;
+  for (const k of keys) if (!allowed.has(k)) return `unexpected key: ${k}`;
+  return null;
+}
+
+// Max legitimate divergence when recomputing from 2dp-rounded published longitudes:
+// 0.005 rounding per endpoint, then a final round2 of the derived orb.
+const ROUNDING_SLACK = 0.02;
+
+function norm360(x: number): number { return ((x % 360) + 360) % 360; }
+function angularDistance(a: number, b: number): number {
+  const d = Math.abs(norm360(a) - norm360(b));
+  return Math.min(d, 360 - d);
+}
+
+function canonicalAspectId(bodyA: string, bodyB: string, type: string): string {
+  const [first, second] = bodyA <= bodyB ? [bodyA, bodyB] : [bodyB, bodyA];
+  return `natal.aspect.${first}-${second}-${type}`;
+}
+
+function safeMessage(e: unknown): string {
+  if (e instanceof Error) return `${e.name}: ${e.message}`;
+  if (typeof e === 'string') return e;
+  return 'unknown validator error';
+}
 
 // ---- fact accessors ----
 function factById(v2: VerifiedFactsV2, id: string): VerifiedFact | undefined {
@@ -173,7 +204,9 @@ function requireExactAspectSet(got: any, expected: string[], label: string): str
 // Reject duplicate IDs explicitly.
 function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
   const canonical = canonicalAspectFacts(v2);
-  const common: any[] = commonField(v2, 'aspects') || [];
+  const commonAny: any = commonField(v2, 'aspects');
+  if (!Array.isArray(commonAny)) return 'common.aspects is not an array';
+  const common: any[] = commonAny;
   // Reject duplicate IDs in the common index.
   const seen = new Set<string>();
   for (const a of common) {
@@ -206,34 +239,80 @@ function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
   }
   return null;
 }
-// F9-5: independently validate a canonical aspect fact: source, id, structured endpoints,
-// type, value semantics, and exact ordered endpoint provenance.
+// F9-5 / F10-6: independently validate a canonical aspect fact against the FULL deterministic
+// contract. Agreement between two corrupted copies must not establish authority; the canonical
+// fact itself must be sound: source, id, structured endpoints, locked type, orb/weight/label
+// semantics, exact display, exact allowed keys, and exact ordered endpoint provenance.
 function validateCanonicalAspectFact(v2: VerifiedFactsV2, fact: any): string | null {
   if (!fact || fact.kind !== 'aspect') return 'not an aspect fact';
   if (fact.source !== 'derived-deterministic') return `aspect ${fact.id} source ${fact.source} != derived-deterministic`;
+  const idErr = exactKeys(fact, ['id', 'kind', 'source', 'display', 'value', 'provenance']);
+  if (idErr) return `wrapper ${idErr}`;
   const av: any = fact.value;
   if (!av || typeof av.bodyA !== 'string' || typeof av.bodyB !== 'string') return `aspect ${fact.id} missing endpoints`;
   if (av.bodyA === av.bodyB) return `aspect ${fact.id} degenerate endpoints`;
-  // exact ordered endpoint provenance: [natal.bodyA.position, natal.bodyB.position]
+  if (fact.id !== canonicalAspectId(av.bodyA, av.bodyB, av.aspectType)) {
+    return `aspect ${fact.id} id != canonical ${canonicalAspectId(av.bodyA, av.bodyB, av.aspectType)}`;
+  }
+  const def = ASPECT_ORBS.find((a) => a.type === av.aspectType);
+  if (!def) return `aspect ${fact.id} invalid aspectType: ${av.aspectType}`;
+  const longs: Record<string, number> = {};
+  const labels: Record<string, string> = {};
+  for (const b of [av.bodyA, av.bodyB]) {
+    const pf = factById(v2, `natal.${b}.position`);
+    if (!pf || pf.kind !== 'position') return `aspect ${fact.id} endpoint ${b} unresolved`;
+    const pv: any = pf.value;
+    if (!pv || typeof pv !== 'object' || typeof pv.longitude !== 'number') return `aspect ${fact.id} endpoint ${b} value invalid`;
+    if (typeof pv.label !== 'string' || pv.label.length === 0) return `aspect ${fact.id} endpoint ${b} label invalid`;
+    longs[b] = pv.longitude;
+    // The endpoint POSITION fact is the authority for a body's label. The static PLANETS
+    // table does not carry every charted body (e.g. juno), so it cannot be the source here.
+    labels[b] = pv.label;
+  }
+  const dist = angularDistance(longs[av.bodyA], longs[av.bodyB]);
+  const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
+  const orbLimit = def.minor ? 2 : ((av.bodyA === 'sun' || av.bodyA === 'moon' || av.bodyB === 'sun' || av.bodyB === 'moon') ? 10 : 8);
+  // Position facts publish longitudes rounded to 2dp, while production computes the aspect from
+  // FULL-precision longitudes. Each endpoint therefore carries up to 0.005 of rounding, so the
+  // recomputed orb can legitimately differ from the published orb by up to ROUNDING_SLACK.
+  // This is a precision allowance, not a correctness allowance: anything larger is tampering.
+  if (error > orbLimit + ROUNDING_SLACK) return `aspect ${fact.id} orb error ${error.toFixed(4)} exceeds limit ${orbLimit}`;
+  const expectedOrb = Math.round(error * 100) / 100;
+  if (typeof av.orb !== 'number' || Math.abs(av.orb - expectedOrb) > ROUNDING_SLACK) return `aspect ${fact.id} orb ${av.orb} != recomputed ${expectedOrb}`;
   const expProv = [`natal.${av.bodyA}.position`, `natal.${av.bodyB}.position`];
   if (JSON.stringify(fact.provenance) !== JSON.stringify(expProv)) {
     return `aspect ${fact.id} provenance ${JSON.stringify(fact.provenance)} != ${JSON.stringify(expProv)}`;
   }
-  // each endpoint must resolve to a real position fact
-  for (const b of [av.bodyA, av.bodyB]) {
-    const pf = factById(v2, `natal.${b}.position`);
-    if (!pf || pf.kind !== 'position') return `aspect ${fact.id} endpoint ${b} unresolved`;
-  }
+  const exact = error < 0.1, tight = error < 1.0;
+  if (av.exact !== exact) return `aspect ${fact.id} exact ${av.exact} != ${exact}`;
+  if (av.tight !== tight) return `aspect ${fact.id} tight ${av.tight} != ${tight}`;
+  if (av.minor !== def.minor) return `aspect ${fact.id} minor ${av.minor} != ${def.minor}`;
+  // weight is a function of the orb, so it inherits the same rounding slack via av.orb
+  const expectedWeight = aspectWeight(def.type, av.orb);
+  if (typeof av.weight !== 'number' || Math.abs(av.weight - expectedWeight) > 0.01) return `aspect ${fact.id} weight ${av.weight} != ${expectedWeight}`;
+  if (av.bodyALabel !== labels[av.bodyA]) return `aspect ${fact.id} bodyALabel ${av.bodyALabel} != ${labels[av.bodyA]}`;
+  if (av.bodyBLabel !== labels[av.bodyB]) return `aspect ${fact.id} bodyBLabel ${av.bodyBLabel} != ${labels[av.bodyB]}`;
+  // display is asserted against av.orb, which was already proven numerically above against the
+  // recomputed orb. Using expectedOrb here would re-introduce the 2dp rounding divergence.
+  const expectedDisplay = `${labels[av.bodyA]} ${def.type} ${labels[av.bodyB]} (orb ${av.orb}°)`;
+  if (fact.display !== expectedDisplay) return `aspect ${fact.id} display ${fact.display} != ${expectedDisplay}`;
   return null;
 }
 
 // F8-8: validate a single cusp fact by full content. The critical check is that the
 // declared sign/signLabel agree with the canonical sign derived from cuspLongitude, so a
 // tampered cusp (sign changed, longitude kept) is caught BEFORE the ruler is derived.
+// F10-5: validate a cusp fact by the FULL exact contract: map-key/id agreement, kind, source,
+// deterministic display, exact value keys/content, and locked empty provenance. Rejects
+// unexpected wrapper/value metadata. Production emits source 'swiss-ephemeris' with the
+// locked empty-provenance convention and display `House N cusp <signLabel>`.
 function validateCuspFact(v2: VerifiedFactsV2, cuspId: string): string | null {
   const f: any = factById(v2, cuspId);
   if (!f) return `cusp ${cuspId} missing`;
+  if (f.id !== cuspId) return `cusp ${cuspId} id ${f.id} != map key`;
   if (f.kind !== 'point') return `cusp ${cuspId} kind ${f.kind} != point`;
+  const wrapErr = exactKeys(f, ['id', 'kind', 'source', 'display', 'value', 'provenance']);
+  if (wrapErr) return `wrapper ${wrapErr}`;
   const num = Number(cuspId.replace('common.cusp.', ''));
   if (!Number.isInteger(num) || num < 1 || num > 12) return `cusp id ${cuspId} does not encode a house number`;
   const v: any = f.value;
@@ -242,10 +321,12 @@ function validateCuspFact(v2: VerifiedFactsV2, cuspId: string): string | null {
   const expectedSign = signFromLongitude(v.cuspLongitude);
   if (v.sign !== expectedSign.sign.key) return `cusp ${cuspId} sign ${v.sign} != derived ${expectedSign.sign.key} from cuspLongitude ${v.cuspLongitude}`;
   if (v.signLabel !== expectedSign.sign.label) return `cusp ${cuspId} signLabel ${v.signLabel} != ${expectedSign.sign.label}`;
-  // F9-4: cusp wrapper source/provenance must be canonical exact semantics.
-  // Production emits swiss-ephemeris source with the locked empty-provenance convention.
+  const valErr = exactKeys(v, ['num', 'cuspLongitude', 'sign', 'signLabel']);
+  if (valErr) return `value ${valErr}`;
   if (f.source !== 'swiss-ephemeris') return `cusp ${cuspId} source ${f.source} != swiss-ephemeris`;
   if (!Array.isArray(f.provenance) || f.provenance.length !== 0) return `cusp ${cuspId} provenance ${JSON.stringify(f.provenance)} != locked empty []`;
+  const expectedDisplay = `House ${num} cusp ${expectedSign.sign.label}`;
+  if (f.display !== expectedDisplay) return `cusp ${cuspId} display ${f.display} != ${expectedDisplay}`;
   return null;
 }
 // F8-8: common.houses must equal the complete flat cusp-fact set by full content.
@@ -306,6 +387,7 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   if (!ctx || typeof ctx !== 'object') return `context ${contextId} missing or invalid`;
   // Cusp facts are kind 'point'; node facts are kind 'position'. Unwrap to the value.
   const ctxVal: any = (ctx.kind === 'position' || ctx.kind === 'point') ? ctx.value : ctx;
+  if (!ctxVal || typeof ctxVal !== 'object') return `context ${contextId} has no value`;
   const ctxSign = ctxVal.sign;
   if (typeof ctxSign !== 'string' || !ctxSign) return `context ${contextId} missing sign`;
   const expectedRuler = rulerKeyForSign(ctxSign);
@@ -339,29 +421,54 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   return null;
 }
 
+// F10-4: ordinal helper (mirrors derived.ts) for deterministic display derivation.
+function ordinal(n: number): string {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+// F10-4: derive the canonical POF display from value semantics (so coordinated false
+// displays cannot establish authority). POF has no dignity/retrograde.
+function derivePofDisplay(value: any): string {
+  const { sign, degreeInSign } = signFromLongitude(value.longitude);
+  const houseStr = value.house != null ? ` in the ${ordinal(value.house)} house` : '';
+  return `Part of Fortune at ${degreeInSign.toFixed(2)}° ${sign.label}${houseStr}`;
+}
+// F10-4: validate a POF wrapper against the exact contract. `factsKey` is the map key
+// (must equal the wrapper id). Rejects unexpected wrapper/value metadata.
+const POF_WRAPPER_KEYS = ['id','kind','source','display','value','provenance'];
+const POF_VALUE_KEYS = ['key','label','longitude','degreeInSign','sign','signLabel','house','retrograde','dignity','sect','formula'];
+function validatePofWrapper(v2: VerifiedFactsV2, wrapper: any, factsKey: string): string | null {
+  if (!wrapper || typeof wrapper !== 'object') return 'POF wrapper absent';
+  for (const k of Object.keys(wrapper)) if (!POF_WRAPPER_KEYS.includes(k)) return `POF wrapper unexpected key: ${k}`;
+  if (wrapper.id !== factsKey) return `POF id ${wrapper.id} != facts map key ${factsKey}`;
+  if (wrapper.kind !== 'position') return `POF kind ${wrapper.kind} != position`;
+  if (wrapper.source !== 'derived-deterministic') return `POF source ${wrapper.source} != derived-deterministic`;
+  if (typeof wrapper.display !== 'string' || !wrapper.display) return 'POF missing display';
+  const value = wrapper.value;
+  if (!value || typeof value !== 'object') return 'POF value absent';
+  for (const k of Object.keys(value)) if (!POF_VALUE_KEYS.includes(k)) return `POF value unexpected key: ${k}`;
+  const posErr = isPositionFact(value);
+  if (posErr) return `POF position semantics: ${posErr}`;
+  const expectedDisplay = derivePofDisplay(value);
+  if (wrapper.display !== expectedDisplay) return `POF display ${wrapper.display} != derived ${expectedDisplay}`;
+  const prov = ['natal.ascendant.position','natal.moon.position','natal.sun.position'];
+  if (JSON.stringify(wrapper.provenance) !== JSON.stringify(prov)) return `POF provenance ${JSON.stringify(wrapper.provenance)} != ASC/Sun/Moon (ordered)`;
+  return null;
+}
 // F5-5: Part-of-Fortune validator (position shape + sect/formula + provenance).
 // v may be a VerifiedFact wrapper (kind:'position', value holds sect/formula) or a
 // bare position object. Unwrap before reading sect/formula; read provenance from the
 // outer wrapper when present.
-// F9-3: validate BOTH Part-of-Fortune wrappers across the complete wrapper contract.
-// Requires exact id, kind:'position', source:'derived-deterministic', display, value
-// (sect/formula + position shape), and exact ordered provenance. Rejects unexpected
-// wrapper metadata, not just the nested value.
+// F10-4: validate the COMMON POF wrapper using the full contract. The flat POF fact is
+// validated separately (validatePofWrapper with its facts-map key).
 function isPartOfFortune(v2: VerifiedFactsV2, v: any, expectedId: string): string | null {
-  if (!v || typeof v !== 'object') return 'absent';
-  if (v.id !== expectedId) return `POF id ${v.id} != ${expectedId}`;
-  if (v.kind !== 'position') return `POF kind ${v.kind} != position`;
-  if (v.source !== 'derived-deterministic') return `POF source ${v.source} != derived-deterministic`;
-  if (typeof v.display !== 'string' || !v.display) return 'POF missing display';
-  if (!Array.isArray(v.provenance)) return 'POF provenance not array';
-  const value = v.value;
-  const posErr = isPositionFact(v);
-  if (posErr) return `position: ${posErr}`;
+  const err = validatePofWrapper(v2, v, expectedId);
+  if (err) return err;
+  // value sect/formula semantics (POF-specific, beyond the generic position value).
+  const value: any = v.value;
   if (value.sect !== 'day' && value.sect !== 'night') return `invalid sect: ${value.sect}`;
   const expectedFormula = value.sect === 'day' ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
   if (value.formula !== expectedFormula) return `formula ${value.formula} != ${expectedFormula}`;
-  const prov = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'];
-  if (JSON.stringify(v.provenance) !== JSON.stringify(prov)) return `POF provenance ${JSON.stringify(v.provenance)} != ASC/Sun/Moon (ordered)`;
   return null;
 }
 
@@ -455,6 +562,12 @@ const COMMON_CONSISTENCY: FieldCheck = {
     // ASC/Moon/Sun, and its value must equal the canonical alias value (wrapper vs alias).
     const flatPof = factById(v2, 'natal.partoffortune.position');
     if (!flatPof) return 'flat partoffortune fact missing';
+    // The flat fact is held to the SAME full wrapper contract as the common alias: exact
+    // allowed keys, id equal to its facts-map key, kind/source, derived display, and ordered
+    // provenance. Checking only source/provenance let a mismatched id or injected wrapper
+    // metadata through, so agreement between the two copies could not be trusted.
+    const flatErr = isPartOfFortune(v2, flatPof, 'natal.partoffortune.position');
+    if (flatErr) return `flat partOfFortune: ${flatErr}`;
     if (flatPof.source !== 'derived-deterministic') return `flat POF source ${flatPof.source} != derived-deterministic`;
     const expFlatProv = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'].sort();
     const gotFlatProv = [...(flatPof.provenance || [])].sort();
@@ -467,6 +580,10 @@ const COMMON_CONSISTENCY: FieldCheck = {
     const commonChk = requireCommonAspectsComplete(v2); if (commonChk) return commonChk;
     // F8-8: common.houses must equal the complete flat cusp-fact set by full content.
     const housesChk = requireHousesEqualCusps(v2); if (housesChk) return housesChk;
+    for (let n = 1; n <= 12; n++) {
+      const ce = validateCuspFact(v2, `common.cusp.${n}`);
+      if (ce) return `cusp ${n}: ${ce}`;
+    }
     return null;
   },
 };
@@ -720,8 +837,12 @@ export function preflightReport(reportType: ReportType, v2: VerifiedFactsV2): Pr
   ];
   const missing: string[] = [];
   for (const f of all) {
-    const err = f.check(v2);
-    if (err) missing.push(`${f.path} (${err})`);
+    try {
+      const err = f.check(v2);
+      if (err) missing.push(`${f.path} (${err})`);
+    } catch (e) {
+      missing.push(`${f.path} (validator exception: ${safeMessage(e)})`);
+    }
   }
   if (missing.length > 0) return { status: 'input_incomplete', missing, mode: 'preflight_failed' };
   return { status: 'complete', missing: [], mode: 'preflight_ok' };
