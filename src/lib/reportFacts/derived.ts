@@ -417,9 +417,14 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
     for (let j = i + 1; j < bodyList.length; j++) {
       const a = bodyList[i]; const b = bodyList[j];
       if (a.key === b.key) continue;
+      // F11-1: generation and validation share ONE authoritative precision basis. Position
+      // facts publish round2(longitude), so the aspect grid is computed from those SAME
+      // published longitudes. A validator recomputing from published endpoint positions then
+      // reproduces orb/weight/exact/tight exactly, so no acceptance band is needed.
+      const lonA = round2(a.longitude);
+      const lonB = round2(b.longitude);
       for (const def of ASPECT_ORBS) {
-        const dist = angularDistance(a.longitude, b.longitude);
-        // F5-6: retain FULL-precision error through all math; round only the display orb
+        const dist = angularDistance(lonA, lonB);
         const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
         const orbLimit = getOrbForBodies(def, a.key, b.key);
         if (error <= orbLimit) {

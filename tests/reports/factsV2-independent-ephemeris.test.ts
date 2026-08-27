@@ -12,7 +12,7 @@ import { createHash } from 'crypto';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 import {
   REFERENCE_INSTANT, SOURCE_METADATA, FIXED_EXPECTED, TOLERANCES, QUERY_LOG, EXTERNAL_CHART_REQUEST,
-  JPL_MANIFEST,
+  JPL_MANIFEST, JPL_LON_DP,
 } from './fixtures/independentReferenceCorpus';
 import type { JplManifestRow } from './fixtures/independentReferenceCorpus';
 
@@ -32,11 +32,21 @@ function jplRow(file: string, timeToken: string): string {
   if (!line) throw new Error(`no row matching ${timeToken} in ${file}`);
   return line;
 }
-// Quantity 31 row format: "YYYY-Mon-DD HH:MM, , , lon, lat,". The longitude is the 2nd field.
+// Quantity 31 row format: "YYYY-Mon-DD HH:MM, , , ObsEcLon, ObsEcLat,". The longitude is the
+// 2nd non-empty field. F11-4: parse the raw ObsEcLon of the SELECTED row — it is the only
+// authority for any fixed longitude constant.
 function jplLon(file: string, timeToken: string): number {
   const row = jplRow(file, timeToken);
   const parts = row.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
-  return parseFloat(parts[1]);
+  const lon = parseFloat(parts[1]);
+  if (!Number.isFinite(lon)) throw new Error(`unparseable ObsEcLon in ${file} row ${timeToken}`);
+  return lon;
+}
+// F11-4: round a parsed raw longitude at an EXPLICITLY declared precision. Used to tie every
+// fixed constant to its parsed raw row with no tolerance band.
+function roundTo(x: number, dp: number): number {
+  const f = Math.pow(10, dp);
+  return Math.round(x * f) / f;
 }
 // F10-1: table-driven JPL manifest. The manifest is imported from the fixtures corpus and is
 // the single source of truth: the same row's exact window generates QUERY_LOG and is asserted
@@ -56,9 +66,34 @@ function jplHeader(result: string, label: string): string {
   if (!v) throw new Error(`JPL header ${label} empty`);
   return v;
 }
-// F10-1: verify a committed raw artifact against the manifest + its exact query. Proves
-// signature/version, target body, center, requested window, row count, selected timestamp,
-// and selected longitude — and that the linked query encodes the same target/center/window.
+// F11-4: decode a linked query into an exact parameter map. Substring presence of a parameter
+// NAME proves nothing about its VALUE, so every asserted parameter is read from this map.
+function decodeQueryParams(url: string): Record<string, string> {
+  const qs = url.slice(url.indexOf('?') + 1);
+  const out: Record<string, string> = {};
+  for (const pair of qs.split('&')) {
+    const i = pair.indexOf('=');
+    if (i < 0) continue;
+    const k = decodeURIComponent(pair.slice(0, i).replace(/\+/g, ' '));
+    const v = decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
+    out[k] = v;
+  }
+  return out;
+}
+// F11-4: the exact decoded quantity/frame/format parameters every artifact query must carry.
+const REQUIRED_JPL_PARAMS: Record<string, string> = {
+  EPHEM_TYPE: "'OBSERVER'",
+  QUANTITIES: "'31'",
+  ANG_FORMAT: "'DEG'",
+  CSV_FORMAT: "'YES'",
+  CENTER: "'500@399'",
+  MAKE_EPHEM: "'YES'",
+  OBJ_DATA: "'NO'",
+};
+// F10-1 / F11-4: verify a committed raw artifact against the manifest + its exact query. Proves
+// signature/version, target body, center, requested window, row count, selected timestamp, the
+// exact decoded quantity/frame/format parameters, the raw observer-ecliptic quantity columns
+// and their declared degree/frame semantics, and the exact fixed longitude linkage.
 function verifyJplArtifact(row: JplManifestRow): number {
   const d = readJpl(row.file);
   expect(d.signature?.source).toContain('NASA/JPL Horizons API');
@@ -71,23 +106,40 @@ function verifyJplArtifact(row: JplManifestRow): number {
   // requested window from the raw header — same manifest field that generated the query
   expect(jplHeader(d.result, 'Start time')).toContain(toHeaderToken(row.start));
   expect(jplHeader(d.result, 'Stop  time')).toContain(toHeaderToken(row.stop));
+  // F11-4: the raw response must expose EXACTLY the requested observer-ecliptic quantity
+  // columns, in CSV degree form, with the documented observer-centered ecliptic frame.
+  const lines: string[] = d.result.split('\n');
+  const colHeader = lines.find((l) => l.includes('Date__(UT)__HR:MN') && l.includes('ObsEcLon'));
+  if (!colHeader) throw new Error(`${row.file}: no ObsEcLon column header`);
+  expect(colHeader.replace(/\s+/g, ' ').trim()).toBe('Date__(UT)__HR:MN, , , ObsEcLon, ObsEcLat,');
+  expect(jplHeader(d.result, 'RA format')).toBe('DEG');
+  expect(jplHeader(d.result, 'Table format')).toBe('Comma Separated Values (spreadsheet)');
+  const frameDoc = d.result.replace(/\s+/g, ' ');
+  expect(frameDoc).toContain("'ObsEcLon, ObsEcLat,' =");
+  expect(frameDoc).toContain('Observer-centered IAU76/80 ecliptic-of-date longitude and latitude');
+  expect(frameDoc).toContain('Units: DEGREES');
   // exact row count
-  const rows = d.result.split('\n').filter((l: string) => /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/.test(l));
+  const rows = lines.filter((l: string) => /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/.test(l));
   expect(rows.length).toBe(row.expRows);
   // selected row is present
   const sel = jplRow(row.file, row.timeToken);
   expect(sel).toContain(row.timeToken);
   const lon = jplLon(row.file, row.timeToken);
-  if (row.expLon !== 0) expect(Math.abs(lon - row.expLon)).toBeLessThanOrEqual(0.5);
+  // F11-4: EVERY fixed longitude is tied to its parsed selected raw row at the manifest's
+  // explicitly declared precision. No expLon === 0 bypass, no tolerance band.
+  expect(row.lonDp).toBe(JPL_LON_DP);
+  expect(roundTo(lon, row.lonDp)).toBe(row.expLon);
   // the linked query must encode the SAME target/center/window (no drifting constant)
   const q = QUERY_LOG[row.queryKey];
   if (!q) throw new Error(`no linked query for ${row.file}`);
-  const dec = decodeURIComponent(q.replace(/\+/g, ' '));
+  const params = decodeQueryParams(q);
   expect(row.target).toContain(`(${row.command})`);
-  expect(dec).toContain(`COMMAND='${row.command}'`);
-  expect(dec).toContain("CENTER='500@399'");
-  expect(dec).toContain(`START_TIME='${row.start}'`);
-  expect(dec).toContain(`STOP_TIME='${row.stop}'`);
+  expect(params.COMMAND).toBe(`'${row.command}'`);
+  expect(params.START_TIME).toBe(`'${row.start}'`);
+  expect(params.STOP_TIME).toBe(`'${row.stop}'`);
+  for (const [k, v] of Object.entries(REQUIRED_JPL_PARAMS)) {
+    expect(params[k]).toBe(v);
+  }
   return lon;
 }
 
@@ -102,12 +154,18 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
   });
 
   test('QUERY_LOG entries are exact encoded JPL URLs with required params', () => {
+    // F11-4: assert exact decoded parameter VALUES, not substring presence of names.
     for (const q of Object.values(QUERY_LOG)) {
       expect(q).toContain('https://ssd.jpl.nasa.gov/api/horizons.api?');
-      expect(q).toContain('MAKE_EPHEM');
-      expect(q).toContain('STEP_SIZE');
-      expect(q).toContain('CSV_FORMAT');
-      // boundary queries are distinct from the ordinary Paris query
+      const params = decodeQueryParams(q);
+      expect(params.EPHEM_TYPE).toBe("'OBSERVER'");
+      expect(params.QUANTITIES).toBe("'31'");
+      expect(params.ANG_FORMAT).toBe("'DEG'");
+      expect(params.CSV_FORMAT).toBe("'YES'");
+      expect(params.CENTER).toBe("'500@399'");
+      expect(params.MAKE_EPHEM).toBe("'YES'");
+      expect(typeof params.STEP_SIZE).toBe('string');
+      expect(params.STEP_SIZE.length).toBeGreaterThan(0);
     }
     expect(QUERY_LOG.moon_solar_start).not.toBe(QUERY_LOG.moon_paris_1990_06_15T10);
     expect(QUERY_LOG.moon_solar_end).not.toBe(QUERY_LOG.moon_paris_1990_06_15T10);
@@ -140,7 +198,7 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
   test('Sun artifact verified (signature/target/window/rows/value) and linked to fixed expected', () => {
     const m = JPL_MANIFEST.find((r) => r.file === 'sun_paris_1990-06-15T10.json')!;
     const jpl = verifyJplArtifact(m);
-    expect(jpl).toBeCloseTo(FIXED_EXPECTED.sun.longitude, 3);
+    expect(roundTo(jpl, m.lonDp)).toBe(FIXED_EXPECTED.sun.longitude);
     expect(angularDiff(lon('natal.sun.position'), jpl)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
     expect(signOf(lon('natal.sun.position'))).toBe(FIXED_EXPECTED.sun.sign);
   });
@@ -148,15 +206,18 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
   test('Moon artifact verified and linked to fixed expected', () => {
     const m = JPL_MANIFEST.find((r) => r.file === 'moon_paris_1990-06-15T10.json')!;
     const jpl = verifyJplArtifact(m);
-    expect(jpl).toBeCloseTo(FIXED_EXPECTED.moon.longitude, 3);
+    expect(roundTo(jpl, m.lonDp)).toBe(FIXED_EXPECTED.moon.longitude);
     expect(angularDiff(lon('natal.moon.position'), jpl)).toBeLessThanOrEqual(TOLERANCES.bodyLongitude);
     expect(signOf(lon('natal.moon.position'))).toBe(FIXED_EXPECTED.moon.sign);
   });
 
   test('every committed JPL artifact satisfies its manifest (target/center/window/rows/query)', () => {
+    // F11-4: no expLon bypass and no 0.5-degree band. Every row's fixed constant equals the
+    // parsed selected raw ObsEcLon rounded at the row's declared precision.
+    expect(JPL_MANIFEST.length).toBe(14);
     for (const m of JPL_MANIFEST) {
       const lon = verifyJplArtifact(m);
-      if (m.expLon !== 0) expect(Math.abs(lon - m.expLon)).toBeLessThanOrEqual(0.5);
+      expect(roundTo(lon, m.lonDp)).toBe(m.expLon);
     }
   });
 
@@ -171,10 +232,11 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
     const s1 = verifyJplArtifact(JPL_MANIFEST.find((r) => r.file === 'moon_solar_end.json')!);
     const i0 = verifyJplArtifact(JPL_MANIFEST.find((r) => r.file === 'moon_invariant_start.json')!);
     const i1 = verifyJplArtifact(JPL_MANIFEST.find((r) => r.file === 'moon_invariant_end.json')!);
-    expect(angularDiff(s0, solar.moonStart.longitude)).toBeLessThanOrEqual(0.5);
-    expect(angularDiff(s1, solar.moonEnd.longitude)).toBeLessThanOrEqual(0.5);
-    expect(angularDiff(i0, inv.moonStart.longitude)).toBeLessThanOrEqual(0.5);
-    expect(angularDiff(i1, inv.moonEnd.longitude)).toBeLessThanOrEqual(0.5);
+    // F11-4: boundary constants are tied to their parsed raw rows at declared precision.
+    expect(roundTo(s0, JPL_LON_DP)).toBe(solar.moonStart.longitude);
+    expect(roundTo(s1, JPL_LON_DP)).toBe(solar.moonEnd.longitude);
+    expect(roundTo(i0, JPL_LON_DP)).toBe(inv.moonStart.longitude);
+    expect(roundTo(i1, JPL_LON_DP)).toBe(inv.moonEnd.longitude);
   });
 });
 
@@ -189,9 +251,12 @@ describe('F10-2 — external CosmyDay chart service (ASC/MC/node + retrograde)',
 
   test('F10-3 — CosmyDay SHA-256 recomputed from exact committed bytes equals manifest', () => {
     const raw = fs.readFileSync(path.join(JPL_DIR, 'cosmyday-paris-1990-06-15T12-local.json'));
+    // F11-4: recompute the digest ONCE and assert BOTH committed copies equal it, so neither
+    // duplicate can drift silently.
     const digest = createHash('sha256').update(raw).digest('hex');
-    expect(digest).toBe(EXTERNAL_CHART_REQUEST.responseSha256);
-    expect(EXTERNAL_CHART_REQUEST.responseSha256).toBe('977c48a3d9c918f88be2bb49b108a7a3a50fff7e9b7d1dbe22310a9abdd3077f');
+    expect(digest).toBe('977c48a3d9c918f88be2bb49b108a7a3a50fff7e9b7d1dbe22310a9abdd3077f');
+    expect(EXTERNAL_CHART_REQUEST.responseSha256).toBe(digest);
+    expect(SOURCE_METADATA.cosmydayResponseSha256).toBe(digest);
     expect(EXTERNAL_CHART_REQUEST.method).toBe('POST');
     expect(EXTERNAL_CHART_REQUEST.url).toBe('https://api.cosmyday.com/natal');
   });

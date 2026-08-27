@@ -100,14 +100,22 @@ describe('fifth independent review adversarial cases',()=>{
     expect(a.value).toEqual(b.value);
   });
 
-  test('tight threshold uses full-precision error before display rounding',()=>{
+  // F11-1: the orb basis is the PUBLISHED 2dp endpoint longitude, so 0.999 publishes as 1.00
+  // and tight (strict <) is false; 0.99 stays tight.
+  test('tight threshold uses the published-longitude error basis with strict <',()=>{
     const a=buildAspects(bodyList([{key:'sun',longitude:0},{key:'jupiter',longitude:0.999}])).find(x=>x.value.aspectType==='conjunction')!;
     expect(a.value.orb).toBe(1);
-    expect(a.value.tight).toBe(true);
-    expect(a.value.exact).toBe(0.999<EXACT_ASPECT_EPSILON);
+    expect(a.value.tight).toBe(false);
+    expect(a.value.exact).toBe(false);
+    const b=buildAspects(bodyList([{key:'sun',longitude:0},{key:'jupiter',longitude:0.99}])).find(x=>x.value.aspectType==='conjunction')!;
+    expect(b.value.orb).toBe(0.99);
+    expect(b.value.tight).toBe(true);
+    expect(b.value.exact).toBe(0.99<EXACT_ASPECT_EPSILON);
   });
 
-  test('POF aspect orbs derive from the full-precision point on every known-time fixture',async()=>{
+  // F11-1: POF is still computed ONCE at full precision; the aspect grid then normalizes every
+  // endpoint through round2 (the published value), which is the single authoritative basis.
+  test('POF aspect orbs derive from the published POF point on every known-time fixture',async()=>{
     let checked=0;
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
       const chart=await computeChart(f.birth as any);
@@ -124,7 +132,7 @@ describe('fifth independent review adversarial cases',()=>{
         if(other==='southnode') otherLong=normDeg(chart.planets.find(p=>p.key==='northnode')!.longitude+180);
         if(otherLong===undefined) continue;
         const def:any={conjunction:0,'semi-sextile':30,'semi-square':45,sextile:60,square:90,trine:120,sesquisquare:135,quincunx:150,opposition:180};
-        const expected=round2(Math.abs(angularDistance(pof,otherLong)-def[a.value.aspectType]));
+        const expected=round2(Math.abs(angularDistance(round2(pof),round2(otherLong))-def[a.value.aspectType]));
         expect(a.value.orb).toBe(expected);
         checked++;
       }

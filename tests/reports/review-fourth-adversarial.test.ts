@@ -91,11 +91,18 @@ describe('fourth independent review adversarial cases',()=>{
     expect(a.some(x=>x.value.aspectType==='conjunction')).toBe(true);
   });
 
-  test('exact uses full-precision error before display rounding',()=>{
+  // F11-1: generation and validation share ONE precision basis — the PUBLISHED 2dp endpoint
+  // longitudes. `exact` is therefore strict-< on the orb recomputed from that same basis, so
+  // 0.099 publishes as 0.10 and is NOT exact, while 0.09 is.
+  test('exact uses the published-longitude error basis with strict <',()=>{
     const a=buildAspects(bodies([{key:'sun',longitude:0},{key:'moon',longitude:0.099}]) as any);
     const conj=a.find(x=>x.value.aspectType==='conjunction')!;
     expect(conj.value.orb).toBe(0.1);
-    expect(conj.value.exact).toBe(true);
+    expect(conj.value.exact).toBe(false);
+    const b=buildAspects(bodies([{key:'sun',longitude:0},{key:'moon',longitude:0.09}]) as any);
+    const conjB=b.find(x=>x.value.aspectType==='conjunction')!;
+    expect(conjB.value.orb).toBe(0.09);
+    expect(conjB.value.exact).toBe(true);
   });
 
   test('ruler facts carry the actual placement fields promised by T3-4',async()=>{

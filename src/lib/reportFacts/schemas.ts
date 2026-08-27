@@ -28,9 +28,16 @@ function exactKeys(obj: unknown, required: readonly string[], optional: readonly
   return null;
 }
 
-// Max legitimate divergence when recomputing from 2dp-rounded published longitudes:
-// 0.005 rounding per endpoint, then a final round2 of the derived orb.
-const ROUNDING_SLACK = 0.02;
+// F11-1: there is NO acceptance band. Production generates aspects from the SAME published
+// 2dp endpoint longitudes this validator reads (see derived.ts buildAspects), so orb, weight,
+// exact and tight are reproducible bit-for-bit at the contract's declared precision.
+const ASPECT_PRECISION_DP = 2; // declared precision of published orb/longitude values
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+// Exact aspect VALUE contract (F11-1). No optional fields; extras and omissions both fail.
+const ASPECT_VALUE_KEYS = [
+  'bodyA', 'bodyB', 'aspectType', 'orb', 'tight', 'exact',
+  'bodyALabel', 'bodyBLabel', 'weight', 'minor',
+] as const;
 
 function norm360(x: number): number { return ((x % 360) + 360) % 360; }
 function angularDistance(a: number, b: number): number {
@@ -186,8 +193,13 @@ function validateIdArray(
 
 // F7-5: derive the complete authoritative aspect set from canonical v2.facts entries
 // with kind === 'aspect' (immutable), NOT the mutable common.aspects index.
+// F11-2: preserve the authoritative facts-map KEY alongside each fact. Object.values discards
+// it, which let a wrapper be relocated to a false map key undetected.
+function canonicalAspectEntries(v2: VerifiedFactsV2): [string, any][] {
+  return Object.entries(v2.facts).filter(([, f]: [string, any]) => f && f.kind === 'aspect');
+}
 function canonicalAspectFacts(v2: VerifiedFactsV2): any[] {
-  return Object.values(v2.facts).filter((f: any) => f && f.kind === 'aspect');
+  return canonicalAspectEntries(v2).map(([, f]) => f);
 }
 function authoritativeAspectSet(v2: VerifiedFactsV2, predicate: (av: any) => boolean): string[] {
   return canonicalAspectFacts(v2).filter((a: any) => predicate(a.value)).map((a: any) => a.id).sort();
@@ -203,7 +215,18 @@ function requireExactAspectSet(got: any, expected: string[], label: string): str
 // by FULL content (ID, kind, source, display, full value, provenance), not IDs only.
 // Reject duplicate IDs explicitly.
 function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
-  const canonical = canonicalAspectFacts(v2);
+  const canonicalEntries = canonicalAspectEntries(v2);
+  // F11-2: the facts-map key IS authority. It must equal the wrapper id, and both must equal
+  // the canonical ID derived from ordered endpoints + locked type. Checked BEFORE any
+  // common-copy comparison so a relocated wrapper cannot be laundered by agreement.
+  for (const [mapKey, f] of canonicalEntries) {
+    if (typeof f.id !== 'string' || f.id !== mapKey) {
+      return `aspect facts-map key ${mapKey} != wrapper id ${JSON.stringify(f.id)}`;
+    }
+    const canonErr = validateCanonicalAspectFact(v2, f);
+    if (canonErr) return `aspect ${mapKey} canonical fact invalid: ${canonErr}`;
+  }
+  const canonical = canonicalEntries.map(([, f]) => f);
   const commonAny: any = commonField(v2, 'aspects');
   if (!Array.isArray(commonAny)) return 'common.aspects is not an array';
   const common: any[] = commonAny;
@@ -232,10 +255,8 @@ function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
       return `aspect ${id} provenance order/content mismatch`;
     }
     if (JSON.stringify(m.value) !== JSON.stringify(c.value)) return `aspect ${id} value mismatch`;
-    // F9-5: independently validate the CANONICAL aspect fact itself. Agreement between two
-    // corrupted copies must not establish authority; the canonical fact must be sound.
-    const canonErr = validateCanonicalAspectFact(v2, c);
-    if (canonErr) return `aspect ${id} canonical fact invalid: ${canonErr}`;
+    // F9-5 canonical soundness was already established per map key above, before any
+    // common-copy comparison, so agreement between two copies cannot establish authority.
   }
   return null;
 }
@@ -249,8 +270,24 @@ function validateCanonicalAspectFact(v2: VerifiedFactsV2, fact: any): string | n
   const idErr = exactKeys(fact, ['id', 'kind', 'source', 'display', 'value', 'provenance']);
   if (idErr) return `wrapper ${idErr}`;
   const av: any = fact.value;
-  if (!av || typeof av.bodyA !== 'string' || typeof av.bodyB !== 'string') return `aspect ${fact.id} missing endpoints`;
+  // F11-1: exact aspect VALUE contract. Missing required keys and unexpected keys both fail.
+  const valErr = exactKeys(av, ASPECT_VALUE_KEYS as unknown as readonly string[]);
+  if (valErr) return `aspect ${fact.id} value ${valErr}`;
+  if (typeof av.bodyA !== 'string' || typeof av.bodyB !== 'string') return `aspect ${fact.id} missing endpoints`;
   if (av.bodyA === av.bodyB) return `aspect ${fact.id} degenerate endpoints`;
+  // F11-1: canonical endpoint ordering. Reversed endpoints are not canonical even when the
+  // labels, provenance order and display are coordinated to match.
+  if (!(av.bodyA <= av.bodyB)) return `aspect ${fact.id} endpoints [${av.bodyA},${av.bodyB}] not canonically ordered`;
+  // F11-1: every numeric value must be finite BEFORE any arithmetic, so coordinated NaN
+  // orb/weight cannot slip through comparisons that are vacuously false/true.
+  for (const k of ['orb', 'weight'] as const) {
+    if (typeof av[k] !== 'number' || !Number.isFinite(av[k])) return `aspect ${fact.id} ${k} ${String(av[k])} is not a finite number`;
+  }
+  if (typeof av.tight !== 'boolean') return `aspect ${fact.id} tight must be boolean`;
+  if (typeof av.exact !== 'boolean') return `aspect ${fact.id} exact must be boolean`;
+  if (typeof av.minor !== 'boolean') return `aspect ${fact.id} minor must be boolean`;
+  if (typeof av.bodyALabel !== 'string' || !av.bodyALabel) return `aspect ${fact.id} bodyALabel invalid`;
+  if (typeof av.bodyBLabel !== 'string' || !av.bodyBLabel) return `aspect ${fact.id} bodyBLabel invalid`;
   if (fact.id !== canonicalAspectId(av.bodyA, av.bodyB, av.aspectType)) {
     return `aspect ${fact.id} id != canonical ${canonicalAspectId(av.bodyA, av.bodyB, av.aspectType)}`;
   }
@@ -262,23 +299,22 @@ function validateCanonicalAspectFact(v2: VerifiedFactsV2, fact: any): string | n
     const pf = factById(v2, `natal.${b}.position`);
     if (!pf || pf.kind !== 'position') return `aspect ${fact.id} endpoint ${b} unresolved`;
     const pv: any = pf.value;
-    if (!pv || typeof pv !== 'object' || typeof pv.longitude !== 'number') return `aspect ${fact.id} endpoint ${b} value invalid`;
+    if (!pv || typeof pv !== 'object' || typeof pv.longitude !== 'number' || !Number.isFinite(pv.longitude)) return `aspect ${fact.id} endpoint ${b} value invalid`;
     if (typeof pv.label !== 'string' || pv.label.length === 0) return `aspect ${fact.id} endpoint ${b} label invalid`;
     longs[b] = pv.longitude;
     // The endpoint POSITION fact is the authority for a body's label. The static PLANETS
     // table does not carry every charted body (e.g. juno), so it cannot be the source here.
     labels[b] = pv.label;
   }
-  const dist = angularDistance(longs[av.bodyA], longs[av.bodyB]);
+  // F11-1: recompute from the SAME published 2dp endpoint longitudes production used, so the
+  // expected orb is exact at the declared precision — no slack, no adjacent-centidegree hole.
+  const dist = angularDistance(round2(longs[av.bodyA]), round2(longs[av.bodyB]));
   const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
+  if (!Number.isFinite(error)) return `aspect ${fact.id} recomputed orb is not finite`;
   const orbLimit = def.minor ? 2 : ((av.bodyA === 'sun' || av.bodyA === 'moon' || av.bodyB === 'sun' || av.bodyB === 'moon') ? 10 : 8);
-  // Position facts publish longitudes rounded to 2dp, while production computes the aspect from
-  // FULL-precision longitudes. Each endpoint therefore carries up to 0.005 of rounding, so the
-  // recomputed orb can legitimately differ from the published orb by up to ROUNDING_SLACK.
-  // This is a precision allowance, not a correctness allowance: anything larger is tampering.
-  if (error > orbLimit + ROUNDING_SLACK) return `aspect ${fact.id} orb error ${error.toFixed(4)} exceeds limit ${orbLimit}`;
-  const expectedOrb = Math.round(error * 100) / 100;
-  if (typeof av.orb !== 'number' || Math.abs(av.orb - expectedOrb) > ROUNDING_SLACK) return `aspect ${fact.id} orb ${av.orb} != recomputed ${expectedOrb}`;
+  if (error > orbLimit) return `aspect ${fact.id} orb error ${error.toFixed(4)} exceeds limit ${orbLimit}`;
+  const expectedOrb = round2(error);
+  if (av.orb !== expectedOrb) return `aspect ${fact.id} orb ${av.orb} != recomputed ${expectedOrb} (exact at ${ASPECT_PRECISION_DP}dp)`;
   const expProv = [`natal.${av.bodyA}.position`, `natal.${av.bodyB}.position`];
   if (JSON.stringify(fact.provenance) !== JSON.stringify(expProv)) {
     return `aspect ${fact.id} provenance ${JSON.stringify(fact.provenance)} != ${JSON.stringify(expProv)}`;
@@ -287,14 +323,12 @@ function validateCanonicalAspectFact(v2: VerifiedFactsV2, fact: any): string | n
   if (av.exact !== exact) return `aspect ${fact.id} exact ${av.exact} != ${exact}`;
   if (av.tight !== tight) return `aspect ${fact.id} tight ${av.tight} != ${tight}`;
   if (av.minor !== def.minor) return `aspect ${fact.id} minor ${av.minor} != ${def.minor}`;
-  // weight is a function of the orb, so it inherits the same rounding slack via av.orb
-  const expectedWeight = aspectWeight(def.type, av.orb);
-  if (typeof av.weight !== 'number' || Math.abs(av.weight - expectedWeight) > 0.01) return `aspect ${fact.id} weight ${av.weight} != ${expectedWeight}`;
+  // weight is a pure function of the exact recomputed orb, so it is also exact.
+  const expectedWeight = aspectWeight(def.type, expectedOrb);
+  if (av.weight !== expectedWeight) return `aspect ${fact.id} weight ${av.weight} != ${expectedWeight}`;
   if (av.bodyALabel !== labels[av.bodyA]) return `aspect ${fact.id} bodyALabel ${av.bodyALabel} != ${labels[av.bodyA]}`;
   if (av.bodyBLabel !== labels[av.bodyB]) return `aspect ${fact.id} bodyBLabel ${av.bodyBLabel} != ${labels[av.bodyB]}`;
-  // display is asserted against av.orb, which was already proven numerically above against the
-  // recomputed orb. Using expectedOrb here would re-introduce the 2dp rounding divergence.
-  const expectedDisplay = `${labels[av.bodyA]} ${def.type} ${labels[av.bodyB]} (orb ${av.orb}°)`;
+  const expectedDisplay = `${labels[av.bodyA]} ${def.type} ${labels[av.bodyB]} (orb ${expectedOrb}°)`;
   if (fact.display !== expectedDisplay) return `aspect ${fact.id} display ${fact.display} != ${expectedDisplay}`;
   return null;
 }
@@ -436,17 +470,31 @@ function derivePofDisplay(value: any): string {
 // F10-4: validate a POF wrapper against the exact contract. `factsKey` is the map key
 // (must equal the wrapper id). Rejects unexpected wrapper/value metadata.
 const POF_WRAPPER_KEYS = ['id','kind','source','display','value','provenance'];
+// F11-3: EXACT POF value contract — every field is required. Coordinated omission of a field
+// (e.g. signLabel deleted from both copies) must fail, not be tolerated as "absent on both".
 const POF_VALUE_KEYS = ['key','label','longitude','degreeInSign','sign','signLabel','house','retrograde','dignity','sect','formula'];
 function validatePofWrapper(v2: VerifiedFactsV2, wrapper: any, factsKey: string): string | null {
   if (!wrapper || typeof wrapper !== 'object') return 'POF wrapper absent';
-  for (const k of Object.keys(wrapper)) if (!POF_WRAPPER_KEYS.includes(k)) return `POF wrapper unexpected key: ${k}`;
+  const wrapErr = exactKeys(wrapper, POF_WRAPPER_KEYS);
+  if (wrapErr) return `POF wrapper ${wrapErr}`;
   if (wrapper.id !== factsKey) return `POF id ${wrapper.id} != facts map key ${factsKey}`;
   if (wrapper.kind !== 'position') return `POF kind ${wrapper.kind} != position`;
   if (wrapper.source !== 'derived-deterministic') return `POF source ${wrapper.source} != derived-deterministic`;
   if (typeof wrapper.display !== 'string' || !wrapper.display) return 'POF missing display';
   const value = wrapper.value;
   if (!value || typeof value !== 'object') return 'POF value absent';
-  for (const k of Object.keys(value)) if (!POF_VALUE_KEYS.includes(k)) return `POF value unexpected key: ${k}`;
+  // F11-3: exact required value keys (missing AND unexpected both rejected).
+  const valErr = exactKeys(value, POF_VALUE_KEYS);
+  if (valErr) return `POF value ${valErr}`;
+  // F11-3: locked POF identity. The Part of Fortune is not a generic position: its key and
+  // label are fixed by the contract, and its signLabel must be DERIVED from its longitude
+  // (derivePofDisplay derives its own label, so a false nested signLabel was invisible).
+  if (value.key !== 'partoffortune') return `POF value key ${JSON.stringify(value.key)} != 'partoffortune'`;
+  if (value.label !== 'Part of Fortune') return `POF value label ${JSON.stringify(value.label)} != 'Part of Fortune'`;
+  if (typeof value.longitude !== 'number' || !Number.isFinite(value.longitude)) return `POF longitude ${String(value.longitude)} is not a finite number`;
+  const derivedSign = signFromLongitude(value.longitude);
+  if (value.sign !== derivedSign.sign.key) return `POF sign ${JSON.stringify(value.sign)} != derived ${derivedSign.sign.key} from longitude ${value.longitude}`;
+  if (value.signLabel !== derivedSign.sign.label) return `POF signLabel ${JSON.stringify(value.signLabel)} != derived ${derivedSign.sign.label} from longitude ${value.longitude}`;
   const posErr = isPositionFact(value);
   if (posErr) return `POF position semantics: ${posErr}`;
   const expectedDisplay = derivePofDisplay(value);
