@@ -113,41 +113,54 @@ describe('fifth independent review adversarial cases',()=>{
     expect(b.value.exact).toBe(0.99<EXACT_ASPECT_EPSILON);
   });
 
-  // F13-5: INDEPENDENT POF aspect expectation. Recompute the Part of Fortune longitude from
-  // the canonical computeChart ASC/Sun/Moon inputs using the documented day/night sect formula,
-  // on the SAME published 2dp normalized basis the engine publishes — and compare production POF +
-  // production aspect orbs against that independently derived expectation. It does NOT read
-  // common.partOfFortune / common.positions as expected inputs (that was the circular F12-5 form).
+  // F14-4: FULLY INDEPENDENT POF aspect expectation. Build the expected longitude map ONLY
+  // from computeChart inputs (never from common.positions or production POF): planets from
+  // normalized chart.planets, ASC/MC from normalized chart angles, DSC/IC/South Node from
+  // independently normalized formulas, and POF from independently normalized ASC/Sun/Moon + sect.
+  // Expected orb uses expectedPof plus this independent counterpart. Production POF/positions are
+  // NOT read as expected inputs — they are only the system-under-test outputs being checked.
   test('POF longitude and aspect orbs derive independently from computeChart inputs', async () => {
+    const ASPECT_ANGLE: Record<string, number> = {
+      conjunction: 0, 'semi-sextile': 30, 'semi-square': 45, sextile: 60, square: 90,
+      trine: 120, sesquisquare: 135, quincunx: 150, opposition: 180,
+    };
     let checked = 0;
     for (const f of ALL_FIXTURES.filter((x) => x.expect.knownTime)) {
       const chart = await computeChart(f.birth as any);
       const common = await buildCommonDerived(chart, false);
-      const pof = (common.partOfFortune!.value as any).longitude;
 
-      // Independent recomputation from raw computeChart input longitudes (normalized 2dp basis).
+      // Independent expected longitude map built ONLY from computeChart inputs.
       const normalize = (d: number) => ((Math.round(((d % 360) + 360) % 360 * 100) / 100) % 360 + 360) % 360;
+      const expectedLong: Record<string, number> = {};
+      for (const p of chart.planets) expectedLong[p.key] = normalize(p.longitude);
       const ascLong = normalize(chart.ascendant.longitude);
+      const mcLong = normalize(chart.midheaven.longitude);
       const sunLong = normalize(chart.sun.longitude);
       const moonLong = normalize(chart.moon.longitude);
+      expectedLong['ascendant'] = ascLong;
+      expectedLong['midheaven'] = mcLong;
+      expectedLong['descendant'] = normalize(ascLong + 180);
+      expectedLong['icumcoeli'] = normalize(mcLong + 180);
+      expectedLong['northnode'] = normalize(chart.planets.find((p: any) => p.key === 'northnode').longitude);
+      expectedLong['southnode'] = normalize(expectedLong['northnode'] + 180);
       const isDay = chart.sun.house !== null && chart.sun.house >= 7 && chart.sun.house <= 12;
       const expectedPof = normalize(isDay ? ascLong + moonLong - sunLong : ascLong + sunLong - moonLong);
-      expect(pof).toBe(expectedPof);
 
-      // Independent sect expectation.
-      const expectedSect = isDay ? 'day' : 'night';
-      expect((common.partOfFortune!.value as any).sect).toBe(expectedSect);
+      // SUT: produced POF must equal the independently computed expected POF longitude.
+      const producedPof = (common.partOfFortune!.value as any).longitude;
+      expect(producedPof).toBe(expectedPof);
+      expect((common.partOfFortune!.value as any).sect).toBe(isDay ? 'day' : 'night');
 
-      // Independent aspect-orb expectation: for every POF aspect, orb must equal |angDist(POF, other) - angle|.
+      // SUT: for every produced POF aspect, orb must equal |angDist(expectedPof, expectedCounterpart) - angle|.
+      // The counterpart longitude comes from the independent expected map, NOT common.positions.
       for (const a of common.aspects.filter((x) => x.value.bodyA === 'partoffortune' || x.value.bodyB === 'partoffortune')) {
         const other = a.value.bodyA === 'partoffortune' ? a.value.bodyB : a.value.bodyA;
-        // Counterpart longitude from the independent published basis (common.positions), NOT from POF.
-        const otherPos = common.positions.find((pp: any) => (pp.value as any).key === other);
-        if (!otherPos) continue;
-        const otherLong = (otherPos.value as any).longitude;
-        const def: any = { conjunction: 0, 'semi-sextile': 30, 'semi-square': 45, sextile: 60, square: 90, trine: 120, sesquisquare: 135, quincunx: 150, opposition: 180 };
-        const expected = round2(Math.abs(angularDistance(pof, otherLong) - def[a.value.aspectType]));
-        expect(a.value.orb).toBe(expected);
+        const otherLong = expectedLong[other];
+        if (typeof otherLong !== 'number') continue;
+        const angle = ASPECT_ANGLE[a.value.aspectType];
+        if (angle === undefined) continue;
+        const expectedOrb = round2(Math.abs(angularDistance(expectedPof, otherLong) - angle));
+        expect(a.value.orb).toBe(expectedOrb);
         checked++;
       }
     }

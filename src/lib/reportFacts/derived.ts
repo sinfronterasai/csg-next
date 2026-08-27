@@ -159,32 +159,34 @@ export function issueAngleHouse(factsKey: string, value: any): string | null {
   return null;
 }
 
-// F13-4: mechanically generate the complete expected JPL timestamp sequence from a
-// manifest row's start/stop/step. No hand-written timestamp list is trusted.
+// F14-3: mechanically generate the exact expected JPL timestamp sequence from a manifest
+// row's start/stop/step. The contract is STRICT and fail-closed: malformed dates, an
+// unsupported runtime step, start >= stop, or a window not exactly divisible by step all
+// throw. The sequence is generated ONLY by exact step increments (no unaligned final point).
 export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h' | '1 d'): string[] {
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const toHeader = (iso: string) => {
-    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(iso);
+  const WIN = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+  const parse = (iso: string): number => {
+    const m = WIN.exec(iso);
     if (!m) throw new Error(`bad window value: ${iso}`);
-    return `${m[1]}-${MONTHS[Number(m[2]) - 1]}-${m[3]} ${m[4]}`;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
   };
-  const parse = (iso: string) => {
-    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(iso)!;
-    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
-  };
-  const fmt = (d: Date) => {
+  const fmt = (ms: number): string => {
+    const d = new Date(ms);
     const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-    return toHeader(iso);
+    const m = WIN.exec(iso)!;
+    return `${m[1]}-${MONTHS[Number(m[2]) - 1]}-${m[3]} ${m[4]}:${m[5]}`;
   };
-  const stepMs = step === '1 h' ? 3600_000 : 86_400_000;
-  const out: string[] = [];
-  let cur = parse(start);
-  const end = parse(stop);
-  while (cur.getTime() < end.getTime()) {
-    out.push(fmt(cur));
-    cur = new Date(cur.getTime() + stepMs);
+  const stepMs = step === '1 h' ? 3600_000 : step === '1 d' ? 86_400_000 : (() => { throw new Error(`unsupported step: ${step}`); })();
+  const startMs = parse(start);
+  const endMs = parse(stop);
+  if (endMs <= startMs) throw new Error(`JPL window start >= stop: ${start} >= ${stop}`);
+  const stepsExact = (endMs - startMs) / stepMs;
+  if (!Number.isInteger(stepsExact) || stepsExact <= 0) {
+    throw new Error(`JPL window ${start}..${stop} (step ${step}) not exactly divisible by step`);
   }
-  out.push(fmt(end));
+  const out: string[] = [];
+  for (let i = 0; i <= stepsExact; i++) out.push(fmt(startMs + i * stepMs));
   return out;
 }
 

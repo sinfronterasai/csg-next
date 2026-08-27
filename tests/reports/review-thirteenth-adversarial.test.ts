@@ -11,6 +11,7 @@ import { buildVerifiedFactsV2 } from '@/lib/reportFacts/build';
 import { preflightReport } from '@/lib/reportFacts/schemas';
 import { buildCommonDerived, computeVerifiedCommon, POSITION_REGISTRY, ESCAPED_POSITION, mechanicalJplTimestamps, enforceJplSequenceAuthority } from '@/lib/reportFacts/derived';
 import { computeChart, normDeg } from '@/lib/chartEngine';
+import { signFromLongitude } from '@/lib/astrology';
 import { angularDistance } from '@/lib/transit';
 import { KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR } from './fixtures/factsFixtures';
 import * as fs from 'fs';
@@ -18,6 +19,7 @@ import * as path from 'path';
 import { JPL_MANIFEST, QUERY_LOG, deriveStepMinutes } from './fixtures/independentReferenceCorpus';
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+const ordinal = (n: number) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const JPL_DIR = path.join(__dirname, 'fixtures', 'jpl-raw');
 const readJpl = (name: string) => JSON.parse(fs.readFileSync(path.join(JPL_DIR, name), 'utf8'));
 
@@ -225,5 +227,28 @@ describe('thirteenth independent adversarial probes', () => {
     const expectedFromCorrupted = Math.round(Math.abs(angularDistance(corruptedPof, otherLong) - def[a.value.aspectType]) * 100) / 100;
     // If the independent expectation is correct, a corrupted POF would NOT match production orb.
     expect(a.value.orb).not.toBe(expectedFromCorrupted);
+  });
+
+  // F14-2 (permanent parent POF-house regression, restored): coordinate a wrong valid house
+  // across the flat fact AND the common alias POF wrappers and regenerate BOTH displays. The
+  // validator must reject on POF house authority (houseForLongitude of recomputed longitude),
+  // not on display drift. This is the unchanged coordinated parent case.
+  test('parent POF house corruption (flat + alias) is rejected by house authority', async () => {
+    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const f = v.facts['natal.partoffortune.position'];
+    const a = v.common.partOfFortune;
+    const wrong = f.value.house === 12 ? 11 : f.value.house + 1;
+    f.value.house = wrong;
+    a.value.house = wrong;
+    const regen = (val: any) => {
+      const { sign, degreeInSign } = signFromLongitude(val.longitude);
+      const h = val.house != null ? ` in the ${ordinal(val.house)} house` : '';
+      const d = val.dignity ? `, ${{ domicile: 'in domicile', exaltation: 'in exaltation', detriment: 'in detriment', fall: 'in fall' }[val.dignity as string]}` : '';
+      const r = val.retrograde ? ' (retrograde)' : '';
+      return `${val.label} at ${degreeInSign.toFixed(2)}° ${sign.label}${h}${d}${r}`;
+    };
+    f.display = regen(f.value);
+    a.display = regen(a.value);
+    expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 });

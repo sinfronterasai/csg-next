@@ -259,6 +259,29 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
     }
   });
 
+  // F14-3: mechanical window contract fails closed on malformed/inconsistent inputs.
+  test('mechanical JPL window rejects reverse and malformed windows', () => {
+    // reverse window: start > stop
+    expect(() => mechanicalJplTimestamps('1990-06-15 11:00', '1990-06-15 09:00', '1 h')).toThrow();
+    // malformed start date (unparseable)
+    expect(() => mechanicalJplTimestamps('not-a-date', '1990-06-15 10:00', '1 h')).toThrow();
+    // malformed step is a type error at compile time; runtime unsupported step is impossible here.
+    // window not exactly divisible by step (09:00 -> 10:30 / 1h)
+    expect(() => mechanicalJplTimestamps('1990-06-15 09:00', '1990-06-15 10:30', '1 h')).toThrow();
+    // valid divisible window still produces exact increments
+    expect(mechanicalJplTimestamps('1990-06-15 09:00', '1990-06-15 11:00', '1 h')).toEqual([
+      '1990-Jun-15 09:00', '1990-Jun-15 10:00', '1990-Jun-15 11:00',
+    ]);
+  });
+
+  // F14-3: the manifest carries NO hand-written timestamps field; only start/stop/step author it.
+  test('JPL manifest rows carry no duplicate timestamps field (only start/stop/step)', () => {
+    expect(JPL_MANIFEST.length).toBe(14);
+    for (const row of JPL_MANIFEST) {
+      expect((row as any).timestamps).toBeUndefined();
+    }
+  });
+
   test('duplicate selected timestamp replacing an expected row fails the sequence contract', () => {
     const row = JPL_MANIFEST.find((candidate) => candidate.file === 'sun_paris_1990-06-15T10.json')!;
     expect(mechanicalJplTimestamps(row.start, row.stop, row.step)).toEqual([

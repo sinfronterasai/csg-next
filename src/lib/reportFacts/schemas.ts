@@ -12,6 +12,7 @@ import type { ReportType, VerifiedFactsV2, PreflightResult, VerifiedFact } from 
 import type { ScoreBand } from './scores';
 import { ASPECT_ORBS, rulerKeyForSign, aspectWeight, compareAspectFacts, normalizePublishedLongitude, POSITION_REGISTRY, validateRegistryPositionValue, issueDerivedTruth, issueAngleHouse, ESCAPED_POSITION } from './derived';
 import { dignityFor, signFromLongitude, getPlanet, getSign } from '@/lib/astrology';
+import { houseForLongitude } from '@/lib/chartEngine';
 
 // Mirror of derived.ts DIGNITY_LABEL (not exported there).
 const DIGNITY_LABEL: Record<string, string> = {
@@ -537,6 +538,13 @@ function validatePofValue(v2: VerifiedFactsV2, value: any): string | null {
   if (value.sign !== expectedSign.sign.key) return `POF sign ${value.sign} != recomputed ${expectedSign.sign.key}`;
   if (value.signLabel !== expectedSign.sign.label) return `POF signLabel ${value.signLabel} != recomputed ${expectedSign.sign.label}`;
   if (value.degreeInSign !== expectedDegree) return `POF degreeInSign ${value.degreeInSign} != recomputed ${expectedDegree}`;
+  // F14-2: POF house authority. The house MUST equal houseForLongitude(recomputed longitude,
+  // validated ordered cusps). Derived from the SAME recomputed longitude above, so a wrong house
+  // is rejected on house authority alone (regenerating the display cannot mask it).
+  const cusps = v2.common.houses ? [0, ...v2.common.houses.map((h: any) => h.cuspLongitude)] : [];
+  if (!cusps.length) return 'POF house: cusps unavailable';
+  const expectedPofHouse = houseForLongitude(expectedLongitude, cusps);
+  if (value.house !== expectedPofHouse) return `POF house ${value.house} != houseForLongitude(${expectedLongitude}, cusps)=${expectedPofHouse}`;
   return null;
 }
 
@@ -725,6 +733,20 @@ function buildPositionRegistryCheck(entry: { factsKey: string; nestedKey: string
       // F13-2: angle houses locked; F13-3: derived truth re-derived from provenance.
       const angleErr = issueAngleHouse(factsKey, fact.value);
       if (angleErr) return `angle house ${factsKey}: ${angleErr}`;
+      // F14-1: exact root-house authority. For every known-time root/derived body, the published
+      // house MUST equal houseForLongitude(longitude, validated ordered cusps). The house is derived
+      // from the SAME longitude the wrapper publishes, so a wrong house is rejected on house authority
+      // alone (regenerating display cannot mask it).
+      if (knownTime) {
+        const cusps = v2.common.houses ? [0, ...v2.common.houses.map((h: any) => h.cuspLongitude)] : [];
+        if (!cusps.length) return `root house ${factsKey}: cusps unavailable`;
+        const expectedHouse = entry.kind === 'derived' && entry.nestedKey === 'descendant' ? 7
+          : entry.kind === 'derived' && entry.nestedKey === 'icumcoeli' ? 4
+          : houseForLongitude(fact.value.longitude, cusps);
+        if (fact.value.house !== expectedHouse) {
+          return `root house ${factsKey}: house ${fact.value.house} != houseForLongitude(${fact.value.longitude}, cusps)=${expectedHouse}`;
+        }
+      }
       const longitudes = collectRegistryLongitudes(v2);
       // Rebuild the cusps array in 1..12 form (house N cusp at index N) for houseForLongitude.
       const cusps = v2.common.houses ? [0, ...v2.common.houses.map((h: any) => h.cuspLongitude)] : [];
