@@ -208,7 +208,7 @@ export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h'
   };
   const fmt = (ms: number): string => {
     const d = new Date(ms);
-    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const iso = `${String(d.getUTCFullYear()).padStart(4, "0")}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
     const m = WIN.exec(iso)!;
     return `${m[1]}-${MONTHS[Number(m[2]) - 1]}-${m[3]} ${m[4]}:${m[5]}`;
   };
