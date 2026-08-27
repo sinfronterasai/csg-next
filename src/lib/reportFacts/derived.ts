@@ -159,17 +159,52 @@ export function issueAngleHouse(factsKey: string, value: any): string | null {
   return null;
 }
 
-// F14-3: mechanically generate the exact expected JPL timestamp sequence from a manifest
-// row's start/stop/step. The contract is STRICT and fail-closed: malformed dates, an
-// unsupported runtime step, start >= stop, or a window not exactly divisible by step all
-// throw. The sequence is generated ONLY by exact step increments (no unaligned final point).
+// F14-3 / F15-1 / F15-3: mechanically generate the exact expected JPL timestamp sequence
+// from a manifest row's start/stop/step. The contract is STRICT and fail-closed:
+//   - the date/time string is parsed NUMERICALLY and every component is range-checked
+//     (month 1-12, hour 0-23, minute 0-59, day valid for the exact month/year, leap-aware);
+//     regex-valid but impossible values (e.g. 2025-02-29, Feb 30, hour 24) are REJECTED,
+//     never silently normalized by Date.UTC.
+//   - the resulting UTC instant is ROUND-TRIPPED through all five components for exact
+//     equality with the parsed input, guarding JavaScript's special handling of years 0-99.
+//   - an unsupported runtime step throws.
+//   - the inclusive contract APPENDS the stop endpoint, so start === stop is a valid
+//     one-element sequence [start]; ONLY a strictly decreasing window (start > stop) is
+//     rejected. Non-singleton windows must be exactly divisible by step.
+// The sequence is generated ONLY by exact step increments (no unaligned final point).
 export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h' | '1 d'): string[] {
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const WIN = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+  const daysInMonth = (year: number, month: number): number => {
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return days[month - 1];
+  };
   const parse = (iso: string): number => {
     const m = WIN.exec(iso);
     if (!m) throw new Error(`bad window value: ${iso}`);
-    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const hour = Number(m[4]);
+    const minute = Number(m[5]);
+    if (month < 1 || month > 12) throw new Error(`month ${month} out of range in ${iso}`);
+    if (hour < 0 || hour > 23) throw new Error(`hour ${hour} out of range in ${iso}`);
+    if (minute < 0 || minute > 59) throw new Error(`minute ${minute} out of range in ${iso}`);
+    if (day < 1 || day > daysInMonth(year, month)) throw new Error(`day ${day} invalid for ${year}-${String(month).padStart(2, '0')} in ${iso}`);
+    const d = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+    d.setUTCFullYear(year);
+    const ms = d.getTime();
+    if (
+      d.getUTCFullYear() !== year ||
+      d.getUTCMonth() + 1 !== month ||
+      d.getUTCDate() !== day ||
+      d.getUTCHours() !== hour ||
+      d.getUTCMinutes() !== minute
+    ) {
+      throw new Error(`calendar/time ${iso} failed round-trip validation`);
+    }
+    return ms;
   };
   const fmt = (ms: number): string => {
     const d = new Date(ms);
@@ -180,7 +215,8 @@ export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h'
   const stepMs = step === '1 h' ? 3600_000 : step === '1 d' ? 86_400_000 : (() => { throw new Error(`unsupported step: ${step}`); })();
   const startMs = parse(start);
   const endMs = parse(stop);
-  if (endMs <= startMs) throw new Error(`JPL window start >= stop: ${start} >= ${stop}`);
+  if (endMs < startMs) throw new Error(`JPL window start > stop: ${start} > ${stop}`);
+  if (endMs === startMs) return [fmt(startMs)];
   const stepsExact = (endMs - startMs) / stepMs;
   if (!Number.isInteger(stepsExact) || stepsExact <= 0) {
     throw new Error(`JPL window ${start}..${stop} (step ${step}) not exactly divisible by step`);

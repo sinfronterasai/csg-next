@@ -259,14 +259,38 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
     }
   });
 
-  // F14-3: mechanical window contract fails closed on malformed/inconsistent inputs.
-  test('mechanical JPL window rejects reverse and malformed windows', () => {
-    // reverse window: start > stop
+  // F14-3 / F15-1: mechanical window contract fails closed on malformed/inconsistent inputs.
+  // F15-1 requires NUMERIC calendar/time validation: regex-valid impossible values must be
+  // REJECTED, never silently normalized by Date.UTC. The full permanent probe set:
+  // impossible dates, leap controls, reverse window, non-divisible step, unparseable, and a
+  // valid divisible window.
+  test('mechanical JPL window rejects impossible/reverse/malformed windows and accepts valid ones', () => {
+    // --- F15-1: impossible calendar/time values (regex-valid but invalid) ---
+    // non-leap Feb 29
+    expect(() => mechanicalJplTimestamps('2025-02-29 09:00', '2025-02-29 10:00', '1 h')).toThrow();
+    // Feb 30
+    expect(() => mechanicalJplTimestamps('2025-02-30 09:00', '2025-02-30 10:00', '1 h')).toThrow();
+    // month 00 and month 13
+    expect(() => mechanicalJplTimestamps('1990-00-15 09:00', '1990-00-15 10:00', '1 h')).toThrow();
+    expect(() => mechanicalJplTimestamps('1990-13-15 09:00', '1990-13-15 10:00', '1 h')).toThrow();
+    // day 00 and a day that overflows the month
+    expect(() => mechanicalJplTimestamps('1990-06-00 09:00', '1990-06-00 10:00', '1 h')).toThrow();
+    expect(() => mechanicalJplTimestamps('1990-06-31 09:00', '1990-06-31 10:00', '1 h')).toThrow();
+    // hour 24 and hour 25
+    expect(() => mechanicalJplTimestamps('1990-06-15 24:00', '1990-06-15 25:00', '1 h')).toThrow();
+    expect(() => mechanicalJplTimestamps('1990-06-15 25:00', '1990-06-15 26:00', '1 h')).toThrow();
+    // minute 60
+    expect(() => mechanicalJplTimestamps('1990-06-15 09:60', '1990-06-15 10:60', '1 h')).toThrow();
+    // --- F15-1: valid leap-day control (2024 is a leap year) is accepted ---
+    expect(mechanicalJplTimestamps('2024-02-29 09:00', '2024-02-29 10:00', '1 h')).toEqual([
+      '2024-Feb-29 09:00', '2024-Feb-29 10:00',
+    ]);
+    // --- F14-3 / F15-3: reverse window (start > stop) rejected; inclusive singleton accepted ---
     expect(() => mechanicalJplTimestamps('1990-06-15 11:00', '1990-06-15 09:00', '1 h')).toThrow();
-    // malformed start date (unparseable)
+    // F15-3: same-instant window is the valid inclusive one-element sequence [start]
+    expect(mechanicalJplTimestamps('1990-06-15 09:00', '1990-06-15 09:00', '1 h')).toEqual(['1990-Jun-15 09:00']);
+    // --- F14-3: unparseable / non-divisible windows rejected ---
     expect(() => mechanicalJplTimestamps('not-a-date', '1990-06-15 10:00', '1 h')).toThrow();
-    // malformed step is a type error at compile time; runtime unsupported step is impossible here.
-    // window not exactly divisible by step (09:00 -> 10:30 / 1h)
     expect(() => mechanicalJplTimestamps('1990-06-15 09:00', '1990-06-15 10:30', '1 h')).toThrow();
     // valid divisible window still produces exact increments
     expect(mechanicalJplTimestamps('1990-06-15 09:00', '1990-06-15 11:00', '1 h')).toEqual([

@@ -392,11 +392,23 @@ function validateCuspFact(v2: VerifiedFactsV2, cuspId: string): string | null {
   if (f.display !== expectedDisplay) return `cusp ${cuspId} display ${f.display} != ${expectedDisplay}`;
   return null;
 }
-// F8-8: common.houses must equal the complete flat cusp-fact set by full content.
+// F8-8 / F15-2: common.houses array ORDER is authority. The raw array index defines the
+// house number (positional cusp consumption in build.ts / schemas.ts uses [0, ...houses.map(h
+// => h.cuspLongitude)]), so a reorder silently redefines every house. Validate LENGTH and ORDER
+// before any cusp-array construction or content comparison: length must be exactly 12 and
+// houses[i].num must equal i+1 for every index 0..11. Reject with input_incomplete otherwise.
 function requireHousesEqualCusps(v2: VerifiedFactsV2): string | null {
   const houses: any = commonField(v2, 'houses');
   if (!Array.isArray(houses)) return 'common.houses missing or not an array';
-  const cusps = (commonField(v2, 'aspects') && []) as any[]; // placeholder (unused)
+  // F15-2: ordered-cusp authority — the raw array order IS the house number. Reject any
+  // reorder before consuming cusps positionally.
+  if (houses.length !== 12) return `common.houses length ${houses.length} != 12`;
+  for (let i = 0; i < 12; i++) {
+    const num = houses[i]?.num;
+    if (typeof num !== 'number' || num !== i + 1) {
+      return `common.houses[${i}].num ${JSON.stringify(num)} != ordered house ${i + 1}`;
+    }
+  }
   const flatCusps = Object.keys(v2.facts)
     .filter((id) => id.startsWith('common.cusp.'))
     .sort();
