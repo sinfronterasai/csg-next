@@ -113,26 +113,20 @@ describe('fifth independent review adversarial cases',()=>{
     expect(b.value.exact).toBe(0.99<EXACT_ASPECT_EPSILON);
   });
 
-  // F11-1: POF is still computed ONCE at full precision; the aspect grid then normalizes every
-  // endpoint through round2 (the published value), which is the single authoritative basis.
+  // F12-5: POF and every aspect endpoint use the same published normalized position basis.
+  // The test reads that contract directly instead of rebuilding a hidden full-precision point.
   test('POF aspect orbs derive from the published POF point on every known-time fixture',async()=>{
     let checked=0;
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
       const chart=await computeChart(f.birth as any);
       const common=await buildCommonDerived(chart,false);
-      const isDay=chart.sun.house!==null&&chart.sun.house>=7&&chart.sun.house<=12;
-      const pof=normDeg(chart.ascendant.longitude+(isDay?chart.moon.longitude-chart.sun.longitude:chart.sun.longitude-chart.moon.longitude));
+      const pof=(common.partOfFortune!.value as any).longitude;
       for(const a of common.aspects.filter(x=>x.value.bodyA==='partoffortune'||x.value.bodyB==='partoffortune')){
         const other=a.value.bodyA==='partoffortune'?a.value.bodyB:a.value.bodyA;
-        let otherLong=chart.planets.find(p=>p.key===other)?.longitude;
-        if(other==='ascendant') otherLong=chart.ascendant.longitude;
-        if(other==='descendant') otherLong=normDeg(chart.ascendant.longitude+180);
-        if(other==='midheaven') otherLong=chart.midheaven.longitude;
-        if(other==='icumcoeli') otherLong=normDeg(chart.midheaven.longitude+180);
-        if(other==='southnode') otherLong=normDeg(chart.planets.find(p=>p.key==='northnode')!.longitude+180);
+        const otherLong=(common.positions.find(p=>(p.value as any).key===other)?.value as any)?.longitude;
         if(otherLong===undefined) continue;
         const def:any={conjunction:0,'semi-sextile':30,'semi-square':45,sextile:60,square:90,trine:120,sesquisquare:135,quincunx:150,opposition:180};
-        const expected=round2(Math.abs(angularDistance(round2(pof),round2(otherLong))-def[a.value.aspectType]));
+        const expected=round2(Math.abs(angularDistance(pof,otherLong)-def[a.value.aspectType]));
         expect(a.value.orb).toBe(expected);
         checked++;
       }

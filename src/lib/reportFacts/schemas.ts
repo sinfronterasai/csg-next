@@ -10,8 +10,8 @@
 
 import type { ReportType, VerifiedFactsV2, PreflightResult, VerifiedFact } from './types';
 import type { ScoreBand } from './scores';
-import { ASPECT_ORBS, rulerKeyForSign, aspectWeight } from './derived';
-import { dignityFor, signFromLongitude, getPlanet, getSign, SIGNS } from '@/lib/astrology';
+import { ASPECT_ORBS, rulerKeyForSign, aspectWeight, compareAspectFacts, normalizePublishedLongitude } from './derived';
+import { dignityFor, signFromLongitude, getPlanet, getSign } from '@/lib/astrology';
 
 // Mirror of derived.ts DIGNITY_LABEL (not exported there).
 const DIGNITY_LABEL: Record<string, string> = {
@@ -69,25 +69,46 @@ function reportField(v2: VerifiedFactsV2, path: string): any {
 }
 
 // ---- shape validators ----
-// Accepts either a VerifiedFact (reads .value) or a bare PositionValue/NodeValue.
-function isPositionFact(f: any): string | null {
-  if (!f) return 'absent';
-  const v = f.kind === 'position' ? f.value : f; // facts wrap value; common.* fields are bare PositionValue
-  if (!v || typeof v !== 'object') return 'not a position value';
-  // F6-2: longitude must be a real ecliptic longitude in [0,360).
-  if (typeof v.longitude !== 'number' || v.longitude < 0 || v.longitude >= 360) return 'longitude out of range';
-  if (typeof v.degreeInSign !== 'number' || v.degreeInSign < 0 || v.degreeInSign >= 30) return 'degreeInSign out of range';
-  if (typeof v.sign !== 'string' || !v.sign) return 'missing sign';
+const POSITION_VALUE_KEYS = [
+  'key', 'label', 'longitude', 'degreeInSign', 'sign', 'signLabel',
+  'house', 'retrograde', 'dignity',
+] as const;
+const POSITION_VALUE_OPTIONAL_KEYS = ['uncertain'] as const;
+
+// F12-3: validate normalized position semantics independently of wrapper/copy agreement.
+function validatePositionSemantics(v: any): string | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return 'not a position value';
   if (typeof v.key !== 'string' || !v.key) return 'missing key';
   if (typeof v.label !== 'string' || !v.label) return 'missing label';
-  // sign/degree must be derived consistently from longitude
-  const idx = Math.floor(v.longitude / 30) % 12;
-  if (SIGNS[idx].key !== v.sign) return `sign ${v.sign} inconsistent with longitude ${v.longitude} (expected ${SIGNS[idx].key})`;
-  if (Math.abs((v.longitude - idx * 30) - v.degreeInSign) > 0.001) return `degreeInSign ${v.degreeInSign} inconsistent with longitude ${v.longitude}`;
+  if (typeof v.longitude !== 'number' || !Number.isFinite(v.longitude) || v.longitude < 0 || v.longitude >= 360) return 'longitude out of range';
+  if (typeof v.degreeInSign !== 'number' || !Number.isFinite(v.degreeInSign) || v.degreeInSign < 0 || v.degreeInSign >= 30) return 'degreeInSign out of range';
+  const derived = signFromLongitude(v.longitude);
+  const expectedDegree = round2(derived.degreeInSign);
+  if (v.sign !== derived.sign.key) return `sign ${v.sign} inconsistent with longitude ${v.longitude} (expected ${derived.sign.key})`;
+  if (v.signLabel !== derived.sign.label) return `signLabel ${v.signLabel} inconsistent with longitude ${v.longitude} (expected ${derived.sign.label})`;
+  if (v.degreeInSign !== expectedDegree) return `degreeInSign ${v.degreeInSign} inconsistent with longitude ${v.longitude} (expected ${expectedDegree})`;
+  if (v.house !== null && (!Number.isInteger(v.house) || v.house < 1 || v.house > 12)) return 'house out of range';
   if (typeof v.retrograde !== 'boolean') return 'retrograde must be boolean';
   if (!['domicile','exaltation','detriment','fall',null].includes(v.dignity)) return 'invalid dignity';
-  if (v.house != null && (typeof v.house !== 'number' || v.house < 1 || v.house > 12)) return 'house out of range';
+  if (v.uncertain !== undefined && typeof v.uncertain !== 'boolean') return 'uncertain must be boolean';
   return null;
+}
+
+// F12-3: ordinary values have nine required fields and only `uncertain` optional.
+// Common aliases are NodeValue objects, so their renderer-owned display is additionally required.
+function validateOrdinaryPositionValue(v: any, commonAlias: boolean = false): string | null {
+  const required = commonAlias ? [...POSITION_VALUE_KEYS, 'display'] : [...POSITION_VALUE_KEYS];
+  const keyErr = exactKeys(v, required, POSITION_VALUE_OPTIONAL_KEYS);
+  if (keyErr) return `position value ${keyErr}`;
+  if (commonAlias && (typeof v.display !== 'string' || !v.display)) return 'position alias display missing';
+  return validatePositionSemantics(v);
+}
+
+// Accepts either a canonical wrapper or a bare common NodeValue.
+function isPositionFact(f: any): string | null {
+  if (!f) return 'absent';
+  const isWrapper = f.kind === 'position';
+  return validateOrdinaryPositionValue(isWrapper ? f.value : f, !isWrapper);
 }
 function isScoreBand(v: any): string | null {
   if (!v || typeof v !== 'object') return 'absent';
@@ -239,6 +260,13 @@ function requireCommonAspectsComplete(v2: VerifiedFactsV2): string | null {
   }
   if (common.length !== canonical.length) {
     return `common.aspects count ${common.length} != canonical ${canonical.length}`;
+  }
+  // F12-4: the published common array must preserve production's raw deterministic order.
+  // Sort only the independently authoritative canonical copy; never normalize the actual array.
+  const expectedOrder = [...canonical].sort(compareAspectFacts).map((fact: any) => fact.id);
+  const actualOrder = common.map((fact: any) => fact.id);
+  if (JSON.stringify(actualOrder) !== JSON.stringify(expectedOrder)) {
+    return 'common.aspects raw order differs from canonical production order';
   }
   // Build ID-keyed maps and compare full content (ignoring key order).
   const canonById = new Map(canonical.map((f: any) => [f.id, f]));
@@ -455,69 +483,99 @@ function isRulerFact(v: any, contextId: string, v2: VerifiedFactsV2): string | n
   return null;
 }
 
-// F10-4: ordinal helper (mirrors derived.ts) for deterministic display derivation.
+// F12-2: ordinal/display helpers mirror the canonical position renderer.
 function ordinal(n: number): string {
   const s = ['th','st','nd','rd'], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-// F10-4: derive the canonical POF display from value semantics (so coordinated false
-// displays cannot establish authority). POF has no dignity/retrograde.
-function derivePofDisplay(value: any): string {
+function derivePositionDisplay(value: any): string {
   const { sign, degreeInSign } = signFromLongitude(value.longitude);
   const houseStr = value.house != null ? ` in the ${ordinal(value.house)} house` : '';
-  return `Part of Fortune at ${degreeInSign.toFixed(2)}° ${sign.label}${houseStr}`;
+  const retro = value.retrograde ? ' (retrograde)' : '';
+  const dig = value.dignity ? `, ${DIGNITY_LABEL[value.dignity]}` : '';
+  const uncertain = value.uncertain ? ' (approximate; birth time unknown)' : '';
+  return `${value.label} at ${degreeInSign.toFixed(2)}° ${sign.label}${houseStr}${dig}${retro}${uncertain}`;
 }
-// F10-4: validate a POF wrapper against the exact contract. `factsKey` is the map key
-// (must equal the wrapper id). Rejects unexpected wrapper/value metadata.
-const POF_WRAPPER_KEYS = ['id','kind','source','display','value','provenance'];
-// F11-3: EXACT POF value contract — every field is required. Coordinated omission of a field
-// (e.g. signLabel deleted from both copies) must fail, not be tolerated as "absent on both".
-const POF_VALUE_KEYS = ['key','label','longitude','degreeInSign','sign','signLabel','house','retrograde','dignity','sect','formula'];
-function validatePofWrapper(v2: VerifiedFactsV2, wrapper: any, factsKey: string): string | null {
-  if (!wrapper || typeof wrapper !== 'object') return 'POF wrapper absent';
-  const wrapErr = exactKeys(wrapper, POF_WRAPPER_KEYS);
-  if (wrapErr) return `POF wrapper ${wrapErr}`;
-  if (wrapper.id !== factsKey) return `POF id ${wrapper.id} != facts map key ${factsKey}`;
-  if (wrapper.kind !== 'position') return `POF kind ${wrapper.kind} != position`;
-  if (wrapper.source !== 'derived-deterministic') return `POF source ${wrapper.source} != derived-deterministic`;
-  if (typeof wrapper.display !== 'string' || !wrapper.display) return 'POF missing display';
-  const value = wrapper.value;
-  if (!value || typeof value !== 'object') return 'POF value absent';
-  // F11-3: exact required value keys (missing AND unexpected both rejected).
-  const valErr = exactKeys(value, POF_VALUE_KEYS);
-  if (valErr) return `POF value ${valErr}`;
-  // F11-3: locked POF identity. The Part of Fortune is not a generic position: its key and
-  // label are fixed by the contract, and its signLabel must be DERIVED from its longitude
-  // (derivePofDisplay derives its own label, so a false nested signLabel was invisible).
+
+const POSITION_WRAPPER_KEYS = ['id', 'kind', 'source', 'display', 'value'] as const;
+const POF_PROVENANCE = ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'] as const;
+const POF_VALUE_KEYS = [...POSITION_VALUE_KEYS, 'sect', 'formula'] as const;
+type PositionMode = 'root' | 'derived';
+
+// F12-5: POF value truth is independently re-derived from canonical normalized inputs.
+function validatePofValue(v2: VerifiedFactsV2, value: any): string | null {
+  const keyErr = exactKeys(value, POF_VALUE_KEYS);
+  if (keyErr) return `POF value ${keyErr}`;
+  const semanticErr = validatePositionSemantics(value);
+  if (semanticErr) return `POF position semantics: ${semanticErr}`;
   if (value.key !== 'partoffortune') return `POF value key ${JSON.stringify(value.key)} != 'partoffortune'`;
   if (value.label !== 'Part of Fortune') return `POF value label ${JSON.stringify(value.label)} != 'Part of Fortune'`;
-  if (typeof value.longitude !== 'number' || !Number.isFinite(value.longitude)) return `POF longitude ${String(value.longitude)} is not a finite number`;
-  const derivedSign = signFromLongitude(value.longitude);
-  if (value.sign !== derivedSign.sign.key) return `POF sign ${JSON.stringify(value.sign)} != derived ${derivedSign.sign.key} from longitude ${value.longitude}`;
-  if (value.signLabel !== derivedSign.sign.label) return `POF signLabel ${JSON.stringify(value.signLabel)} != derived ${derivedSign.sign.label} from longitude ${value.longitude}`;
-  const posErr = isPositionFact(value);
-  if (posErr) return `POF position semantics: ${posErr}`;
-  const expectedDisplay = derivePofDisplay(value);
-  if (wrapper.display !== expectedDisplay) return `POF display ${wrapper.display} != derived ${expectedDisplay}`;
-  const prov = ['natal.ascendant.position','natal.moon.position','natal.sun.position'];
-  if (JSON.stringify(wrapper.provenance) !== JSON.stringify(prov)) return `POF provenance ${JSON.stringify(wrapper.provenance)} != ASC/Sun/Moon (ordered)`;
+  if (value.retrograde !== false) return `POF retrograde ${JSON.stringify(value.retrograde)} != false`;
+  if (value.dignity !== null) return `POF dignity ${JSON.stringify(value.dignity)} != null`;
+
+  const asc: any = factById(v2, 'natal.ascendant.position')?.value;
+  const sun: any = factById(v2, 'natal.sun.position')?.value;
+  const moon: any = factById(v2, 'natal.moon.position')?.value;
+  if (!asc || !sun || !moon) return 'POF canonical ASC/Sun/Moon input missing';
+  if (!Number.isInteger(sun.house) || sun.house < 1 || sun.house > 12) return `POF canonical Sun house ${JSON.stringify(sun.house)} invalid`;
+  for (const [label, input] of [['ASC', asc], ['Sun', sun], ['Moon', moon]] as const) {
+    if (typeof input.longitude !== 'number' || !Number.isFinite(input.longitude) || input.longitude < 0 || input.longitude >= 360) {
+      return `POF canonical ${label} longitude invalid`;
+    }
+  }
+
+  const expectedSect = sun.house >= 7 ? 'day' : 'night';
+  const expectedFormula = expectedSect === 'day' ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
+  const expectedLongitude = normalizePublishedLongitude(expectedSect === 'day'
+    ? asc.longitude + moon.longitude - sun.longitude
+    : asc.longitude + sun.longitude - moon.longitude);
+  const expectedSign = signFromLongitude(expectedLongitude);
+  const expectedDegree = round2(expectedSign.degreeInSign);
+  if (value.sect !== expectedSect) return `POF sect ${value.sect} != canonical Sun-house sect ${expectedSect}`;
+  if (value.formula !== expectedFormula) return `POF formula ${value.formula} != ${expectedFormula}`;
+  if (value.longitude !== expectedLongitude) return `POF longitude ${value.longitude} != normalized canonical recomputation ${expectedLongitude}`;
+  if (value.sign !== expectedSign.sign.key) return `POF sign ${value.sign} != recomputed ${expectedSign.sign.key}`;
+  if (value.signLabel !== expectedSign.sign.label) return `POF signLabel ${value.signLabel} != recomputed ${expectedSign.sign.label}`;
+  if (value.degreeInSign !== expectedDegree) return `POF degreeInSign ${value.degreeInSign} != recomputed ${expectedDegree}`;
   return null;
 }
-// F5-5: Part-of-Fortune validator (position shape + sect/formula + provenance).
-// v may be a VerifiedFact wrapper (kind:'position', value holds sect/formula) or a
-// bare position object. Unwrap before reading sect/formula; read provenance from the
-// outer wrapper when present.
-// F10-4: validate the COMMON POF wrapper using the full contract. The flat POF fact is
-// validated separately (validatePofWrapper with its facts-map key).
-function isPartOfFortune(v2: VerifiedFactsV2, v: any, expectedId: string): string | null {
-  const err = validatePofWrapper(v2, v, expectedId);
-  if (err) return err;
-  // value sect/formula semantics (POF-specific, beyond the generic position value).
-  const value: any = v.value;
-  if (value.sect !== 'day' && value.sect !== 'night') return `invalid sect: ${value.sect}`;
-  const expectedFormula = value.sect === 'day' ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
-  if (value.formula !== expectedFormula) return `formula ${value.formula} != ${expectedFormula}`;
+
+// F12-2/F12-3: one reusable map-key-bound wrapper/value/display contract for every
+// root and derived body position. POF selects the stricter value validator above.
+function validateCanonicalPositionFact(
+  v2: VerifiedFactsV2,
+  mapKey: string,
+  fact: any,
+  mode: PositionMode,
+  expectedProvenance: readonly string[],
+  pof: boolean = false,
+): string | null {
+  if (!fact || typeof fact !== 'object' || Array.isArray(fact)) return 'position wrapper absent';
+  const required = mode === 'derived' ? [...POSITION_WRAPPER_KEYS, 'provenance'] : [...POSITION_WRAPPER_KEYS];
+  const optional = mode === 'root' ? ['provenance'] : [];
+  const wrapErr = exactKeys(fact, required, optional);
+  if (wrapErr) return `position wrapper ${wrapErr}`;
+  if (fact.id !== mapKey) return `position id ${JSON.stringify(fact.id)} != facts map key ${mapKey}`;
+  if (fact.kind !== 'position') return `position kind ${JSON.stringify(fact.kind)} != position`;
+  const expectedSource = mode === 'root' ? 'swiss-ephemeris' : 'derived-deterministic';
+  if (fact.source !== expectedSource) return `position source ${JSON.stringify(fact.source)} != ${expectedSource}`;
+  if (mode === 'root') {
+    if (fact.provenance !== undefined) return `root provenance ${JSON.stringify(fact.provenance)} != locked undefined`;
+  } else if (JSON.stringify(fact.provenance) !== JSON.stringify(expectedProvenance)) {
+    return `derived provenance ${JSON.stringify(fact.provenance)} != ${JSON.stringify(expectedProvenance)}`;
+  }
+  const valueErr = pof ? validatePofValue(v2, fact.value) : validateOrdinaryPositionValue(fact.value);
+  if (valueErr) return valueErr;
+  const expectedDisplay = derivePositionDisplay(fact.value);
+  if (fact.display !== expectedDisplay) return `position display ${JSON.stringify(fact.display)} != derived ${JSON.stringify(expectedDisplay)}`;
   return null;
+}
+
+function validatePofWrapper(v2: VerifiedFactsV2, wrapper: any, factsKey: string): string | null {
+  return validateCanonicalPositionFact(v2, factsKey, wrapper, 'derived', POF_PROVENANCE, true);
+}
+function isPartOfFortune(v2: VerifiedFactsV2, v: any, expectedId: string): string | null {
+  return validatePofWrapper(v2, v, expectedId);
 }
 
 interface FieldCheck { path: string; check: (v2: VerifiedFactsV2) => string | null; }
@@ -539,36 +597,33 @@ const COMMON_POINT_FIELDS: FieldCheck[] = [
 function positionsEqual(alias: any, factValue: any, isPof: boolean, factDisplay?: any, aliasDisplay?: any): string | null {
   if (!alias || typeof alias !== 'object') return 'alias absent';
   if (!factValue || typeof factValue !== 'object') return 'fact value absent';
+  const aliasErr = isPof
+    ? exactKeys(alias, POF_VALUE_KEYS)
+    : exactKeys(alias, [...POSITION_VALUE_KEYS, 'display'], POSITION_VALUE_OPTIONAL_KEYS);
+  if (aliasErr) return `alias ${aliasErr}`;
+  const factErr = isPof
+    ? exactKeys(factValue, POF_VALUE_KEYS)
+    : exactKeys(factValue, POSITION_VALUE_KEYS, POSITION_VALUE_OPTIONAL_KEYS);
+  if (factErr) return `fact value ${factErr}`;
   const checks: [string, boolean, any, any][] = [
     ['key', alias.key === factValue.key, alias.key, factValue.key],
     ['label', alias.label === factValue.label, alias.label, factValue.label],
     ['sign', alias.sign === factValue.sign, alias.sign, factValue.sign],
     ['signLabel', alias.signLabel === factValue.signLabel, alias.signLabel, factValue.signLabel],
-    ['longitude', Math.abs((alias.longitude ?? 0) - (factValue.longitude ?? 0)) <= 0.001, alias.longitude, factValue.longitude],
-    ['degreeInSign', Math.abs((alias.degreeInSign ?? 0) - (factValue.degreeInSign ?? 0)) <= 0.01, alias.degreeInSign, factValue.degreeInSign],
-    ['house', (alias.house ?? null) === (factValue.house ?? null), alias.house, factValue.house],
+    // F12-1: these are already-normalized serialized aliases, so equality is exact.
+    ['longitude', alias.longitude === factValue.longitude, alias.longitude, factValue.longitude],
+    ['degreeInSign', alias.degreeInSign === factValue.degreeInSign, alias.degreeInSign, factValue.degreeInSign],
+    ['house', alias.house === factValue.house, alias.house, factValue.house],
     ['retrograde', alias.retrograde === factValue.retrograde, alias.retrograde, factValue.retrograde],
     ['dignity', alias.dignity === factValue.dignity, alias.dignity, factValue.dignity],
-    // F8-7: use the ACTUAL contract field `uncertain` (production writes v.uncertain = true),
-    // not a phantom `uncertainty` field. Reject contradictory or unexpected metadata.
-    ['uncertain', (alias.uncertain ?? null) === (factValue.uncertain ?? null), alias.uncertain, factValue.uncertain],
+    ['uncertain', alias.uncertain === factValue.uncertain, alias.uncertain, factValue.uncertain],
   ];
   for (const [name, ok, a, b] of checks) {
     if (!ok) return `${name}: alias ${JSON.stringify(a)} != fact ${JSON.stringify(b)}`;
   }
-  // F9-3: compare display. The canonical display lives on the fact WRAPPER (not the
-  // inner .value), so callers pass it via factDisplay; fall back to factValue.display.
-  const aliasDisp = (aliasDisplay !== undefined) ? aliasDisplay : (alias.display !== undefined ? alias.display : factValue.display);
-  const factDisp = (factDisplay !== undefined) ? factDisplay : factValue.display;
+  const aliasDisp = aliasDisplay !== undefined ? aliasDisplay : alias.display;
+  const factDisp = factDisplay !== undefined ? factDisplay : factValue.display;
   if (aliasDisp !== factDisp) return `display: alias ${JSON.stringify(aliasDisp)} != fact ${JSON.stringify(factDisp)}`;
-  // F9-3 / F9-10: reject unexpected metadata keys on BOTH alias and canonical fact value.
-  const allowed = new Set(['key','label','sign','signLabel','longitude','degreeInSign','house','retrograde','dignity','uncertain','display','sect','formula']);
-  for (const k of Object.keys(alias)) {
-    if (!allowed.has(k)) return `alias unexpected metadata key: ${k}`;
-  }
-  for (const k of Object.keys(factValue)) {
-    if (!allowed.has(k)) return `fact value unexpected metadata key: ${k}`;
-  }
   if (isPof) {
     if (alias.sect !== factValue.sect) return `POF sect ${alias.sect} != ${factValue.sect}`;
     if (alias.formula !== factValue.formula) return `POF formula ${alias.formula} != ${factValue.formula}`;
@@ -638,22 +693,7 @@ const COMMON_CONSISTENCY: FieldCheck = {
 
 // ---- body positions in the flat facts map ----
 
-// F9-6: validate root position wrapper source/provenance. Swiss-Ephemeris roots require
-// exact root source and locked empty-provenance convention; derived positions require exact
-// derived source and input provenance.
-function validateRootPositionFact(f: any, isDerived: boolean, expectedProv: string[]): string | null {
-  if (!f || typeof f !== 'object') return 'absent';
-  if (f.kind !== 'position') return `kind ${f.kind} != position`;
-  if (isDerived) {
-    if (f.source !== 'derived-deterministic') return `source ${f.source} != derived-deterministic`;
-    if (JSON.stringify(f.provenance) !== JSON.stringify(expectedProv)) return `derived provenance ${JSON.stringify(f.provenance)} != ${JSON.stringify(expectedProv)}`;
-  } else {
-    if (f.source !== 'swiss-ephemeris') return `source ${f.source} != swiss-ephemeris`;
-    if (f.provenance !== undefined) return `root provenance ${JSON.stringify(f.provenance)} != locked undefined`;
-  }
-  return null;
-}
-// F9-6: every body position must be shape-valid AND carry canonical wrapper source/provenance.
+// F12-2/F12-3: every body position uses the single canonical wrapper/value/display validator.
 // Roots (Swiss-Ephemeris): source 'swiss-ephemeris', locked empty provenance (undefined).
 // Derived (South Node / DSC / IC / POF): source 'derived-deterministic', exact input provenance.
 const ROOT_BODY_FACTS = [
@@ -668,18 +708,20 @@ const DERIVED_BODY_FACTS: Record<string, string[]> = {
   'natal.icumcoeli.position': ['natal.midheaven.position'],
   'natal.partoffortune.position': ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'],
 };
-const BODY_REQUIRED: FieldCheck[] = ROOT_BODY_FACTS.map((id) => ({ path: `facts.${id}`, check: (v2) => {
-  const f = factById(v2, id);
-  const shape = isPositionFact(f); if (shape) return shape;
-  return validateRootPositionFact(f, false, []);
-} }));
-// F9-6: derived positions require derived source + exact input provenance.
-const DERIVED_BODY_REQUIRED: FieldCheck[] = Object.entries(DERIVED_BODY_FACTS).map(([id, prov]) => ({
-  path: `facts.${id}`, check: (v2) => {
-    const f = factById(v2, id);
-    const shape = isPositionFact(f); if (shape) return shape;
-    return validateRootPositionFact(f, true, prov);
-  },
+const BODY_REQUIRED: FieldCheck[] = ROOT_BODY_FACTS.map((id) => ({
+  path: `facts.${id}`,
+  check: (v2) => validateCanonicalPositionFact(v2, id, factById(v2, id), 'root', []),
+}));
+const DERIVED_BODY_REQUIRED: FieldCheck[] = Object.entries(DERIVED_BODY_FACTS).map(([id, provenance]) => ({
+  path: `facts.${id}`,
+  check: (v2) => validateCanonicalPositionFact(
+    v2,
+    id,
+    factById(v2, id),
+    'derived',
+    provenance,
+    id === 'natal.partoffortune.position',
+  ),
 }));
 
 // ---- A4 report-specific evidence bundles (R2-B4) ----

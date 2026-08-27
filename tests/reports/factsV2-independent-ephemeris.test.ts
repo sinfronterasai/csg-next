@@ -25,22 +25,44 @@ function angularDiff(a: number, b: number): number {
 const signOf = (lon: number) => SIGNS[Math.floor(norm360(lon) / 30)];
 const JPL_DIR = path.join(__dirname, 'fixtures', 'jpl-raw');
 const readJpl = (name: string) => JSON.parse(fs.readFileSync(path.join(JPL_DIR, name), 'utf8'));
-// Match the exact data row by its time token (e.g. '1990-Jun-15 10:00').
+const JPL_ROW_PATTERN = /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/;
+function jplRows(result: string): string[] {
+  return result.split('\n').filter((line) => JPL_ROW_PATTERN.test(line));
+}
+function jplTimestamp(line: string): string {
+  const match = /(\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2}),/.exec(line);
+  if (!match) throw new Error(`unparseable JPL timestamp row: ${line}`);
+  return match[1];
+}
+function jplTimestamps(result: string): string[] {
+  return jplRows(result).map(jplTimestamp);
+}
+function expectJplTimestampSequence(result: string, row: JplManifestRow): void {
+  const timestamps = jplTimestamps(result);
+  expect(timestamps).toEqual(row.timestamps);
+  expect(new Set(timestamps).size).toBe(timestamps.length);
+  expect(timestamps.filter((timestamp) => timestamp === row.timeToken)).toHaveLength(1);
+}
+// F12-6: selected timestamps are exact and unique, never first-substring-match wins.
+function jplRowFromResult(result: string, file: string, timeToken: string): string {
+  const matches = jplRows(result).filter((line) => jplTimestamp(line) === timeToken);
+  if (matches.length !== 1) throw new Error(`expected exactly one row matching ${timeToken} in ${file}, found ${matches.length}`);
+  return matches[0];
+}
 function jplRow(file: string, timeToken: string): string {
-  const d = readJpl(file);
-  const line = d.result.split('\n').find((l: string) => l.includes(timeToken) && l.includes(','));
-  if (!line) throw new Error(`no row matching ${timeToken} in ${file}`);
-  return line;
+  return jplRowFromResult(readJpl(file).result, file, timeToken);
 }
 // Quantity 31 row format: "YYYY-Mon-DD HH:MM, , , ObsEcLon, ObsEcLat,". The longitude is the
 // 2nd non-empty field. F11-4: parse the raw ObsEcLon of the SELECTED row — it is the only
 // authority for any fixed longitude constant.
-function jplLon(file: string, timeToken: string): number {
-  const row = jplRow(file, timeToken);
+function jplLonFromRow(row: string, file: string, timeToken: string): number {
   const parts = row.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
   const lon = parseFloat(parts[1]);
   if (!Number.isFinite(lon)) throw new Error(`unparseable ObsEcLon in ${file} row ${timeToken}`);
   return lon;
+}
+function jplLon(file: string, timeToken: string): number {
+  return jplLonFromRow(jplRow(file, timeToken), file, timeToken);
 }
 // F11-4: round a parsed raw longitude at an EXPLICITLY declared precision. Used to tie every
 // fixed constant to its parsed raw row with no tolerance band.
@@ -94,8 +116,7 @@ const REQUIRED_JPL_PARAMS: Record<string, string> = {
 // signature/version, target body, center, requested window, row count, selected timestamp, the
 // exact decoded quantity/frame/format parameters, the raw observer-ecliptic quantity columns
 // and their declared degree/frame semantics, and the exact fixed longitude linkage.
-function verifyJplArtifact(row: JplManifestRow): number {
-  const d = readJpl(row.file);
+function verifyJplArtifact(row: JplManifestRow, d: any = readJpl(row.file)): number {
   expect(d.signature?.source).toContain('NASA/JPL Horizons API');
   expect(d.signature?.version).toBe('1.2');
   // target + center from the raw header
@@ -118,13 +139,14 @@ function verifyJplArtifact(row: JplManifestRow): number {
   expect(frameDoc).toContain("'ObsEcLon, ObsEcLat,' =");
   expect(frameDoc).toContain('Observer-centered IAU76/80 ecliptic-of-date longitude and latitude');
   expect(frameDoc).toContain('Units: DEGREES');
-  // exact row count
-  const rows = lines.filter((l: string) => /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/.test(l));
+  // F12-6: exact row count, complete raw order, unique timestamps, selected-row uniqueness,
+  // and raw step all bind to this same manifest row.
+  const rows = jplRows(d.result);
   expect(rows.length).toBe(row.expRows);
-  // selected row is present
-  const sel = jplRow(row.file, row.timeToken);
-  expect(sel).toContain(row.timeToken);
-  const lon = jplLon(row.file, row.timeToken);
+  expectJplTimestampSequence(d.result, row);
+  expect(jplHeader(d.result, 'Step-size')).toBe(`${row.stepMinutes} minutes`);
+  const sel = jplRowFromResult(d.result, row.file, row.timeToken);
+  const lon = jplLonFromRow(sel, row.file, row.timeToken);
   // F11-4: EVERY fixed longitude is tied to its parsed selected raw row at the manifest's
   // explicitly declared precision. No expLon === 0 bypass, no tolerance band.
   expect(row.lonDp).toBe(JPL_LON_DP);
@@ -137,6 +159,7 @@ function verifyJplArtifact(row: JplManifestRow): number {
   expect(params.COMMAND).toBe(`'${row.command}'`);
   expect(params.START_TIME).toBe(`'${row.start}'`);
   expect(params.STOP_TIME).toBe(`'${row.stop}'`);
+  expect(params.STEP_SIZE).toBe(`'${row.step}'`);
   for (const [k, v] of Object.entries(REQUIRED_JPL_PARAMS)) {
     expect(params[k]).toBe(v);
   }
@@ -219,6 +242,34 @@ describe('F10-1 — external JPL corpus integrity (every artifact verified)', ()
       const lon = verifyJplArtifact(m);
       expect(roundTo(lon, m.lonDp)).toBe(m.expLon);
     }
+  });
+
+  test('every JPL manifest row locks the complete ordered timestamp sequence and raw step', () => {
+    for (const row of JPL_MANIFEST) {
+      const raw = readJpl(row.file);
+      expectJplTimestampSequence(raw.result, row);
+      expect(jplHeader(raw.result, 'Step-size')).toBe(`${row.stepMinutes} minutes`);
+      const params = decodeQueryParams(QUERY_LOG[row.queryKey]);
+      expect(params.STEP_SIZE).toBe(`'${row.step}'`);
+    }
+  });
+
+  test('duplicate selected timestamp replacing an expected row fails the sequence contract', () => {
+    const row = JPL_MANIFEST.find((candidate) => candidate.file === 'sun_paris_1990-06-15T10.json')!;
+    expect(row.timestamps).toEqual([
+      '1990-Jun-15 09:00',
+      '1990-Jun-15 10:00',
+      '1990-Jun-15 11:00',
+    ]);
+    const raw = readJpl(row.file);
+    const lines: string[] = raw.result.split('\n');
+    const selected = lines.find((line) => line.includes(`${row.timeToken},`));
+    const replaceIndex = lines.findIndex((line) => line.includes('1990-Jun-15 11:00,'));
+    if (!selected || replaceIndex < 0) throw new Error('Sun duplicate-timestamp mutation setup failed');
+    lines[replaceIndex] = selected;
+    const mutated = lines.join('\n');
+    expect(jplRows(mutated)).toHaveLength(row.expRows);
+    expect(() => verifyJplArtifact(row, { ...raw, result: mutated })).toThrow();
   });
 
   test('unknown-time fixture Moon boundaries verified against their distinct artifacts', () => {

@@ -192,6 +192,15 @@ describe('R2-B6 — point houses and house/ruler structures', () => {
     expect(pof.house).toBeGreaterThanOrEqual(1);
     expect(pof.house).toBeLessThanOrEqual(12);
   });
+  it('rejects coordinated POF longitude drift below the published aspect precision', async () => {
+    const v2: any = JSON.parse(JSON.stringify(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth)));
+    for (const wrapper of [v2.common.partOfFortune, v2.facts['natal.partoffortune.position']]) {
+      wrapper.value.longitude += 0.0005;
+      wrapper.value.degreeInSign += 0.0005;
+    }
+    expect(preflightReport('natal', v2).status).toBe('input_incomplete');
+  });
+
   it('exposes 12 house cusps, 7th/2nd/6th/10th rulers, and occupants', async () => {
     const v2 = await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth);
     expect(v2.common.houses?.length).toBe(12);

@@ -29,7 +29,13 @@ function ordinal(n: number): string {
 
 export function round2(n: number): number { return Math.round(n * 100) / 100; }
 
-// Full-precision longitude retained for aspect math. display/storage round.
+// F12-5: serialized position longitudes use one exact 2dp basis. Normalize after
+// rounding so a value near 360° cannot serialize as the out-of-range value 360.
+export function normalizePublishedLongitude(n: number): number {
+  return normDeg(round2(normDeg(n)));
+}
+
+// Engine longitude retained until each deterministic consumer selects its declared precision.
 interface BodyLong {
   id: string; key: string; label: string; longitude: number; full: PlanetPlacement;
 }
@@ -66,8 +72,9 @@ function getOrbForBodies(def: typeof ASPECT_ORBS[0], bodyA: string, bodyB: strin
 }
 
 function positionFact(id: string, key: string, label: string, longitude: number, house: number | null, retrograde: boolean, source: FactSource = 'swiss-ephemeris', provenance?: string[]): VerifiedFact {
-  const { sign, degreeInSign } = signFromLongitude(longitude);
-  const info = getPlanet(key) || { label, glyph: '•' };
+  const normalizedLongitude = normalizePublishedLongitude(longitude);
+  const { sign, degreeInSign: rawDegreeInSign } = signFromLongitude(normalizedLongitude);
+  const degreeInSign = round2(rawDegreeInSign);
   const dignity = dignityFor(key, sign.key) as Dignity;
   const houseStr = house != null ? ` in the ${ordinal(house)} house` : '';
   const retro = retrograde ? ' (retrograde)' : '';
@@ -75,8 +82,8 @@ function positionFact(id: string, key: string, label: string, longitude: number,
   return {
     id, kind: 'position', source,
     display: `${label} at ${degreeInSign.toFixed(2)}° ${sign.label}${houseStr}${dig}${retro}`,
-    value: { key, label, longitude: round2(longitude), degreeInSign: round2(degreeInSign), sign: sign.key, signLabel: sign.label, house, retrograde, dignity },
-    provenance,
+    value: { key, label, longitude: normalizedLongitude, degreeInSign, sign: sign.key, signLabel: sign.label, house, retrograde, dignity },
+    ...(provenance !== undefined ? { provenance } : {}),
   };
 }
 
@@ -167,9 +174,11 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
   let pofLong: number | undefined; // F5-6: hoisted for aspect computation
 
   if (!unknownTime) {
-    const ascLong = chart.ascendant.longitude;
-    const moonLong = chart.moon.longitude;
-    const sunLong = chart.sun.longitude;
+    // F12-5: POF authority is the same normalized 2dp basis published by the
+    // canonical ASC/Sun/Moon position facts, not hidden full-precision engine values.
+    const ascLong = normalizePublishedLongitude(chart.ascendant.longitude);
+    const moonLong = normalizePublishedLongitude(chart.moon.longitude);
+    const sunLong = normalizePublishedLongitude(chart.sun.longitude);
 
     // Ascendant / Midheaven ARE Swiss Eph root output -> swiss-ephemeris, no provenance.
     const ascendantFact = positionFact('natal.ascendant.position', 'ascendant', 'Ascendant', chart.ascendant.longitude, 1, false, 'swiss-ephemeris');
@@ -195,9 +204,9 @@ export async function buildCommonDerived(chart: ChartData, unknownTime: boolean 
     const isDay = sunHouse !== null && sunHouse >= 7 && sunHouse <= 12;
     const sect: 'day' | 'night' = isDay ? 'day' : 'night';
     const formula = isDay ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
-    pofLong = isDay
-      ? normDeg(ascLong + moonLong - sunLong)
-      : normDeg(ascLong + sunLong - moonLong);
+    pofLong = normalizePublishedLongitude(isDay
+      ? ascLong + moonLong - sunLong
+      : ascLong + sunLong - moonLong);
     const pofHouse = houseForLongitude(pofLong, chart.cusps);
     const pofFact = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, pofHouse, false, 'derived-deterministic', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position']);
     // Inject sect/formula metadata into the POF value (F4-4)
@@ -408,9 +417,18 @@ export const TIGHT_ASPECT_THRESHOLD = 1.0; // degrees; tight aspect threshold
 export function isExactAspect(errorDeg: number): boolean { return errorDeg < EXACT_ASPECT_EPSILON; }
 export function isTightAspect(errorDeg: number): boolean { return errorDeg < TIGHT_ASPECT_THRESHOLD; }
 
-// Aspects from FULL-precision longitudes, locked major + minor set (T3-3).
+// F12-4: one shared comparator defines the published raw aspect order and the
+// validator's independently derived expected order.
+export function compareAspectFacts(a: AspectFact, b: AspectFact): number {
+  if (a.value.orb !== b.value.orb) return a.value.orb - b.value.orb;
+  if (a.value.aspectType !== b.value.aspectType) return a.value.aspectType.localeCompare(b.value.aspectType);
+  if (a.value.bodyA !== b.value.bodyA) return a.value.bodyA.localeCompare(b.value.bodyA);
+  return a.value.bodyB.localeCompare(b.value.bodyB);
+}
+
+// Aspects from the published 2dp longitude basis, locked major + minor set (T3-3).
 // Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
-// Output sorted by ascending orb.
+// Output sorted by the canonical comparator above.
 export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
   const out: AspectFact[] = [];
   for (let i = 0; i < bodyList.length; i++) {
@@ -447,13 +465,8 @@ export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
       }
     }
   }
-  // T3-3: Sort by ascending orb with stable tie-breaking (by type, then bodyA, then bodyB)
-  return out.sort((a, b) => {
-    if (a.value.orb !== b.value.orb) return a.value.orb - b.value.orb;
-    if (a.value.aspectType !== b.value.aspectType) return a.value.aspectType.localeCompare(b.value.aspectType);
-    if (a.value.bodyA !== b.value.bodyA) return a.value.bodyA.localeCompare(b.value.bodyA);
-    return a.value.bodyB.localeCompare(b.value.bodyB);
-  });
+  // T3-3 / F12-4: canonical raw serialization order.
+  return out.sort(compareAspectFacts);
 }
 
 export function aspectWeight(type: string, orb: number): number {
