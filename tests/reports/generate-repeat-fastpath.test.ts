@@ -34,13 +34,18 @@ let query: jest.Mock;
 let getPurchase: jest.Mock;
 let consume: jest.Mock;
 
-beforeEach(() => { jest.clearAllMocks(); buildVerifiedFactsForReport.mockClear(); });
+beforeEach(() => {
+  jest.clearAllMocks();
+  buildVerifiedFactsForReport.mockClear();
+  // This suite tests repeat/correlation behavior beyond the beta gate.
+  process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
+});
 
 function setupRepeat() {
   dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
   consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
-  getPurchase.mockResolvedValue({ id: 'p-1', status: 'paid', userId: 7, reportType: 'transit', price: '4.99', created_at: '2026-01-01' });
+  getPurchase.mockResolvedValue({ id: 'p-1', status: 'paid', userId: 7, reportType: 'loveblueprint', price: '4.99', created_at: '2026-01-01' });
   consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
   query = require('@/lib/db').query;
   // The correlation SELECT returns an existing reading => repeat fast path.
@@ -59,7 +64,7 @@ function call(body: any) {
 describe('R2-B8 — repeat fast path (no build/consume/dispatch)', () => {
   it('returns the stored reading without building the ledger, consuming, or dispatching', async () => {
     setupRepeat();
-    const res = await call({ purchaseId: '11111111-1111-1111-1111-111111111111', type: 'transit' });
+    const res = await call({ purchaseId: '11111111-1111-1111-1111-111111111111', type: 'loveblueprint' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.mode).toBe('repeat');
@@ -73,7 +78,7 @@ describe('R2-B8 — repeat fast path (no build/consume/dispatch)', () => {
     dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
     getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
     consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
-    getPurchase.mockResolvedValue({ id: 'p-2', status: 'paid', userId: 7, reportType: 'transit', price: '4.99', created_at: '2026-01-01' });
+    getPurchase.mockResolvedValue({ id: 'p-2', status: 'paid', userId: 7, reportType: 'loveblueprint', price: '4.99', created_at: '2026-01-01' });
     consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-2', readingStatus: 'queued' });
     query = require('@/lib/db').query;
     query.mockImplementation(async (text: string) => {
@@ -82,7 +87,7 @@ describe('R2-B8 — repeat fast path (no build/consume/dispatch)', () => {
       if (text.startsWith('INSERT INTO readings')) return { rows: [{ id: 99 }] };
       return { rows: [] };
     });
-    const res = await call({ purchaseId: '22222222-2222-2222-2222-222222222222', type: 'transit' });
+    const res = await call({ purchaseId: '22222222-2222-2222-2222-222222222222', type: 'loveblueprint' });
     expect(res.status).toBe(200);
     expect(buildVerifiedFactsForReport).toHaveBeenCalled();
     expect(consume).toHaveBeenCalled();

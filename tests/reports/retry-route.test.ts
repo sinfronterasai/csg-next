@@ -20,19 +20,19 @@ jest.mock('@/lib/reportPipeline', () => ({
   dispatchReport: (...a: any[]) => dispatched(...a),
 }));
 
-const READING = (status: string, snapshot: any) => ({
-  id: 50, user_id: 7, type: 'transit', title: 'T',
-  result: { reportId: 'rid-1', reportType: 'transit', metadata: snapshot },
+const READING = (status: string, snapshot: any, reportType = 'loveblueprint') => ({
+  id: 50, user_id: 7, type: reportType, title: 'T',
+  result: { reportId: 'rid-1', reportType, metadata: snapshot },
   pipeline_status: status,
 });
 
-function setup(opts: { status?: string; snapshot?: any; claimResult?: boolean; dispatchResult?: any; purchase?: any } = {}) {
+function setup(opts: { status?: string; snapshot?: any; claimResult?: boolean; dispatchResult?: any; purchase?: any; reportType?: string } = {}) {
   dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
   claim = require('@/lib/billing/reportPurchaseStore').claimRetry;
   claim.mockResolvedValue({ claimed: opts.claimResult ?? true });
   query = require('@/lib/db').query;
   query.mockImplementation(async (text: string) => {
-    if (text.includes('FROM readings WHERE id')) return { rows: [READING(opts.status ?? 'dispatch_failed', opts.snapshot ?? { birthData: { dob: '1990-01-01' }, verifiedFacts: { x: 1 } })] };
+    if (text.includes('FROM readings WHERE id')) return { rows: [READING(opts.status ?? 'dispatch_failed', opts.snapshot ?? { birthData: { dob: '1990-01-01' }, verifiedFacts: { x: 1 } }, opts.reportType)] };
     return { rows: [] };
   });
   const store = require('@/lib/billing/reportPurchaseStore');
@@ -48,7 +48,27 @@ function call(readingId = 50) {
 }
 
 describe('retry route', () => {
-  beforeEach(() => { jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
+  });
+
+  it('launch gate — rejects a disabled SKU before claim or dispatch', async () => {
+    setup({ reportType: 'transit' });
+    const res = await call();
+    expect(res.status).toBe(404);
+    expect(claim).not.toHaveBeenCalled();
+    expect(dispatched).not.toHaveBeenCalled();
+  });
+
+  it('launch gate — rejects Love Blueprint after beta membership removal', async () => {
+    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '';
+    setup({ reportType: 'loveblueprint' });
+    const res = await call();
+    expect(res.status).toBe(403);
+    expect(claim).not.toHaveBeenCalled();
+    expect(dispatched).not.toHaveBeenCalled();
+  });
 
   it('r2 — rejects a queued reading (never re-dispatch active)', async () => {
     setup({ status: 'queued' });

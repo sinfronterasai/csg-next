@@ -5,6 +5,7 @@ import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import { mapReportType, dispatchReport, isUnsupportedForPipeline } from '@/lib/reportPipeline';
 import { getReportPurchaseByReadingId, claimRetry, markReadingDispatchFailed } from '@/lib/billing/reportPurchaseStore';
+import { gateGeneration } from '@/lib/launch/allowlist';
 
 // POST /api/reports/[id]/retry
 // Safe retry for a FAILED dispatch (dispatch_failed / rejected). Re-dispatches to n8n
@@ -59,6 +60,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Report is not in a retryable state', status }, { status: 409 });
     }
 
+    // Retry is another generation entry point. Re-apply the current launch
+    // policy before reading purchase state, claiming the row, or dispatching:
+    // disabled legacy SKUs remain disabled and removed beta users cannot use a
+    // historical Love Blueprint purchase to bypass current membership.
+    const type = r.result?.reportType as ReportType;
+    const launchGate = gateGeneration(type, decoded.userId);
+    if (!launchGate.allowed) {
+      if (launchGate.code === 'beta_not_allowlisted') {
+        return NextResponse.json({ error: 'Report beta access required' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Report type not available' }, { status: 404 });
+    }
+
     // #5 — only retry if the purchase is already consumed (paid). No double charge.
     const purchase = await getReportPurchaseByReadingId(readingId);
     if (!purchase || purchase.status !== 'consumed') {
@@ -72,7 +86,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const reportId: string = r.result?.reportId;
-    const type = r.result?.reportType as ReportType;
     if (isUnsupportedForPipeline(type)) {
       await markReadingDispatchFailed(readingId);
       return NextResponse.json({ error: 'Report type not retryable via the pipeline' }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { createReportCheckoutSession, isPaidReportType } from '@/lib/billing/reportPurchase';
+import { gateCheckout } from '@/lib/launch/allowlist';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 
 const PIPELINE_PAID: ReportType[] = ['transit', 'loveblueprint', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic'];
@@ -27,8 +28,15 @@ export async function POST(request: NextRequest) {
   if (!decoded) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
   const reportType = body.reportType as ReportType;
-  if (!PIPELINE_PAID.includes(reportType)) {
-    return NextResponse.json({ error: 'Report type does not require purchase.' }, { status: 400 });
+  // Launch allowlist gate (L3): server-authoritative. Rejects non-launch types
+  // and, for the private-beta paid type, non-allowlisted users. Client-supplied
+  // `tier` is NOT consulted, so it cannot downgrade or unlock a product.
+  const gate = gateCheckout(reportType, String(decoded.userId));
+  if (!gate.allowed) {
+    if (gate.code === 'beta_not_allowlisted') {
+      return NextResponse.json({ error: 'Love Blueprint is invite-only during beta.' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Report type is not available at this time.' }, { status: 404 });
   }
   if (!isPaidReportType(reportType)) {
     return NextResponse.json({ error: 'Report type is not a paid report.' }, { status: 400 });

@@ -47,7 +47,12 @@ const CHART = {
   unknown_time: false, latitude: 48.8, longitude: 2.3, timezone: 'Europe/Paris',
 };
 
-beforeEach(() => { jest.clearAllMocks(); });
+beforeEach(() => {
+  jest.clearAllMocks();
+  // These legacy entitlement tests exercise behavior *after* the independent
+  // controlled-beta gate, so their stable test user must be allowlisted.
+  process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
+});
 
 function setup(opts: { purchase?: any; consumeResult?: any; dispatchResult?: any } = {}) {
   dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
@@ -74,13 +79,13 @@ function call(body: any) {
 describe('commercial model: subscription/tarot do NOT grant reports', () => {
   it('paid report with no purchaseId -> 402', async () => {
     setup();
-    const res = await call({ type: 'transit' });
+    const res = await call({ type: 'loveblueprint' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
   it('paid report with bogus (non-UUID) purchaseId -> 400, no DB call', async () => {
     setup();
-    const res = await call({ type: 'transit', purchaseId: 'bogus' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'bogus' });
     expect(res.status).toBe(400);
     expect(getPurchase).not.toHaveBeenCalled(); // UUID rejected before DB
     expect(dispatched).not.toHaveBeenCalled();
@@ -88,30 +93,30 @@ describe('commercial model: subscription/tarot do NOT grant reports', () => {
 });
 
 describe('purchase verification gates dispatch', () => {
-  const paidPurchase = { userId: 7, reportType: 'transit', status: 'paid', readingId: null, reportId: null };
+  const paidPurchase = { userId: 7, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null };
 
   it('matching paid purchase dispatches once (200 + 1 dispatch)', async () => {
     setup({ purchase: paidPurchase });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     expect(dispatched).toHaveBeenCalledTimes(1);
-    expect(consume).toHaveBeenCalledWith(expect.objectContaining({ purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', userId: 7, reportType: 'transit' }));
+    expect(consume).toHaveBeenCalledWith(expect.objectContaining({ purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', userId: 7, reportType: 'loveblueprint' }));
   });
   it('wrong user owns the purchase -> 402', async () => {
     setup({ purchase: { ...paidPurchase, userId: 999 } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
   it('purchase for a different report type (SKU mismatch) -> 409', async () => {
     setup({ purchase: { ...paidPurchase, reportType: 'fullcosmic' } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(409);
     expect(dispatched).not.toHaveBeenCalled();
   });
   it('unpaid (pending) purchase -> 402', async () => {
     setup({ purchase: { ...paidPurchase, status: 'pending' } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
@@ -125,7 +130,7 @@ describe('purchase verification gates dispatch', () => {
 
   it('repeat request for an already-consumed purchase returns SAME correlation, no re-dispatch', async () => {
     setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.readingId).toBe(99);
@@ -136,7 +141,7 @@ describe('purchase verification gates dispatch', () => {
 
   it('repeat after a failed dispatch returns the ACTUAL dispatch_failed status (no fake queued)', async () => {
     setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 99, reportId: 'rid-1', readingStatus: 'dispatch_failed' } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     const body = await res.json();
     expect(body.status).toBe('dispatch_failed');
     expect(body.retryAvailable).toBe(true);
@@ -145,7 +150,7 @@ describe('purchase verification gates dispatch', () => {
 
   it('consume reports already_correlated (race) -> no re-dispatch, returns winning correlation', async () => {
     setup({ purchase: paidPurchase, consumeResult: { outcome: 'already_correlated', readingId: 88, reportId: 'rid-other', readingStatus: 'queued' } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.readingId).toBe(88);
@@ -154,7 +159,7 @@ describe('purchase verification gates dispatch', () => {
 
   it('n8n 401 after a valid purchase leaves report rejected + 502', async () => {
     setup({ purchase: paidPurchase, dispatchResult: { ok: false, status: 401 } });
-    const res = await call({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(502);
     // The route marks the reading dispatch_failed (retryable) via a direct query UPDATE.
     const q = require('@/lib/db').query as jest.Mock;

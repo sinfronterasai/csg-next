@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
+import { gateGeneration } from '@/lib/launch/allowlist';
 import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
@@ -43,6 +44,18 @@ export async function POST(request: Request) {
 
     const { type: rawType, partner, purchaseId } = body;
     const type = rawType as ReportType;
+
+    // Launch allowlist gate (L3): server-authoritative. Reject non-launch types
+    // BEFORE any checkout creation, entitlement use, pipeline dispatch, or
+    // generation. Client-supplied `tier` is never consulted, so it cannot
+    // downgrade or unlock a product.
+    const gate = gateGeneration(type, String(decoded.userId));
+    if (!gate.allowed) {
+      if (gate.code === 'beta_not_allowlisted') {
+        return NextResponse.json({ error: 'Love Blueprint is invite-only during beta.' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Report type is not available at this time.' }, { status: 404 });
+    }
 
     // Two-person / unsupported types never use the n8n pipeline.
     if (isUnsupportedForPipeline(type)) {
