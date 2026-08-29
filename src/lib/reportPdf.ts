@@ -3,8 +3,10 @@
 // renders the report's structured overview + sections (no per-card imagery).
 //
 // The single report engine (reportEngine.ts) produces `overview` (Layer 1) and
-// `sections` (Layer 2). We render both, branded with the Cosmic Spirit Guide
-// wordmark. No external image asset required. (design PART 3 #4: PDF on every report)
+// `sections` (Layer 2). The async pipeline path reaches this same function via
+// src/lib/reportPdfAdapter.ts, which maps {id, prose} sections to the
+// {heading, body} shape below. ReportPdfInput is unchanged so existing
+// report-engine callers (e.g. ReportResult) keep working.
 
 export interface ReportPdfInput {
   type: string;
@@ -25,24 +27,38 @@ function escapeHtml(s: string): string {
 export function exportReportPdf(input: ReportPdfInput) {
   if (typeof window === 'undefined') return;
   const w = window.open('', '_blank', 'width=720,height=900');
+  // Popup blocked (or otherwise unavailable): fail gracefully, leave the control
+  // usable, never throw into the caller.
   if (!w) return;
 
-  const rows = input.overview
-    .map(
-      (r) =>
-        `<tr><td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${r.glyph ? r.glyph + ' ' : ''}<strong>${escapeHtml(r.label)}</strong></td>` +
-        `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${escapeHtml(r.value)}</td>` +
-        `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8;color:#7a7f93;font-size:13px">${escapeHtml(r.note ?? '')}</td></tr>`,
-    )
-    .join('');
+  // Empty overview must not render an empty table/thead husk.
+  const hasOverview = Array.isArray(input.overview) && input.overview.length > 0;
+  const rows = hasOverview
+    ? input.overview
+        .map(
+          (r) =>
+            `<tr><td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${r.glyph ? r.glyph + ' ' : ''}<strong>${escapeHtml(r.label)}</strong></td>` +
+            `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${escapeHtml(r.value)}</td>` +
+            `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8;color:#7a7f93;font-size:13px">${escapeHtml(r.note ?? '')}</td></tr>`,
+        )
+        .join('')
+    : '';
 
+  // Each section is a keep-together block so a heading never strands at a page
+  // foot and short sections never split across a break.
   const body = input.sections
     .map(
       (s) =>
-        `<h2 style="font-size:16px;color:#9a6b1f;margin-top:22px;border-bottom:1px solid #e7d9a8;padding-bottom:4px">${escapeHtml(s.heading)}</h2>` +
-        `<div style="white-space:pre-line;line-height:1.7;color:#1f2233">${escapeHtml(s.body)}</div>`,
+        `<section class="sec">` +
+        `<h2 style="font-size:16px;color:#9a6b1f;margin:0 0 6px;border-bottom:1px solid #e7d9a8;padding-bottom:4px">${escapeHtml(s.heading)}</h2>` +
+        `<div style="white-space:pre-line;line-height:1.7;color:#1f2233">${escapeHtml(s.body)}</div>` +
+        `</section>`,
     )
     .join('');
+
+  const tableBlock = hasOverview
+    ? `<table><thead><tr style="color:#9a6b1f;font-size:12px;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:6px 10px">Point</th><th style="text-align:left;padding:6px 10px">Position</th><th style="text-align:left;padding:6px 10px">Note</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '';
 
   w.document.write(`<!doctype html><html><head><title>Cosmic Spirit Guide &mdash; ${escapeHtml(input.title)}</title>
     <style>
@@ -52,11 +68,17 @@ export function exportReportPdf(input: ReportPdfInput) {
       .brand p{margin:2px 0 0;font-size:12px;color:#7a7f93}
       h1.t{font-size:18px;color:#9a6b1f;margin:0 0 4px}
       table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
-      .foot{margin-top:28px;border-top:2px solid #c9a227;padding-top:12px;font-size:11px;color:#7a7f93;text-align:center;letter-spacing:.5px}
+      .sec{margin-top:22px;break-inside:avoid;page-break-inside:avoid}
+      .foot{margin-top:28px;border-top:2px solid #c9a227;padding-top:12px;font-size:11px;color:#7a7f93;text-align:center;letter-spacing:.5px;break-inside:avoid;page-break-inside:avoid}
+      @page{margin:18mm 16mm}
+      @media print{
+        body{padding:0;max-width:none}
+        h2{page-break-after:avoid}
+      }
     </style></head><body>
     <div class="brand"><div><h1>Cosmic Spirit Guide</h1><p>Personalized Report</p></div></div>
     <h1 class="t">${escapeHtml(input.title)}</h1>
-    <table><thead><tr style="color:#9a6b1f;font-size:12px;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:6px 10px">Point</th><th style="text-align:left;padding:6px 10px">Position</th><th style="text-align:left;padding:6px 10px">Note</th></tr></thead><tbody>${rows}</tbody></table>
+    ${tableBlock}
     ${body}
     <div class="foot">cosmicspiritguide.com</div>
     </body></html>`);

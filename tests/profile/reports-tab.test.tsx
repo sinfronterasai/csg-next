@@ -52,16 +52,19 @@ describe('ReportsTab (async public contract)', () => {
   });
 
   it.each([
-    ['queued', /being prepared|preparing/i],
-    ['pending', /being prepared|preparing/i],
-    ['needs_editor', /review|prepared|editor/i],
-    ['rejected', /could not|unavailable|try again|retry|contact/i],
+    ['queued', /being prepared/i],
+    ['pending', /being prepared/i],
+    ['needs_editor', /final review|in review|editor/i],
+    ['rejected', /quality bar/i],
   ])('shows a non-deliverable message and NO PDF control for status=%s', async (status, re) => {
     mockFetch([{ ...approvedReport, status, sections: [] }]);
     render(<ReportsTab />);
     fireEvent.click(await screen.findByText('Natal Birth Chart Report'));
     expect(await screen.findByText(re)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /download pdf|save as pdf/i })).not.toBeInTheDocument();
+    if (status === 'rejected') {
+      expect(screen.getByRole('link', { name: /retry report/i })).toBeInTheDocument();
+    }
   });
 
   it('does not require result.text for an approved async report', async () => {
