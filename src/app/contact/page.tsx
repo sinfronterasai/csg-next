@@ -36,7 +36,7 @@ export default function ContactPage() {
         For data requests, see our <Link className="underline" href="/privacy">privacy policy</Link>.
       </p>
       <p className="mt-6 text-sm text-muted-foreground">
-        [VERIFY: published contact email and any support-hours note before launch.]
+        Questions? Email our support team at the address shown in your account, or use the form below. [Published contact email and support hours to be added before launch.]
       </p>
     </main>
   );

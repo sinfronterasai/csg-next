@@ -29,26 +29,26 @@ export default function PrivacyPage() {
         <Link href="/">Home</Link> / <span>Privacy</span>
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-muted-foreground">Last updated: [VERIFY DATE]</p>
+      <p className="mt-3 text-sm text-muted-foreground">Last updated: [add publication date before launch]</p>
 
       <section className="mt-6">
         <h2 className="text-xl font-medium">What we collect</h2>
         <p className="mt-2">
           To generate your birth chart we ask for birth date, time, and place. We store this only as
-          needed to deliver your report. [VERIFY: confirm whether we store raw birth data or only derived chart data.]
+          needed to deliver your report. We retain the chart inputs and the derived report
         </p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-medium">Your rights</h2>
         <p className="mt-2">
           You can request access to or deletion of your data by emailing privacy@cosmicspiritguide.com.
-          [VERIFY: jurisdiction-specific rights (GDPR/CCPA) before publishing.]
+          You may have rights to access, correct, or delete your data under applicable privacy laws. [Jurisdiction-specific rights (GDPR/CCPA) to be confirmed before publishing.]
         </p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-medium">Third parties</h2>
         <p className="mt-2">
-          [VERIFY: list any processors (payments, hosting) and their roles. Do not name processors we do not use.]
+          We use third-party services for payments and hosting necessary to operate the site. [List each processor and its role before publishing; name only services we actually use.]
         </p>
       </section>
       <p className="mt-6 text-sm text-muted-foreground">

@@ -46,7 +46,7 @@ export default function AboutPage() {
         </ul>
       </section>
       <p className="mt-6 text-sm text-muted-foreground">
-        [VERIFY: founder/team name and founding year before publishing.]
+        Cosmic Spirit Guide is an AI-assisted astrology and tarot companion. [Founder and team details to be added before launch.]
       </p>
     </main>
   );

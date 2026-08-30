@@ -43,7 +43,7 @@ export function resolveLegacyRedirect(oldPath: string): RedirectDecision | null 
   const norm = oldPath.split("?")[0].replace(/\/$/, "") || "/";
   for (const row of rows) {
     if (row.oldPath !== norm) continue;
-    if (row.disposition === "MERGE_AND_301") {
+    if (row.disposition === "MERGE_AND_301" || row.disposition === "301_EQUIVALENT") {
       if (row.redirectTarget) {
         if (row.redirectTarget !== "410") {
           return { status: 301, target: row.redirectTarget };

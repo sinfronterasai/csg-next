@@ -1,6 +1,8 @@
 // Deterministic mirror generator. Reads the audit CSV and emits docs/seo/legacy-url-migration-manifest.json.
 // Disposition logic is centralized here (the integration owner's canonical IA).
 import fs from "fs";
+import path from "path";
+import { BLOG_OVERRIDES, loadSanitySlugs, decideBlog } from "./blog-dispositions.mjs";
 
 const CSV = "/workspace/csg-report-handoff/content-route-parity-audit-2026-08-30.csv";
 const OUT = "docs/seo/legacy-url-migration-manifest.json";
@@ -39,7 +41,7 @@ function familyOf(path) {
 }
 
 // Returns { disposition, newPath, intendedStatus, indexable, canonicalUrl, redirectTarget, reason, reviewState }
-function decide(r) {
+function decide(r, sanitySlugs) {
   const path = r[0];
   const family = r[1];
   const oldStatus = r[2];
@@ -82,16 +84,7 @@ function decide(r) {
       "All 13 share one title/description with no real dated data; do-not-fabricate-daily. Retire until a genuine dated horoscope source exists.");
   }
 
-  // --- Blog / editorial handled separately (W2). Here: legacy routes that already resolve on new build ---
-  if (fam === "/blog") {
-    // Keep synced where new build already resolves; others become REFRESH/MERGE via Sanity mapping (W2).
-    if (newStatus === "200") {
-      return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
-        "Already resolves on new build; verify metadata + canonical, refresh if stale.");
-    }
-    return mk("REFRESH_AND_MIGRATE", path, 200, true, PROD + path, null,
-      "Editorial page; refresh or migrate via Sanity, do not blind-copy. (Final mapping in W2.)");
-  }
+  if (fam === "/blog") return decideBlog(r, sanitySlugs, PROD);
 
   // --- Tarot cards: keep (already built from deck) ---
   if (fam === "/tarot") {
@@ -139,10 +132,11 @@ function decide(r) {
   }
 }
 
+const sanitySlugs = loadSanitySlugs();
 const manifests = [];
 for (const r of rows) {
   const path = r[0];
-  const d = decide(r);
+  const d = decide(r, sanitySlugs);
   manifests.push({
     oldPath: path,
     oldStatus: r[2],
@@ -166,7 +160,7 @@ for (const r of rows) {
 
 // Emit edge-safe redirect map for middleware (no fs/node at runtime).
 const REDIR = manifests
-  .filter((m) => m.disposition === "RETIRE_410" || (m.disposition === "MERGE_AND_301" && m.redirectTarget && m.redirectTarget !== "410"))
+  .filter((m) => m.disposition === "RETIRE_410" || ((m.disposition === "MERGE_AND_301" || m.disposition === "301_EQUIVALENT") && m.redirectTarget && m.redirectTarget !== "410"))
   .map((m) => {
     const key = (m.oldPath || "/").replace(/\/$/, "") || "/";
     if (m.disposition === "RETIRE_410") {
