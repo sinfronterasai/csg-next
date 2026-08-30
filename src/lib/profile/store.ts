@@ -116,6 +116,21 @@ export async function getReportByIdForRole(
   return rows[0] ? hydrateRow(rows[0]) : null;
 }
 
+/** Private staff queue source. Sanitization is deliberately performed by the
+ * authenticated route; this query is never used by a customer-facing handler. */
+export async function listEditorQueueReports(): Promise<UniversalReadingRecord[]> {
+  const { rows } = await query(
+    `SELECT ${READING_COLS}
+       FROM readings
+      WHERE type = 'report'
+        AND pipeline_status = 'needs_editor'
+        AND result ->> 'reportType' IN ('natal', 'loveblueprint')
+      ORDER BY created_at ASC
+      LIMIT 200`,
+  );
+  return rows.map(hydrateRow);
+}
+
 export async function updateReflection(
   id: number,
   userId: number,
@@ -259,11 +274,68 @@ export async function setReadingDispatchFailed(
   );
 }
 
+export type EditorActionClaimOutcome = 'claimed' | 'duplicate' | 'conflict' | 'invalid_state' | 'not_found';
+
+/** Claim one editor-triggered job at a time. Identical in-flight requests are
+ * idempotent; a different request conflicts until n8n applies its callback. */
+export async function claimEditorAction(
+  readingId: number,
+  actionHash: string,
+  idempotencyKey: string,
+): Promise<EditorActionClaimOutcome> {
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const lock = await tx(
+        `SELECT id, pipeline_status, pipeline_editor_action_hash
+           FROM readings WHERE id = $1 AND type = 'report' FOR UPDATE`,
+        [readingId],
+      );
+      if (lock.rows.length === 0) return finalizeEditorClaim(tx, 'not_found');
+      const row = lock.rows[0];
+      if (row.pipeline_status !== 'needs_editor') return finalizeEditorClaim(tx, 'invalid_state');
+      if (row.pipeline_editor_action_hash === actionHash) return finalizeEditorClaim(tx, 'duplicate');
+      if (row.pipeline_editor_action_hash) return finalizeEditorClaim(tx, 'conflict');
+      await tx(
+        `UPDATE readings
+            SET pipeline_editor_action_hash = $2,
+                pipeline_editor_idempotency_key = $3
+          WHERE id = $1`,
+        [readingId, actionHash, idempotencyKey],
+      );
+      return finalizeEditorClaim(tx, 'claimed');
+    } catch (err) {
+      await tx('ROLLBACK');
+      throw err;
+    }
+  });
+}
+
+export async function releaseEditorActionClaim(readingId: number, actionHash: string): Promise<void> {
+  await query(
+    `UPDATE readings
+        SET pipeline_editor_action_hash = NULL,
+            pipeline_editor_idempotency_key = NULL
+      WHERE id = $1 AND pipeline_editor_action_hash = $2`,
+    [readingId, actionHash],
+  );
+}
+
+async function finalizeEditorClaim(
+  tx: (t: string, p?: any[]) => Promise<{ rows: any[] }>,
+  outcome: EditorActionClaimOutcome,
+): Promise<EditorActionClaimOutcome> {
+  if (outcome === 'claimed' || outcome === 'duplicate') await tx('COMMIT');
+  else await tx('ROLLBACK');
+  return outcome;
+}
+
 /** Canonical hash of a callback payload used for duplicate/conflict detection. */
 export function canonicalCallbackHash(payload: {
   status: string;
   sections: unknown[];
   judge: unknown;
+  qualityArtifact?: unknown;
   editorNote: string | null;
   rejectReasons: string[];
 }): string {
@@ -271,6 +343,7 @@ export function canonicalCallbackHash(payload: {
     status: payload.status,
     sections: payload.sections ?? [],
     judge: payload.judge ?? null,
+    qualityArtifact: payload.qualityArtifact ?? null,
     editorNote: payload.editorNote ?? null,
     rejectReasons: payload.rejectReasons ?? [],
   });
@@ -291,6 +364,8 @@ export interface ApplyPipelineCallbackInput {
   pipelineValue: Record<string, unknown>;
   /** Canonical hash of the incoming callback payload. */
   callbackHash: string;
+  /** Present only for callbacks caused by a claimed private editor action. */
+  idempotencyKey?: string;
 }
 
 /**
@@ -305,7 +380,8 @@ export async function applyPipelineCallback(
     await tx('BEGIN');
     try {
       const lock = await tx(
-        `SELECT id, pipeline_status, pipeline_callback_hash
+        `SELECT id, pipeline_status, pipeline_callback_hash,
+                pipeline_editor_action_hash, pipeline_editor_idempotency_key
            FROM readings
           WHERE type = 'report' AND result ->> 'reportId' = $1
           ORDER BY created_at DESC LIMIT 1
@@ -316,6 +392,11 @@ export async function applyPipelineCallback(
 
       const before = (lock.rows[0].pipeline_status as string) ?? null;
       const prevHash = lock.rows[0].pipeline_callback_hash as string | null;
+      const editorActionPending = Boolean(lock.rows[0].pipeline_editor_action_hash);
+      const pendingIdempotencyKey = lock.rows[0].pipeline_editor_idempotency_key as string | null;
+      const matchesPendingEditorAction = editorActionPending &&
+        typeof input.idempotencyKey === 'string' &&
+        input.idempotencyKey === pendingIdempotencyKey;
 
       // A null prevHash means this status was never persisted (e.g. the row was
       // created in `queued` by dispatch, or a needs_editor gate result is arriving
@@ -326,8 +407,14 @@ export async function applyPipelineCallback(
       if (prevHash === null) {
         // fall through to the UPDATE + applied path below
       } else if (before === input.status) {
-        // Real no-op transition with a prior payload: dup vs conflict by hash.
+        // Exact replay is always idempotent. A changed needs_editor callback is
+        // accepted only while a claimed editor resubmit/regeneration is pending.
         if (prevHash === input.callbackHash) return finalize(tx, 'duplicate');
+        if (!matchesPendingEditorAction) return finalize(tx, 'conflict');
+        // fall through: this is the reviewed candidate produced by that action
+      } else if (before === 'needs_editor' && !matchesPendingEditorAction) {
+        // Every transition out of editorial review must be bound to the exact
+        // action claim that initiated it; bearer possession alone is insufficient.
         return finalize(tx, 'conflict');
       } else if (!canTransitionStore(before, input.status)) {
         // Terminal-state regression is never allowed.
@@ -338,7 +425,9 @@ export async function applyPipelineCallback(
         `UPDATE readings
             SET result = jsonb_set(result, '{pipeline}', $2::jsonb),
                 pipeline_status = $3,
-                pipeline_callback_hash = $4
+                pipeline_callback_hash = $4,
+                pipeline_editor_action_hash = NULL,
+                pipeline_editor_idempotency_key = NULL
           WHERE id = $1`,
         [
           lock.rows[0].id,
@@ -478,7 +567,9 @@ export function toPublicReport(rec: UniversalReadingRecord) {
     overview: [],
     sections: [],
     pending: true,
-    note: 'Your report is being prepared. We will notify you when it is ready.',
+    note: status === 'needs_editor'
+      ? 'Your report is receiving a final quality review.'
+      : 'Your report is being prepared. We will notify you when it is ready.',
     createdAt: rec.createdAt,
   };
 }

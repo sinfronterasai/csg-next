@@ -79,6 +79,7 @@ describe('toPublicReport — public contract sanitization', () => {
             { id: 'coreIdentity', prose: 'SECRET-PROSE-PAYLOAD', factsCited: ['secret-fact'] },
           ],
           judge: { score: 1 },
+          qualityArtifact: { failedSections: ['coreIdentity'], scores: { narrativeDepth: 1 }, internal: 'QUALITY-SECRET' },
         },
       });
       const pub = toPublicReport(rec);
@@ -86,6 +87,9 @@ describe('toPublicReport — public contract sanitization', () => {
       const json = JSON.stringify(pub);
       expect(json).not.toContain('SECRET-PROSE-PAYLOAD');
       expect(json).not.toContain('secret-fact');
+      expect(json).not.toContain('QUALITY-SECRET');
+      expect(json).not.toContain('qualityArtifact');
+      expect(json).not.toContain('narrativeDepth');
     },
   );
 

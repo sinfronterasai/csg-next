@@ -1,6 +1,7 @@
 import {
   mapReportType, isUnsupportedForPipeline, PROMPT_SLUG,
-  dispatchReport, sendEditorDecision, verifyCallbackToken, canTransition,
+  dispatchReport, sendEditorDecision, sendEditorAction, verifyCallbackToken, canTransition,
+  hashReportSections, validateQualityRecoveryArtifact, qualityArtifactProvesPass,
   __setFetch,
 } from '@/lib/reportPipeline';
 import { isReportDeliverable } from '@/lib/profile/store';
@@ -115,6 +116,57 @@ describe('R3 editor decision payload', () => {
     expect(lastReq!.body.decision).toBe('approved');
     expect(lastReq!.body.reviewer).toBe('editor-1');
     expect(lastReq!.body.callbackUrl).toBe('https://app.test/api/reports/pipeline-complete');
+  });
+});
+
+describe('R6.5 locked quality artifact and private editor payload', () => {
+  const currentSections = [{ id: 'patterns', prose: 'Safe prose.', factsCited: ['fact.1'] }];
+  const passing = (tier: 'free' | 'paid') => ({
+    version: 1,
+    candidateHash: hashReportSections(currentSections),
+    attemptCount: 2,
+    failedSections: [],
+    issues: [],
+    hardGates: { factual: true, banned: true, specific: true, dup: true, tone: true, structure: true, length: true, ageConsent: true },
+    scores: { precision: tier === 'paid' ? 4 : 3, insightDensity: tier === 'paid' ? 4 : 3, voiceFit: tier === 'paid' ? 4 : 3, empowerment: tier === 'paid' ? 4 : 3, personalization: tier === 'paid' ? 4 : 3, clarity: tier === 'paid' ? 4 : 3, cohesion: tier === 'paid' ? 4 : 3, narrativeDepth: tier === 'paid' ? 4 : 3 },
+    judgeSchemaValid: true,
+    hardGatesPassed: true,
+  });
+
+  it('validates the exact V1 shape including narrativeDepth and rejects extra/malformed fields', () => {
+    expect(validateQualityRecoveryArtifact(passing('free'))).not.toBeNull();
+    expect(validateQualityRecoveryArtifact({ ...passing('free'), extra: true })).toBeNull();
+    expect(validateQualityRecoveryArtifact({ ...passing('free'), scores: { ...passing('free').scores, narrativeDepth: 6 } })).toBeNull();
+    const { narrativeDepth, ...oldScores } = passing('free').scores;
+    expect(validateQualityRecoveryArtifact({ ...passing('free'), scores: oldScores })).toBeNull();
+  });
+
+  it('fails approval closed on gate, score, unresolved section, schema, or candidate hash mismatch', () => {
+    expect(qualityArtifactProvesPass(passing('free'), 'free', currentSections)).toBe(true);
+    expect(qualityArtifactProvesPass(passing('paid'), 'paid', currentSections)).toBe(true);
+    expect(qualityArtifactProvesPass({ ...passing('free'), hardGatesPassed: false }, 'free', currentSections)).toBe(false);
+    expect(qualityArtifactProvesPass({ ...passing('free'), scores: { ...passing('free').scores, narrativeDepth: 2 } }, 'free', currentSections)).toBe(false);
+    expect(qualityArtifactProvesPass({ ...passing('free'), failedSections: ['patterns'] }, 'free', currentSections)).toBe(false);
+    expect(qualityArtifactProvesPass({ ...passing('free'), judgeSchemaValid: false }, 'free', currentSections)).toBe(false);
+    expect(qualityArtifactProvesPass({ ...passing('free'), candidateHash: 'c'.repeat(64) }, 'free', currentSections)).toBe(false);
+  });
+
+  it('sends bounded server-owned resubmit context and a deterministic idempotency key', async () => {
+    const input: any = {
+      reportId: 'uuid-r65', reportType: 'natal', tier: 'free', action: 'resubmit', reviewer: 'editor@example.test',
+      editorNote: 'fixed', currentSections,
+      correctedSections: [{ id: 'patterns', prose: 'Corrected.', factsCited: ['fact.1'] }],
+      regenerateSectionIds: [], qualityArtifact: passing('free'), verifiedFacts: { private: true },
+    };
+    await sendEditorAction(input);
+    const first = lastReq!.body;
+    await sendEditorAction(input);
+    const second = lastReq!.body;
+    expect(first).toMatchObject({ reportId: 'uuid-r65', reportType: 'natal', tier: 'free', action: 'resubmit', verifiedFacts: { private: true } });
+    expect(first.callbackUrl).toBe('https://app.test/api/reports/pipeline-complete');
+    expect(first.idempotencyKey).toMatch(/^[a-f0-9]{64}$/);
+    expect(second.idempotencyKey).toBe(first.idempotencyKey);
+    expect(lastReq!.headers.Authorization).toBe('Bearer pipeline-token-123');
   });
 });
 
