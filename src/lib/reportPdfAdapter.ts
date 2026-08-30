@@ -33,12 +33,22 @@ export interface AsyncPublicReport {
 const SECTION_HEADING_FALLBACK = 'Section';
 const TITLE_FALLBACK = 'Cosmic Spirit Guide Report';
 
+// Insert a word break at camelCase / PascalCase boundaries so ids read as words:
+// "houseThemes" -> "house Themes", "planetDetail" -> "planet Detail". Handles
+// acronym-to-word too ("URLParser" -> "URL Parser"). Dots and other separators
+// are handled at the split step below.
+function splitCamel(id: string): string {
+  return id
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')   // lower/digit -> Upper
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // acronym -> Word (e.g. URLParser)
+}
+
 // Humanize a stable pipeline id for display. The exact id is kept by callers for
 // keys/tests; this only affects the visible heading. snake_case / kebab-case /
-// runs of separators -> Title Case words.
+// dotted.namespaces / camelCase / runs of separators -> Title Case words.
 export function humanizeSectionId(id: string | undefined | null): string {
   if (!id || typeof id !== 'string') return SECTION_HEADING_FALLBACK;
-  const words = id
+  const words = splitCamel(id)
     .split(/[^A-Za-z0-9]+/)
     .filter((w) => w.length > 0)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1));

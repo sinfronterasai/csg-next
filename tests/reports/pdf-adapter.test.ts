@@ -16,6 +16,16 @@ describe('humanizeSectionId', () => {
     expect(humanizeSectionId('core_identity')).toBe('Core Identity');
     expect(humanizeSectionId('past-present-future')).toBe('Past Present Future');
   });
+  it('splits camelCase and PascalCase boundaries', () => {
+    expect(humanizeSectionId('houseThemes')).toBe('House Themes');
+    expect(humanizeSectionId('elementModality')).toBe('Element Modality');
+    expect(humanizeSectionId('moonPhase')).toBe('Moon Phase');
+    expect(humanizeSectionId('coreIdentity')).toBe('Core Identity');
+  });
+  it('splits dotted namespaces and camelCase together', () => {
+    expect(humanizeSectionId('planetDetail.sun')).toBe('Planet Detail Sun');
+    expect(humanizeSectionId('planetDetail.moonPhase')).toBe('Planet Detail Moon Phase');
+  });
   it('collapses extra separators and trims', () => {
     expect(humanizeSectionId('__love__and__relationships__')).toBe('Love And Relationships');
   });
@@ -38,6 +48,22 @@ describe('mapAsyncSectionsToPdf', () => {
     ]);
     expect(out[0].body).toBe('First section text.');
     expect(out[1].body).toBe('Second section text.');
+  });
+
+  it('humanizes the real 18-section camelCase/dotted ids from the synthetic natal payload', () => {
+    const sections: AsyncSection[] = [
+      { id: 'planetDetail.sun', prose: 'Sun body.' },
+      { id: 'houseThemes', prose: 'House body.' },
+      { id: 'elementModality', prose: 'Element body.' },
+      { id: 'moonPhase', prose: 'Moon phase body.' },
+    ];
+    const out = mapAsyncSectionsToPdf(sections);
+    expect(out.map((s) => s.heading)).toEqual([
+      'Planet Detail Sun',
+      'House Themes',
+      'Element Modality',
+      'Moon Phase',
+    ]);
   });
 
   it('omits empty/malformed/whitespace-only sections safely', () => {
