@@ -64,9 +64,8 @@ describe('exportReportPdf', () => {
     exportReportPdf(base);
     restore();
     const doc = html.join('');
-    // A .sec rule that contains break-inside:avoid would force the
-    // mostly-blank final page John flagged; it must be gone from .sec.
     const secRules = doc.match(/\.sec\{[^}]*\}/g) || [];
+    expect(secRules.length).toBeGreaterThan(0);
     for (const rule of secRules) {
       expect(rule).not.toContain('break-inside:avoid');
       expect(rule).not.toContain('page-break-inside:avoid');
@@ -79,7 +78,6 @@ describe('exportReportPdf', () => {
     exportReportPdf(base);
     restore();
     const doc = html.join('');
-    // heading-level break control so a heading never strands at a page foot
     expect(doc).toMatch(/h2\{[^}]*break-after:avoid/);
     expect(doc).toMatch(/h2\{[^}]*page-break-after:avoid/);
   });
@@ -90,20 +88,33 @@ describe('exportReportPdf', () => {
     exportReportPdf(base);
     restore();
     const doc = html.join('');
-    expect(doc).toMatch(/orphans:\d/);
-    expect(doc).toMatch(/widows:\d/);
+    expect(doc).toMatch(/orphans:3/);
+    expect(doc).toMatch(/widows:3/);
   });
 
-  it('pins the footer to the page bottom instead of floating after the last section', () => {
+  it('keeps compact section spacing that avoids an isolated one-section final page', () => {
     const html: string[] = [];
     const restore = captureWindow(html);
     exportReportPdf(base);
     restore();
     const doc = html.join('');
-    // Footer anchored (fixed/running) rather than floating in normal flow.
+    // Validated delta: tighter section margin + line-height, not the looser
+    // 22px/1.7 flow that left page 5 with one section and ~75% blank.
+    expect(doc).toMatch(/\.sec\{[^}]*margin-top:16px/);
+    expect(doc).toMatch(/\.bd\{[^}]*line-height:1\.55/);
+  });
+
+  it('renders the footer in NORMAL FLOW (static), not fixed — fixed bottom:0 overlapped text in Chrome', () => {
+    const html: string[] = [];
+    const restore = captureWindow(html);
+    exportReportPdf(base);
+    restore();
+    const doc = html.join('');
     const footRule = (doc.match(/\.foot\{[^}]*\}/) || [''])[0];
-    expect(footRule).toContain('position:fixed');
-    expect(footRule).toMatch(/bottom:0/);
+    // must be a normal-flow closing rule, not a fixed/running bottom element
+    expect(footRule).toContain('position:static');
+    expect(footRule).not.toContain('position:fixed');
+    expect(footRule).not.toContain('bottom:');
   });
 
   it('includes print CSS (@media print or @page) for intentional pagination', () => {
