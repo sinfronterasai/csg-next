@@ -393,6 +393,63 @@ export function isReportDeliverable(rec: UniversalReadingRecord | null): boolean
  * only the n8n-approved sections when deliverable; otherwise a neutral
  * "being prepared" placeholder. Raw verifiedFacts are NEVER returned.
  */
+// Exact public contract for a report section. Stored callback sections carry
+// internal fields (factsCited evidence ids, judge internals, callback tokens,
+// user ids, arbitrary extra keys). None of those may reach a client, so the
+// public shape is constructed field-by-field to exactly {id, prose}.
+interface PublicReportSection {
+  id: string;
+  prose: string;
+}
+
+// Build the exact public section array. Drops entries that are not objects,
+// have empty/whitespace/missing prose, or are otherwise malformed. Only `id`
+// and `prose` are carried over; every other key (factsCited, judge, tokens,
+// user ids, arbitrary) is discarded. An absent/empty id falls back to the
+// section index so the array stays keyed and stable.
+function toPublicSections(sections: unknown): PublicReportSection[] {
+  if (!Array.isArray(sections)) return [];
+  const out: PublicReportSection[] = [];
+  for (const raw of sections) {
+    if (!raw || typeof raw !== 'object') continue;
+    const s = raw as Record<string, unknown>;
+    const prose = typeof s.prose === 'string' ? s.prose : '';
+    if (prose.trim().length === 0) continue;
+    const id = typeof s.id === 'string' && s.id.trim().length > 0 ? s.id : `section-${out.length}`;
+    out.push({ id, prose });
+  }
+  return out;
+}
+
+// Exact public overview row. Only validated string fields are kept.
+interface PublicOverviewRow {
+  glyph?: string;
+  label: string;
+  value: string;
+  note?: string;
+}
+
+// Build the exact public overview array. Drops malformed rows (non-object,
+// empty/non-string label, missing/non-string value). Optional glyph/note are
+// included only when they are strings; non-string optional fields are omitted
+// rather than passed through, so downstream PDF escaping always sees strings.
+function toPublicOverview(overview: unknown): PublicOverviewRow[] {
+  if (!Array.isArray(overview)) return [];
+  const out: PublicOverviewRow[] = [];
+  for (const raw of overview) {
+    if (!raw || typeof raw !== 'object') continue;
+    const r = raw as Record<string, unknown>;
+    const label = typeof r.label === 'string' ? r.label : '';
+    if (label.trim().length === 0) continue;
+    if (typeof r.value !== 'string') continue;
+    const row: PublicOverviewRow = { label, value: r.value };
+    if (typeof r.glyph === 'string' && r.glyph.length > 0) row.glyph = r.glyph;
+    if (typeof r.note === 'string' && r.note.length > 0) row.note = r.note;
+    out.push(row);
+  }
+  return out;
+}
+
 export function toPublicReport(rec: UniversalReadingRecord) {
   const pipeline = (rec.result?.pipeline as {
     status?: string; sections?: unknown[]; editorNote?: string | null;
@@ -405,11 +462,13 @@ export function toPublicReport(rec: UniversalReadingRecord) {
       title: (rec.result as any)?.title ?? rec.title,
       type: (rec.result as any)?.reportType ?? null,
       status,
-      overview: (rec.result as any)?.overview ?? [],
-      sections: pipeline?.sections ?? [],
+      overview: toPublicOverview((rec.result as any)?.overview),
+      sections: toPublicSections(pipeline?.sections),
       createdAt: rec.createdAt,
     };
   }
+  // Non-approved: never surface stored sections/overview, even if they hold
+  // prose or secrets. Exact empty arrays.
   return {
     id: rec.id,
     reportId: (rec.result as any)?.reportId ?? null,

@@ -1,6 +1,9 @@
 /** @jest-environment jsdom */
 // Reports tab consumes the public async report contract (toPublicReport), not
 // legacy result.text. Status gates both prose rendering and the PDF action.
+// Non-approved coverage proves gating against NON-EMPTY/secret sections (the
+// component must not render stored prose for a non-approved status even if such
+// a payload reached the client), and covers every lifecycle status.
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -54,13 +57,27 @@ describe('ReportsTab (async public contract)', () => {
   it.each([
     ['queued', /being prepared/i],
     ['pending', /being prepared/i],
+    ['processing', /being prepared|preparing|progress|working/i],
     ['needs_editor', /final review|in review|editor/i],
     ['rejected', /quality bar/i],
-  ])('shows a non-deliverable message and NO PDF control for status=%s', async (status, re) => {
-    mockFetch([{ ...approvedReport, status, sections: [] }]);
+  ])('gates non-approved status=%s: NO prose render and NO PDF control, even with secret non-empty sections', async (status, re) => {
+    // Server would normally already strip sections for non-approved, but the
+    // component must not render them even if a malformed/secret payload arrives.
+    mockFetch([
+      {
+        ...approvedReport,
+        status,
+        sections: [{ id: 's', prose: 'SECRET-STORED-PROSE', factsCited: ['secret-fact-id'] }],
+      },
+    ]);
     render(<ReportsTab />);
     fireEvent.click(await screen.findByText('Natal Birth Chart Report'));
+    // non-deliverable status message shows
     expect(await screen.findByText(re)).toBeInTheDocument();
+    // stored prose / evidence ids are NOT rendered
+    expect(screen.queryByText(/SECRET-STORED-PROSE/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/secret-fact-id/)).not.toBeInTheDocument();
+    // no PDF action for non-approved
     expect(screen.queryByRole('button', { name: /download pdf|save as pdf/i })).not.toBeInTheDocument();
     if (status === 'rejected') {
       expect(screen.getByRole('link', { name: /retry report/i })).toBeInTheDocument();

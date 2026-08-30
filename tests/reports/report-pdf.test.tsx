@@ -98,8 +98,6 @@ describe('exportReportPdf', () => {
     exportReportPdf(base);
     restore();
     const doc = html.join('');
-    // Validated delta: tighter section margin + line-height, not the looser
-    // 22px/1.7 flow that left page 5 with one section and ~75% blank.
     expect(doc).toMatch(/\.sec\{[^}]*margin-top:16px/);
     expect(doc).toMatch(/\.bd\{[^}]*line-height:1\.55/);
   });
@@ -111,7 +109,6 @@ describe('exportReportPdf', () => {
     restore();
     const doc = html.join('');
     const footRule = (doc.match(/\.foot\{[^}]*\}/) || [''])[0];
-    // must be a normal-flow closing rule, not a fixed/running bottom element
     expect(footRule).toContain('position:static');
     expect(footRule).not.toContain('position:fixed');
     expect(footRule).not.toContain('bottom:');
@@ -139,6 +136,23 @@ describe('exportReportPdf', () => {
     expect(doc).not.toContain('<script>alert(1)</script>');
     expect(doc).toContain('&lt;script&gt;');
     expect(doc).toContain('<strong>bold</strong>');
+  });
+
+  it('escapes every dynamic field, incl. an adversarial glyph payload (no executable markup)', () => {
+    const html: string[] = [];
+    const restore = captureWindow(html);
+    const evil = '<img src=x onerror=alert(1)>';
+    exportReportPdf({
+      type: 'natal',
+      title: evil,
+      overview: [{ glyph: evil, label: evil, value: evil, note: evil }],
+      sections: [{ heading: evil, body: evil }],
+    });
+    restore();
+    const doc = html.join('');
+    expect(doc).not.toContain('<img src=x onerror=alert(1)>');
+    expect(doc).not.toContain('onerror=alert(1)>');
+    expect(doc).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
   it('fails gracefully and writes nothing when window.open returns null (popup blocked)', () => {

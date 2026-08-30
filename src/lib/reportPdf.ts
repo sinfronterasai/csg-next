@@ -37,7 +37,7 @@ export function exportReportPdf(input: ReportPdfInput) {
     ? input.overview
         .map(
           (r) =>
-            `<tr><td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${r.glyph ? r.glyph + ' ' : ''}<strong>${escapeHtml(r.label)}</strong></td>` +
+            `<tr><td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${r.glyph ? escapeHtml(r.glyph) + ' ' : ''}<strong>${escapeHtml(r.label)}</strong></td>` +
             `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8">${escapeHtml(r.value)}</td>` +
             `<td style="padding:6px 10px;border-bottom:1px solid #e7d9a8;color:#7a7f93;font-size:13px">${escapeHtml(r.note ?? '')}</td></tr>`,
         )
