@@ -1,20 +1,20 @@
 import { buildMetadata } from "@/lib/seo/metadata";
 import { astrologyData, compatibilityData, allSignKeys, signLabel, canonicalPair } from "@/lib/seo/programmatic";
-import { isProgrammaticApproved, programmaticComboKey } from "@/lib/seo/programmatic-approval";
+import { isProgrammaticIndexed, programmaticComboKey } from "@/lib/seo/programmatic-approval";
 import fs from "fs";
 import path from "path";
 
-describe("programmatic pages are held (fail-closed), not merely noindex (B2/C3)", () => {
-  it("approval registry is empty by default => every combo is unavailable (fail-closed)", () => {
+describe("programmatic routes stay LIVE; index flag is earned per page (no mass-index, no mass-noindex)", () => {
+  it("index allowlist empty by default => every combo is live-but-NOINDEX (not 404, not indexed)", () => {
     for (const s of allSignKeys()) {
       for (const m of allSignKeys()) {
-        expect(isProgrammaticApproved("astrology", s, m)).toBe(false);
+        expect(isProgrammaticIndexed("astrology", s, m)).toBe(false);
       }
     }
     for (let i = 0; i < allSignKeys().length; i++) {
       for (let j = i + 1; j < allSignKeys().length; j++) {
         const [a, b] = canonicalPair(allSignKeys()[i], allSignKeys()[j]);
-        expect(isProgrammaticApproved("compatibility", a, b)).toBe(false);
+        expect(isProgrammaticIndexed("compatibility", a, b)).toBe(false);
       }
     }
   });

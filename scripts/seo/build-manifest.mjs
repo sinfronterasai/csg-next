@@ -55,10 +55,12 @@ function decide(r, sanitySlugs) {
       return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
         "Astrology hub; indexable navigational route.");
     }
-    // 144 Sun/Moon combos: held pending editorial approval (programmatic family
-    // editorial hold). Token-swapped templates are not indexable/curated.
-    return mk("HOLD_NOINDEX", null, 200, false, null, null,
-      "Sun/Moon combo template held pending editorial approval (programmatic family HOLD/REFRESH). Token-swapped content is not indexable or curated.");
+    // 144 Sun/Moon combos: route stays LIVE (200) with real pair-specific
+    // interpretation, but NOINDEX by default until spot-reviewed for the
+    // uniqueness/depth bar (John 2026-08-30 reconciliation: routes live,
+    // index flag earned per page).
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
+      "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
   }
   if (fam === "/zodiac") {
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
@@ -79,9 +81,10 @@ function decide(r, sanitySlugs) {
         return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can,
           "Non-canonical ordering; 301 to alphabetical canonical pair (internal same-family dedupe).");
       }
-      // Canonical pair page: held pending editorial approval (programmatic family hold).
-      return mk("HOLD_NOINDEX", null, 200, false, null, null,
-        "Canonical love-pair template held pending editorial approval (programmatic family HOLD/REFRESH). Not indexable until curated.");
+      // Canonical pair page: route stays LIVE (200) with real pair-specific
+      // interpretation, NOINDEX until spot-reviewed for the uniqueness/depth bar.
+      return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
+        "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
     }
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }

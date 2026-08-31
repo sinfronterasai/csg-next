@@ -1,24 +1,23 @@
-// Fail-closed approval registry for programmatic (token-derived) pages.
+// Per-pair indexability gate for programmatic (token-derived) pages.
 //
-// Per the governing editorial queue (C / programmatic-family decisions), the
-// 144 Sun/Moon combos and 66+ compatibility pairs are HOLD/REFRESH AS A CLASS:
-// each needs editorially approved pair-specific content before it can be
-// publicly indexed or even rendered as real prose. Until an approved CMS record
-// exists for a given combo, the route MUST be unavailable to public users
-// (renders 404 / noindex), not merely "noindex with visible template text".
+// Governing rule (John, 2026-08-30 brief reconciliation): grid ROUTES always stay
+// LIVE (HTTP 200) with real pair-specific interpretation. The INDEX flag is EARNED
+// per page: a page is indexed only once it clears the uniqueness/depth bar. Pages
+// that do not yet clear the bar remain live (200) but NOINDEX until curated.
 //
-// This module is the single gate. Today the allowlist is empty (no combo has
-// been approved), so every combo is unavailable. When approved content lands,
-// add the combo key to the allowlist (driven by an env var or CMS lookup) and
-// only then does the page render. Route scaffolding and the SIGNS data model
-// remain; only unapproved prose is hidden.
+// This replaces the earlier fail-closed (404) behavior. The route is never 404.
+//
+// The allowlist is empty by default => every combo renders live-but-NOINDEX, which
+// is the safe default John specified ("if unsure... default that batch to noindex
+// and flag me"). When specific pairs are spot-reviewed and approved for indexing,
+// add their keys to CSG_INDEXED_PROGRAMMATIC_COMBOS.
 
 export type ProgrammaticKind = "astrology" | "compatibility";
 
-// Comma-separated approved combo keys, e.g. "astrology:aries-aries,compatibility:aries-libra".
-// Empty by default => all programmatic combos are held (fail-closed).
-function approvedKeys(): Set<string> {
-  const raw = process.env.CSG_APPROVED_PROGRAMMATIC_COMBOS;
+// Comma-separated indexed combo keys, e.g. "astrology:aries-aries,compatibility:aries-libra".
+// Empty by default => all programmatic combos are live-but-noindex.
+function indexedKeys(): Set<string> {
+  const raw = process.env.CSG_INDEXED_PROGRAMMATIC_COMBOS;
   if (!raw) return new Set();
   return new Set(
     raw
@@ -42,11 +41,16 @@ export function programmaticComboKey(
   return `astrology:${ka}-${kb}`;
 }
 
-/** True only if this exact combo has an approved-content record. Fail-closed. */
-export function isProgrammaticApproved(
+/** True only if this exact combo has been spot-reviewed and approved for indexing. */
+export function isProgrammaticIndexed(
   kind: ProgrammaticKind,
   a: string,
   b: string,
 ): boolean {
-  return approvedKeys().has(programmaticComboKey(kind, a, b));
+  return indexedKeys().has(programmaticComboKey(kind, a, b));
+}
+
+/** Routes are always live (200). Fail-open counterpart to the old gate. */
+export function isProgrammaticLive(): boolean {
+  return true;
 }

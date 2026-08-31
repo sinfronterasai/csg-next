@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
@@ -15,7 +15,7 @@ import {
   signLabel,
   allSignKeys,
 } from "@/lib/seo/programmatic";
-import { isProgrammaticApproved } from "@/lib/seo/programmatic-approval";
+import { isProgrammaticIndexed } from "@/lib/seo/programmatic-approval";
 
 export const dynamicParams = false;
 
@@ -39,10 +39,6 @@ export async function generateMetadata({
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
   if (parts.length !== 2) return { title: "Compatibility Not Found" };
-  // Fail-closed: unapproved pairs are unavailable (404), so no public metadata.
-  if (!isProgrammaticApproved("compatibility", parts[0], parts[1])) {
-    return { title: "Not Found" };
-  }
   const data = compatibilityData(parts[0], parts[1]);
   if (!data) return { title: "Compatibility Not Found" };
   const label = data.a.label + " and " + data.b.label;
@@ -56,7 +52,7 @@ export async function generateMetadata({
     description,
     path: "/compatibility/" + slug,
     type: "website",
-    noindex: true,
+    noindex: !isProgrammaticIndexed("compatibility", parts[0], parts[1]),
     jsonLd: mergeJsonLd(
       organizationJsonLd(),
       breadcrumbJsonLd([
@@ -79,11 +75,9 @@ export default async function CompatibilityPage({
 }) {
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
-  if (parts.length !== 2) notFound();
-  // Fail-closed: no approved content => unavailable to public users (404).
-  if (!isProgrammaticApproved("compatibility", parts[0], parts[1])) notFound();
+  if (parts.length !== 2) return null;
   const data = compatibilityData(parts[0], parts[1]);
-  if (!data) notFound();
+  if (!data) return null;
   const canonicalSlug = data.canonical.replace("/compatibility/", "");
   if (slug !== canonicalSlug) redirect("/compatibility/" + canonicalSlug);
 
@@ -110,41 +104,29 @@ export default async function CompatibilityPage({
         {data.a.label} and {data.b.label} Love Compatibility
       </h1>
       <p className="mt-2 text-lg">
-        A {data.a.modality} {data.a.element} sign meeting a {data.b.modality} {data.b.element} sign.
-        Element mix: {data.elementMix}. Modality mix: {data.modalityMix}.
+        {data.a.label} is a {data.a.element} {data.a.modality.toLowerCase()} sign ruled by {data.a.ruler}.
+        {" "}{data.b.label} is a {data.b.element} {data.b.modality.toLowerCase()} sign ruled by {data.b.ruler}.
       </p>
 
       <section className="mt-6 rounded-lg border p-4">
-        <h2 className="text-xl font-medium">How {data.a.label} shows up</h2>
-        <p className="mt-2">{data.a.traits}</p>
+        <h2 className="text-xl font-medium">Element mix: {data.elementMix}</h2>
+        <p className="mt-2">
+          {data.sharedElement
+            ? "You share an element, which gives you a natural common language."
+            : "You bridge two different elements, which can be complementary or require translation."}
+        </p>
       </section>
       <section className="mt-6 rounded-lg border p-4">
-        <h2 className="text-xl font-medium">How {data.b.label} shows up</h2>
-        <p className="mt-2">{data.b.traits}</p>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-xl font-medium">Where the two connect</h2>
-        <ul className="mt-2 list-disc pl-5">
-          <li>
-            {data.sharedElement
-              ? "You share an element (" + data.a.element + "), so you speak the same language."
-              : "Different elements (" + data.elementMix + ") - contrast plus complement."}
-          </li>
-          <li>
-            {data.sharedModality
-              ? "Same modality (" + data.a.modality + ") means a similar pace and rhythm."
-              : "Different modalities (" + data.modalityMix + ") - one initiates, one sustains or adapts."}
-          </li>
-          <li>
-            {data.a.label} is ruled by {data.a.ruler}; {data.b.label} by {data.b.ruler}.
-          </li>
-        </ul>
+        <h2 className="text-xl font-medium">Modality mix: {data.modalityMix}</h2>
+        <p className="mt-2">
+          {data.sharedModality
+            ? "Shared modality means you move through life at a similar pace."
+            : "Different modalities mean one of you initiates while the other sustains or adapts."}
+        </p>
       </section>
 
       <p className="mt-6 text-sm text-muted-foreground">
-        Want the full synastry? Generate your{" "}
-        <Link className="underline" href="/birth-chart">free birth chart</Link>.
+        For a full picture, build your <Link className="underline" href="/birth-chart">free birth chart</Link>.
       </p>
     </main>
   );
