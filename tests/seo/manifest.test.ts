@@ -20,6 +20,10 @@ const KNOWN_ROUTES = [
   "/zodiac",
   "/zodiac/aries",
   "/astrology/aries/taurus",
+  "/horoscope",
+  "/horoscope/aries",
+  "/transits",
+  "/transits/2026-08-30",
   "/pricing",
   "/services",
 ];
@@ -40,21 +44,20 @@ describe("legacy migration manifest", () => {
     expect(errors).toEqual([]);
   });
 
-  test("retired transits/horoscope resolve to 410", () => {
-    const d1 = resolveLegacyRedirect("/transits/2026-08-30");
-    expect(d1).not.toBeNull();
-    expect(d1!.status).toBe(410);
-    const d2 = resolveLegacyRedirect("/horoscope/aries");
-    expect(d2!.status).toBe(410);
+  test("live programmatic grids are NOT redirected (routes kept, index flag earned per page)", () => {
+    // astrology/compatibility/zodiac/horoscope/transits grids are live pages now.
+    expect(resolveLegacyRedirect("/astrology/aries/taurus")).toBeNull();
+    expect(resolveLegacyRedirect("/compatibility/aries-and-libra")).toBeNull();
+    expect(resolveLegacyRedirect("/zodiac/aries")).toBeNull();
+    expect(resolveLegacyRedirect("/horoscope/aries")).toBeNull();
+    expect(resolveLegacyRedirect("/transits/2026-08-30")).toBeNull();
   });
 
   test("unlaunched commercial routes are retired (410); live commercial hubs are NOT redirected (B7)", () => {
-    // /credits and /subscription are unlaunched => 410.
     const d2 = resolveLegacyRedirect("/credits");
     expect(d2!.status).toBe(410);
     const d3 = resolveLegacyRedirect("/subscription");
     expect(d3!.status).toBe(410);
-    // /pricing and /services now EXIST as live pages => no redirect entry (not 410, not 301).
     expect(resolveLegacyRedirect("/pricing")).toBeNull();
     expect(resolveLegacyRedirect("/services")).toBeNull();
   });

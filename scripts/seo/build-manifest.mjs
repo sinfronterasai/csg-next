@@ -81,12 +81,18 @@ function decide(r, sanitySlugs) {
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }
   if (fam === "/transits") {
-    return mk("RETIRE_410", null, 410, false, null, "410",
-      "Static generic transit prose with no real computed ephemeris data; retire until a real transit engine exists.");
+    // Kept per brief (daily programmatic value). Route is live; index flag earned per dated page.
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
+      "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed.");
   }
   if (fam === "/horoscope") {
-    return mk("RETIRE_410", null, 410, false, null, "410",
-      "All 13 share one title/description with no real dated data; do-not-fabricate-daily; retire until a genuine source exists.");
+    // Kept per brief (high-intent hub). Indexable hub; sign pages live-noindex until curated.
+    if (p === "/horoscope") {
+      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
+        "Horoscope hub; indexable navigational route.");
+    }
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
+      "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed.");
   }
 
   if (fam === "/blog") return decideBlog(r, sanitySlugs, PROD);
@@ -115,12 +121,10 @@ function decide(r, sanitySlugs) {
     return mk("MERGE_AND_301", "/login", 301, false, PROD + "/login", PROD + "/login",
       "Legacy gated redirect to /login; collapse to canonical account entry.");
 
-  // Commercial hub pages now exist with honest live-SKU copy.
   if (["/pricing","/services"].includes(p)) {
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
       "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable.");
   }
-  // Unlaunched commercial products with no equivalent launch route: intentional 410.
   if (["/credits","/subscription"].includes(p)) {
     return mk("RETIRE_410", null, 410, false, null, "410",
       "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists.");

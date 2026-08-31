@@ -7,15 +7,20 @@
 //
 // This replaces the earlier fail-closed (404) behavior. The route is never 404.
 //
-// The allowlist is empty by default => every combo renders live-but-NOINDEX, which
-// is the safe default John specified ("if unsure... default that batch to noindex
-// and flag me"). When specific pairs are spot-reviewed and approved for indexing,
-// add their keys to CSG_INDEXED_PROGRAMMATIC_COMBOS.
+// The allowlist is empty by default => every programmatic page renders
+// live-but-NOINDEX, which is the safe default John specified ("if unsure... default
+// that batch to noindex and flag me"). When specific pages are spot-reviewed and
+// approved for indexing, add their keys to CSG_INDEXED_PROGRAMMATIC_COMBOS.
 
-export type ProgrammaticKind = "astrology" | "compatibility";
+export type ProgrammaticKind =
+  | "astrology"
+  | "compatibility"
+  | "zodiac"
+  | "horoscope"
+  | "transits";
 
-// Comma-separated indexed combo keys, e.g. "astrology:aries-aries,compatibility:aries-libra".
-// Empty by default => all programmatic combos are live-but-noindex.
+// Comma-separated indexed combo keys, e.g. "astrology:aries-aries,compatibility:aries-libra,zodiac:leo".
+// Empty by default => all programmatic pages are live-but-noindex.
 function indexedKeys(): Set<string> {
   const raw = process.env.CSG_INDEXED_PROGRAMMATIC_COMBOS;
   if (!raw) return new Set();
@@ -38,10 +43,11 @@ export function programmaticComboKey(
     const [x, y] = ka <= kb ? [ka, kb] : [kb, ka];
     return `compatibility:${x}-${y}`;
   }
-  return `astrology:${ka}-${kb}`;
+  // astrology uses ordered pair; single-key families (zodiac/horoscope/transits) ignore b.
+  return `${kind}:${ka}-${kb}`;
 }
 
-/** True only if this exact combo has been spot-reviewed and approved for indexing. */
+/** True only if this exact page has been spot-reviewed and approved for indexing. */
 export function isProgrammaticIndexed(
   kind: ProgrammaticKind,
   a: string,
