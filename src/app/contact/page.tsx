@@ -32,7 +32,7 @@ export default function ContactPage() {
       <h1 className="mt-4 text-3xl font-semibold">Contact</h1>
       <p className="mt-3 text-lg">
         Contact details will be published here once verified business information is available.
-        This page is not indexed until then.
+        Until then, only this notice is published and the page is excluded from search indexes.
       </p>
     </main>
   );

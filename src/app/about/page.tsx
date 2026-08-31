@@ -33,8 +33,10 @@ export default function AboutPage() {
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">About Cosmic Spirit Guide</h1>
       <p className="mt-3 text-lg">
-        Cosmic Spirit Guide builds free, calculation-based astrology and tarot tools. Our charts use
-        real ephemeris math, not random generators.
+        Cosmic Spirit Guide builds free astrology tools from real ephemeris calculation — your
+        birth chart, Sun and Moon signs, and compatibility are computed from astronomy, not random
+        generators. Tarot is different: each card draw is interpreted, not calculated, and we’re
+        clear about that distinction.
       </p>
       <section className="mt-6">
         <h2 className="text-xl font-medium">What you can do free</h2>

@@ -10,6 +10,7 @@ import {
   mergeJsonLd,
 } from "@/lib/seo/jsonld";
 import { astrologyData, allSignKeys } from "@/lib/seo/programmatic";
+import { isProgrammaticApproved } from "@/lib/seo/programmatic-approval";
 
 export const dynamicParams = false;
 
@@ -30,6 +31,10 @@ export async function generateMetadata({
   params: Promise<{ sun: string; moon: string }>;
 }): Promise<Metadata> {
   const { sun, moon } = await params;
+  // Fail-closed: unapproved combos are unavailable (404), so no public metadata.
+  if (!isProgrammaticApproved("astrology", sun, moon)) {
+    return { title: "Not Found" };
+  }
   const data = astrologyData(sun, moon);
   if (!data) return { title: "Astrology Combination Not Found" };
   const title = data.sun.label + " Sun, " + data.moon.label + " Moon: Your Inner Blend";
@@ -63,6 +68,8 @@ export default async function AstrologyComboPage({
   params: Promise<{ sun: string; moon: string }>;
 }) {
   const { sun, moon } = await params;
+  // Fail-closed: no approved content => unavailable to public users (404).
+  if (!isProgrammaticApproved("astrology", sun, moon)) notFound();
   const data = astrologyData(sun, moon);
   if (!data) notFound();
 

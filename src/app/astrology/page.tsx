@@ -73,19 +73,10 @@ export default function AstrologyHub() {
 
       <section className="mt-6">
         <h2 className="text-xl font-medium">Sun and Moon combinations</h2>
-        <p className="mt-2">
-          Every Sun sign paired with every Moon sign produces a distinct inner blend. Browse a starting
-          example:
+        <p className="mt-2 text-muted-foreground">
+          Pair pages are being prepared with editorially approved, pair-specific content. Until
+          then, generate your free birth chart to see how your Sun and Moon work together.
         </p>
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {signs.slice(0, 4).map((s) => (
-            <li key={s}>
-              <Link className="rounded-full border px-3 py-1 text-sm" href={"/astrology/" + s + "/" + s}>
-                {signLabel(s)} Sun, {signLabel(s)} Moon
-              </Link>
-            </li>
-          ))}
-        </ul>
       </section>
     </main>
   );

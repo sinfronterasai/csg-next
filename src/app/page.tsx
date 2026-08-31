@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { metadata } = buildMetadata({
     title: "Cosmic Spirit Guide | Free Birth Chart, Tarot & Zodiac Insights",
     description:
-      "Generate your free birth chart, read your tarot, and explore the twelve zodiac signs with Cosmic Spirit Guide. Data-backed astrology and tarot tools.",
+      "Generate your free birth chart, read your tarot, and explore the twelve zodiac signs with Cosmic Spirit Guide. Astrology charts are computed from real ephemeris; tarot draws are interpreted.",
     path: "/",
     type: "website",
     jsonLd: mergeJsonLd(

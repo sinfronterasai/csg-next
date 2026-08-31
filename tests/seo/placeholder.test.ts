@@ -20,6 +20,8 @@ const FORBIDDEN = [
   /to be confirmed/i,
   /this page is a draft/i,
   /placeholder body/i,
+  /is a placeholder/i,        // C8: must not call a launch-hold page a "placeholder"
+  /this page is a placeholder/i,
   /support@cosmicspiritguide\.com/i, // invented, not in live impl
 ];
 

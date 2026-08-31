@@ -6,6 +6,7 @@ import path from "path";
 export type Disposition =
   | "KEEP_AND_REBUILD"
   | "REFRESH_AND_MIGRATE"
+  | "HOLD_NOINDEX"
   | "MERGE_AND_301"
   | "301_EQUIVALENT"
   | "RETIRE_410"
@@ -77,6 +78,16 @@ export function validateManifestRows(
   const existing = new Set(knownExistingPaths);
   const REDIR_DISPOSITIONS = ["MERGE_AND_301", "301_EQUIVALENT"] as const;
   for (const r of rows) {
+    // C4: a redirect source or a 410 is NOT indexable content. It cannot carry a
+    // self-canonical indexable claim. Reject any such row with indexable=true.
+    if (
+      (REDIR_DISPOSITIONS as readonly string[]).includes(r.disposition) ||
+      r.disposition === "RETIRE_410"
+    ) {
+      if (r.indexable === true) {
+        errors.push(r.oldPath + ": " + r.disposition + " must be indexable=false (redirect/410 source is not indexable content)");
+      }
+    }
     if ((REDIR_DISPOSITIONS as readonly string[]).includes(r.disposition)) {
       const tgt = r.redirectTarget;
       if (!tgt) {

@@ -15,6 +15,7 @@ import {
   signLabel,
   allSignKeys,
 } from "@/lib/seo/programmatic";
+import { isProgrammaticApproved } from "@/lib/seo/programmatic-approval";
 
 export const dynamicParams = false;
 
@@ -38,6 +39,10 @@ export async function generateMetadata({
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
   if (parts.length !== 2) return { title: "Compatibility Not Found" };
+  // Fail-closed: unapproved pairs are unavailable (404), so no public metadata.
+  if (!isProgrammaticApproved("compatibility", parts[0], parts[1])) {
+    return { title: "Not Found" };
+  }
   const data = compatibilityData(parts[0], parts[1]);
   if (!data) return { title: "Compatibility Not Found" };
   const label = data.a.label + " and " + data.b.label;
@@ -75,6 +80,8 @@ export default async function CompatibilityPage({
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
   if (parts.length !== 2) notFound();
+  // Fail-closed: no approved content => unavailable to public users (404).
+  if (!isProgrammaticApproved("compatibility", parts[0], parts[1])) notFound();
   const data = compatibilityData(parts[0], parts[1]);
   if (!data) notFound();
   const canonicalSlug = data.canonical.replace("/compatibility/", "");

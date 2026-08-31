@@ -32,7 +32,8 @@ export default function PrivacyPage() {
       <h1 className="mt-4 text-3xl font-semibold">Privacy Policy</h1>
       <p className="mt-3 text-lg">
         We are preparing a complete privacy policy with verified business and data-handling details.
-        Until then this page is a placeholder and is not indexed.
+        Until that review is complete, only this notice is published and the page is excluded from
+        search indexes.
       </p>
     </main>
   );

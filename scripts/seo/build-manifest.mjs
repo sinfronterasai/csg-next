@@ -4,9 +4,10 @@
 // Missing input fails the process with a nonzero exit code.
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { BLOG_OVERRIDES, loadSanitySlugs, decideBlog } from "./blog-dispositions.mjs";
 
-const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CSV = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "evidence", "route-parity-audit.csv");
 const OUT = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "legacy-url-migration-manifest.json");
 const PROD = "https://cosmicspiritguide.com";
@@ -49,14 +50,26 @@ function decide(r, sanitySlugs) {
   const newStatus = r[3];
 
   if (fam === "/astrology") {
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Distinct natal Sun+Moon combo with deterministic sign-derived content (element/modality/ruler/traits); unique self-understanding intent.");
+    // Hub is a real navigational route; stays indexable.
+    if (p === "/astrology") {
+      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
+        "Astrology hub; indexable navigational route.");
+    }
+    // 144 Sun/Moon combos: held pending editorial approval (programmatic family
+    // editorial hold). Token-swapped templates are not indexable/curated.
+    return mk("HOLD_NOINDEX", null, 200, false, null, null,
+      "Sun/Moon combo template held pending editorial approval (programmatic family HOLD/REFRESH). Token-swapped content is not indexable or curated.");
   }
   if (fam === "/zodiac") {
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Distinct sign hub/page with deterministic traits from SIGNS data; unique informational intent.");
+      "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable.");
   }
   if (fam === "/compatibility") {
+    // Hub is a real navigational route; stays indexable.
+    if (p === "/compatibility") {
+      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
+        "Compatibility hub; indexable navigational route.");
+    }
     const slug = p.replace("/compatibility/", "");
     const parts = slug.split("-and-");
     if (parts.length === 2) {
@@ -64,10 +77,11 @@ function decide(r, sanitySlugs) {
       const can = "/compatibility/" + a + "-and-" + b;
       if (can !== p) {
         return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can,
-          "Non-canonical ordering; 301 to alphabetical canonical pair.");
+          "Non-canonical ordering; 301 to alphabetical canonical pair (internal same-family dedupe).");
       }
-      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-        "Canonical unordered love-pair page; deterministic compatibility from SIGNS element/modality dynamics.");
+      // Canonical pair page: held pending editorial approval (programmatic family hold).
+      return mk("HOLD_NOINDEX", null, 200, false, null, null,
+        "Canonical love-pair template held pending editorial approval (programmatic family HOLD/REFRESH). Not indexable until curated.");
     }
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }

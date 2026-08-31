@@ -20,7 +20,7 @@ describe("acceptance: indexable pages have unique canonicals (#4)", () => {
       seen.add(r.canonicalUrl!);
       expect(r.canonicalUrl).toMatch(/^https:\/\/cosmicspiritguide\.com\//);
     }
-    expect(rows.length).toBeGreaterThan(200);
+    expect(rows.length).toBeGreaterThan(50);
   });
 });
 
@@ -60,16 +60,15 @@ describe("acceptance: programmatic thinness / no token-swap (#13)", () => {
 });
 
 describe("acceptance: blog sitemap matches Sanity source (#18)", () => {
-  test("kept blog slugs are a subset of live Sanity blogPost slugs", () => {
+  test("blog rows are held until approval (C6): HOLD_NOINDEX, not KEEP/REFRESH", () => {
     const slugs = sanitySlugs();
     expect(slugs.size).toBeGreaterThan(5);
-    const kept = loadManifest().filter(
-      (r) => r.routeFamily === "/blog" && r.disposition === "KEEP_AND_REBUILD" && r.oldPath !== "/blog",
-    );
-    expect(kept.length).toBeGreaterThan(0);
-    for (const r of kept) {
-      const slug = r.oldPath.replace("/blog/", "");
-      expect(slugs.has(slug)).toBe(true);
+    const blogRows = loadManifest().filter((r) => r.routeFamily === "/blog" && r.oldPath !== "/blog");
+    expect(blogRows.length).toBeGreaterThan(0);
+    for (const r of blogRows) {
+      // No blog slug is published/indexable until CMS approval evidence exists.
+      expect(r.disposition === "HOLD_NOINDEX" || r.disposition === "RETIRE_410").toBe(true);
+      expect(r.indexable).toBe(false);
     }
   });
   test("no blog row claims REFRESH without a Sanity source", () => {
@@ -85,13 +84,17 @@ describe("acceptance: blog sitemap matches Sanity source (#18)", () => {
 });
 
 describe("acceptance: manifest/sitemap target agreement (#17)", () => {
-  test("301 targets resolve to a known 200 route or kept slug", () => {
+  test("C5: no 301_EQUIVALENT rows remain (editorial queue not redirected to tools/held targets)", () => {
+    const rows = loadManifest();
+    expect(rows.filter((r) => r.disposition === "301_EQUIVALENT").length).toBe(0);
+  });
+  test("remaining 301 targets resolve to a known 200 route or kept slug", () => {
     const rows = loadManifest();
     const keptPaths = new Set(rows.filter((r) => r.indexable).map((r) => r.oldPath));
     const allowed = ["/tarot", "/compatibility", "/birth-chart", "/login", "/"];
     for (const r of rows) {
-      if ((r.disposition === "MERGE_AND_301" || r.disposition === "301_EQUIVALENT") && r.redirectTarget) {
-        const tgt = r.redirectTarget.replace(/^https?:\/\/[^\/]+/, "");
+      if (r.disposition === "MERGE_AND_301" && r.redirectTarget) {
+        const tgt = r.redirectTarget.replace(/^https?:\/\/[^/]+/, "");
         expect(allowed.includes(tgt) || keptPaths.has(tgt)).toBe(true);
       }
     }
