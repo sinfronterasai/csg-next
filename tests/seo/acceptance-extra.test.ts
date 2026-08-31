@@ -60,14 +60,15 @@ describe("acceptance: programmatic thinness / no token-swap (#13)", () => {
 });
 
 describe("acceptance: blog sitemap matches Sanity source (#18)", () => {
-  test("blog rows are held until approval (C6): HOLD_NOINDEX, not KEEP/REFRESH", () => {
+  test("blog rows are not indexable until approval (C6): HOLD_NOINDEX / RETIRE_410 / same-intent MERGE_AND_301", () => {
     const slugs = sanitySlugs();
     expect(slugs.size).toBeGreaterThan(5);
     const blogRows = loadManifest().filter((r) => r.routeFamily === "/blog" && r.oldPath !== "/blog");
     expect(blogRows.length).toBeGreaterThan(0);
     for (const r of blogRows) {
       // No blog slug is published/indexable until CMS approval evidence exists.
-      expect(r.disposition === "HOLD_NOINDEX" || r.disposition === "RETIRE_410").toBe(true);
+      // Slop variants 301 to the /blog hub (same-intent, not indexable) — still held.
+      expect(r.disposition === "HOLD_NOINDEX" || r.disposition === "RETIRE_410" || r.disposition === "MERGE_AND_301").toBe(true);
       expect(r.indexable).toBe(false);
     }
   });
@@ -91,7 +92,10 @@ describe("acceptance: manifest/sitemap target agreement (#17)", () => {
   test("remaining 301 targets resolve to a known 200 route or kept slug", () => {
     const rows = loadManifest();
     const keptPaths = new Set(rows.filter((r) => r.indexable).map((r) => r.oldPath));
-    const allowed = ["/tarot", "/compatibility", "/birth-chart", "/login", "/"];
+    const allowed = [
+      "/tarot", "/compatibility", "/birth-chart", "/login", "/",
+      "/blog", "/transits", "/zodiac", "/horoscope", "/astrology",
+    ];
     for (const r of rows) {
       if (r.disposition === "MERGE_AND_301" && r.redirectTarget) {
         const tgt = r.redirectTarget.replace(/^https?:\/\/[^/]+/, "");

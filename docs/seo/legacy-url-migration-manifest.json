@@ -1803,37 +1803,37 @@
     "oldPath": "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach",
     "oldStatus": "404",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE: no Sanity source, no equivalent launch route."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/composite-chart-relationship-soul",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Synastry/composite feature unlaunched; no equivalent route; 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: shares placeholder body with unrelated pages."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology",
@@ -1899,37 +1899,37 @@
     "oldPath": "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: same placeholder-body group; no approved unique value."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: placeholder-body duplication; not editorially approved."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: same placeholder-body group; intent only reconsidered in AI-tarot pillar."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1",
@@ -1995,61 +1995,61 @@
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "No transit content served on new site; no equivalent; 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "No transit content served on new site; no equivalent; 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Off-core, sensitive pregnancy/infant psychology, unsupported; no redirect."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/numerology-compatibility-calculator-life-path-numbers-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "No verified CSG numerology offering; 410 (A2 HOLD/RETIRE)."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/numerology-compatibility-calculator-life-path-numbers-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "No verified CSG numerology offering; 410 (A2 HOLD/RETIRE)."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/reading-the-love-line-a-heart-centered-guide-to-palmistry-emotional-patterns-and-self-discovery",
@@ -2103,13 +2103,13 @@
     "oldPath": "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: same placeholder body group, promotional framing."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/the-complete-guide-to-all-78-tarot-cards-meaning-major-arcana-minor-arcana-court-cards-2026-08-17",
@@ -2139,13 +2139,13 @@
     "oldPath": "/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "A3 RETIRE CURRENT COPY: same placeholder-body group."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/blog/the-spiritual-meaning-of-repeating-numbers-a-cosmic-spirit-guide-to-intuitive-angel-numbers",
@@ -2229,7 +2229,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
   },
   {
     "oldPath": "/compatibility",
@@ -3093,7 +3093,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
   },
   {
     "oldPath": "/forecasts",
@@ -3105,7 +3105,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
   },
   {
     "oldPath": "/horoscope",
@@ -3273,7 +3273,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
   },
   {
     "oldPath": "/login",
@@ -3291,25 +3291,25 @@
     "oldPath": "/moon-phase",
     "oldStatus": "200",
     "routeFamily": "/moon-phase",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/transits",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/transits",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/transits",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/moon-reading",
     "oldStatus": "200",
     "routeFamily": "/moon-reading",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/tarot",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/tarot",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/tarot",
+    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
   },
   {
     "oldPath": "/my-chart",
@@ -3333,7 +3333,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410."
+    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
   },
   {
     "oldPath": "/pricing",

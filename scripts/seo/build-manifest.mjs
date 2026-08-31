@@ -12,6 +12,28 @@ const CSV = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "evidence", "route-
 const OUT = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "legacy-url-migration-manifest.json");
 const PROD = "https://cosmicspiritguide.com";
 
+// Same-intent 301 overrides (brief P4 #20 + §6). One-hop, never homepage.
+// Blog slop (§4b) 301s to the /blog hub: the per-topic canonical variants are not
+// yet confirmed live in Sanity (blog fetch is fail-closed), so the hub is the safe
+// same-intent target. Narrow to per-topic canonical once those slugs are approved.
+const SAME_INTENT_301 = {
+  "/moon-phase": "/transits",
+  "/moon-reading": "/tarot",
+  "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach": "/blog",
+  "/blog/composite-chart-relationship-soul": "/blog",
+  "/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity": "/blog",
+  "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions": "/blog",
+  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": "/blog",
+  "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone": "/blog",
+  "/blog/mercury-retrograde-meaning-complete-survival-guide-1": "/blog",
+  "/blog/mercury-retrograde-meaning-complete-survival-guide-2": "/blog",
+  "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology": "/blog",
+  "/blog/numerology-compatibility-calculator-life-path-numbers-1": "/blog",
+  "/blog/numerology-compatibility-calculator-life-path-numbers-2": "/blog",
+  "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today": "/blog",
+  "/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance": "/blog",
+};
+
 if (!fs.existsSync(CSV)) {
   console.error("FATAL: audit CSV not found at " + CSV);
   process.exit(1);
@@ -49,6 +71,13 @@ function decide(r, sanitySlugs) {
   const fam = familyOf(p);
   const newStatus = r[3];
 
+  // Same-intent 301 overrides (brief P4 + §6).
+  if (SAME_INTENT_301[p]) {
+    const target = PROD + SAME_INTENT_301[p];
+    return mk("MERGE_AND_301", SAME_INTENT_301[p], 301, false, target, target,
+      "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage.");
+  }
+
   if (fam === "/astrology") {
     if (p === "/astrology") {
       return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
@@ -81,12 +110,10 @@ function decide(r, sanitySlugs) {
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }
   if (fam === "/transits") {
-    // Kept per brief (daily programmatic value). Route is live; index flag earned per dated page.
     return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
       "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed.");
   }
   if (fam === "/horoscope") {
-    // Kept per brief (high-intent hub). Indexable hub; sign pages live-noindex until curated.
     if (p === "/horoscope") {
       return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
         "Horoscope hub; indexable navigational route.");
@@ -130,9 +157,9 @@ function decide(r, sanitySlugs) {
       "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists.");
   }
 
-  if (["/coach","/forecasts","/journal","/newsletter","/energy","/moon-reading","/moon-phase"].includes(p))
+  if (["/coach","/forecasts","/journal","/newsletter","/energy"].includes(p))
     return mk("RETIRE_410", null, 410, false, null, "410",
-      "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410.");
+      "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410.");
 
   if (newStatus === "200")
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Resolves on new build; review.");
