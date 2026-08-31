@@ -1773,19 +1773,19 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Blog hub; indexable. Individual posts served only from the live fail-closed Sanity query (approved + published)."
+    "reason": "Blog hub; indexable. Individual posts served from the live Sanity query."
   },
   {
     "oldPath": "/blog/ai-tarot-reading-free-personalized-astrology-insights",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/ai-tarot-reading-free-personalized-astrology-insights",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/ai-tarot-reading-free-personalized-astrology-insights",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "AI-tarot cluster (A2 MERGE/HOLD); held until the approved AI-tarot pillar exists. No 301 to tool."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/august-astrology-calendar-navigating-retrogrades-eclipses-and-lunar-cycles-with-intention-2026-08-17",
@@ -1797,163 +1797,163 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach",
     "oldStatus": "404",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/composite-chart-relationship-soul",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/composite-chart-relationship-soul",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/composite-chart-relationship-soul",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "A3 RETIRE/HOLD: mental-health intent needs qualified review; held, not republished."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/free-moon-sign-calculator-discover-your-emotional-core-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/free-moon-sign-calculator-discover-your-emotional-core-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Moon-sign cluster (A2 MERGE/HOLD); one-hop 301 only after the canonical Sanity post is approved. Held."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Compatibility cluster (A2 MERGE/HOLD); held until approved compatibility pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Compatibility cluster (A2 MERGE/HOLD); held until approved compatibility pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Birth-chart cluster (A2 MERGE/REFRESH); held until approved pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Birth-chart cluster (A2 MERGE/REFRESH); held until approved pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/lions-gate-portal-on-8-8-a-balanced-guide-to-meaning-rituals-and-manifestation",
@@ -1965,91 +1965,91 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/love-compatibility-by-birth-date-the-complete-guide-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Compatibility cluster (A2 MERGE/HOLD); held until approved pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/love-compatibility-by-birth-date-the-complete-guide-5",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Compatibility cluster (A2 MERGE/HOLD); held until approved pillar. No 301 to tool."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
+    "newPath": "/blog/mercury-retrograde-meaning-complete-survival-guide",
     "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
     "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "redirectTarget": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
+    "newPath": "/blog/mercury-retrograde-meaning-complete-survival-guide",
     "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
     "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "redirectTarget": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/numerology-compatibility-calculator-life-path-numbers-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
+    "newPath": "/blog/numerology-compatibility-calculator-life-path-numbers",
     "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
     "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "redirectTarget": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/numerology-compatibility-calculator-life-path-numbers-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
+    "newPath": "/blog/numerology-compatibility-calculator-life-path-numbers",
     "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
     "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "redirectTarget": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/reading-the-love-line-a-heart-centered-guide-to-palmistry-emotional-patterns-and-self-discovery",
@@ -2061,55 +2061,55 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/relationship-compatibility-beyond-sun",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/relationship-compatibility-beyond-sun",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/relationship-compatibility-beyond-sun",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/rising-sign-calculator-find-your-ascendant-sign-free",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Birth-chart cluster (A2 MERGE/REFRESH); held until approved pillar. No 301 to tool."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
     "newPath": null,
-    "intendedStatus": 200,
+    "intendedStatus": 410,
     "indexable": false,
     "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Birth-chart cluster (A2 MERGE/REFRESH); held until approved pillar. No 301 to tool."
+    "disposition": "RETIRE_410",
+    "redirectTarget": "410",
+    "reason": "No keeper intent and no Sanity source; intentional 410 after evidence review."
   },
   {
     "oldPath": "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/the-complete-guide-to-all-78-tarot-cards-meaning-major-arcana-minor-arcana-court-cards-2026-08-17",
@@ -2121,31 +2121,31 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/the-future-of-fate-how-ai-powered-tarot-readings-work",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/the-future-of-fate-how-ai-powered-tarot-readings-work",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/the-future-of-fate-how-ai-powered-tarot-readings-work",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "AI-tarot cluster (A2 MERGE/HOLD); held until approved pillar. No 301 to tool."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": "/blog",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/blog",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/blog",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "newPath": "/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance",
+    "disposition": "REFRESH_AND_MIGRATE",
+    "redirectTarget": null,
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/the-spiritual-meaning-of-repeating-numbers-a-cosmic-spirit-guide-to-intuitive-angel-numbers",
@@ -2157,7 +2157,7 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/the-summer-solstice-is-coming-here-s-how-to-align-your-energy-with-the-longest-day-of-the-year",
@@ -2169,55 +2169,55 @@
     "canonicalUrl": null,
     "disposition": "HOLD_NOINDEX",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "Exists in Sanity production; held pending independent editorial approval. Not indexed until approved."
   },
   {
     "oldPath": "/blog/twin-flame-compatibility-test-are-they-your-other-half-1",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Twin-flame cluster (A2 MERGE/HOLD); held until canonical passes safety review. No 301."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/twin-flame-compatibility-test-are-they-your-other-half-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 200,
+    "newPath": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
-    "redirectTarget": null,
-    "reason": "Twin-flame cluster (A2 MERGE/HOLD); held until canonical passes safety review. No 301."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Exists in Sanity production; held pending independent editorial approval (reviewStatus == approved + zero hard-fail flags). Not indexed until approved."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/blog/what-is-my-birth-chart",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
+    "newPath": "/blog/what-is-my-birth-chart",
     "intendedStatus": 200,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "HOLD_NOINDEX",
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/what-is-my-birth-chart",
+    "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Birth-chart pillar candidate (A1 REFRESH P0); held until the refreshed approved pillar is live. No 301 to tool."
+    "reason": "§4a keep-candidate confirmed live in Sanity prod; migrate full metadata (canonical/og/JSON-LD) and index."
   },
   {
     "oldPath": "/coach",
@@ -3297,7 +3297,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/transits",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/moon-reading",
@@ -3309,7 +3309,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/tarot",
-    "reason": "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage."
+    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
   },
   {
     "oldPath": "/my-chart",

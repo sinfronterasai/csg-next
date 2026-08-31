@@ -5,33 +5,35 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "node:url";
-import { BLOG_OVERRIDES, loadSanitySlugs, decideBlog } from "./blog-dispositions.mjs";
+import { loadSanitySlugs, decideBlog } from "./blog-dispositions.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CSV = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "evidence", "route-parity-audit.csv");
 const OUT = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "legacy-url-migration-manifest.json");
 const PROD = "https://cosmicspiritguide.com";
 
-// Same-intent 301 overrides (brief P4 #20 + §6). One-hop, never homepage.
-// Blog slop (§4b) 301s to the /blog hub: the per-topic canonical variants are not
-// yet confirmed live in Sanity (blog fetch is fail-closed), so the hub is the safe
-// same-intent target. Narrow to per-topic canonical once those slugs are approved.
+// Same-intent 301 overrides (brief P4 #20 + §4b + §6). One-hop, never homepage.
+// Blog slop (§4b, 15 suffixed variants) 301 to their CONFIRMED-LIVE canonical base
+// slug (verified in Sanity production kicslgfz/dataset production on 2026-08-31).
 const SAME_INTENT_301 = {
   "/moon-phase": "/transits",
   "/moon-reading": "/tarot",
-  "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach": "/blog",
-  "/blog/composite-chart-relationship-soul": "/blog",
-  "/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity": "/blog",
-  "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions": "/blog",
-  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": "/blog",
-  "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone": "/blog",
-  "/blog/mercury-retrograde-meaning-complete-survival-guide-1": "/blog",
-  "/blog/mercury-retrograde-meaning-complete-survival-guide-2": "/blog",
-  "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology": "/blog",
-  "/blog/numerology-compatibility-calculator-life-path-numbers-1": "/blog",
-  "/blog/numerology-compatibility-calculator-life-path-numbers-2": "/blog",
-  "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today": "/blog",
-  "/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance": "/blog",
+  "/blog/free-moon-sign-calculator-discover-your-emotional-core-1": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+  "/blog/free-moon-sign-calculator-discover-your-emotional-core-2": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-2": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+  "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+  "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+  "/blog/love-compatibility-by-birth-date-the-complete-guide-1": "/blog/love-compatibility-by-birth-date-the-complete-guide",
+  "/blog/love-compatibility-by-birth-date-the-complete-guide-2": "/blog/love-compatibility-by-birth-date-the-complete-guide",
+  "/blog/love-compatibility-by-birth-date-the-complete-guide-5": "/blog/love-compatibility-by-birth-date-the-complete-guide",
+  "/blog/mercury-retrograde-meaning-complete-survival-guide-1": "/blog/mercury-retrograde-meaning-complete-survival-guide",
+  "/blog/mercury-retrograde-meaning-complete-survival-guide-2": "/blog/mercury-retrograde-meaning-complete-survival-guide",
+  "/blog/numerology-compatibility-calculator-life-path-numbers-1": "/blog/numerology-compatibility-calculator-life-path-numbers",
+  "/blog/numerology-compatibility-calculator-life-path-numbers-2": "/blog/numerology-compatibility-calculator-life-path-numbers",
+  "/blog/twin-flame-compatibility-test-are-they-your-other-half-1": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
+  "/blog/twin-flame-compatibility-test-are-they-your-other-half-2": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
 };
 
 if (!fs.existsSync(CSV)) {
@@ -71,11 +73,11 @@ function decide(r, sanitySlugs) {
   const fam = familyOf(p);
   const newStatus = r[3];
 
-  // Same-intent 301 overrides (brief P4 + §6).
+  // Same-intent 301 overrides (brief P4 + §4b + §6).
   if (SAME_INTENT_301[p]) {
     const target = PROD + SAME_INTENT_301[p];
     return mk("MERGE_AND_301", SAME_INTENT_301[p], 301, false, target, target,
-      "Same-intent 301 to nearest live hub (brief P4 #20 / §6). Never homepage.");
+      "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage.");
   }
 
   if (fam === "/astrology") {

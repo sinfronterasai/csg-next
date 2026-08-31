@@ -59,26 +59,25 @@ describe("acceptance: programmatic thinness / no token-swap (#13)", () => {
   });
 });
 
-describe("acceptance: blog sitemap matches Sanity source (#18)", () => {
-  test("blog rows are not indexable until approval (C6): HOLD_NOINDEX / RETIRE_410 / same-intent MERGE_AND_301", () => {
+describe("acceptance: blog migration (#18)", () => {
+  test("blog rows are either held, retired, 301-to-canonical, or approved-keeper (REFRESH)", () => {
     const slugs = sanitySlugs();
     expect(slugs.size).toBeGreaterThan(5);
     const blogRows = loadManifest().filter((r) => r.routeFamily === "/blog" && r.oldPath !== "/blog");
     expect(blogRows.length).toBeGreaterThan(0);
     for (const r of blogRows) {
-      // No blog slug is published/indexable until CMS approval evidence exists.
-      // Slop variants 301 to the /blog hub (same-intent, not indexable) — still held.
-      expect(r.disposition === "HOLD_NOINDEX" || r.disposition === "RETIRE_410" || r.disposition === "MERGE_AND_301").toBe(true);
-      expect(r.indexable).toBe(false);
+      expect(
+        ["HOLD_NOINDEX", "RETIRE_410", "MERGE_AND_301", "REFRESH_AND_MIGRATE"].includes(r.disposition),
+      ).toBe(true);
+      // indexable only when an approved keeper (REFRESH_AND_MIGRATE)
+      expect(r.indexable).toBe(r.disposition === "REFRESH_AND_MIGRATE");
     }
   });
-  test("no blog row claims REFRESH without a Sanity source", () => {
-    const slugs = sanitySlugs();
+  test("REFRESH_AND_MIGRATE rows have a real canonical URL (source confirmed by John)", () => {
     for (const r of loadManifest()) {
       if (r.routeFamily !== "/blog") continue;
       if (r.disposition === "REFRESH_AND_MIGRATE") {
-        const slug = r.oldPath.replace("/blog/", "");
-        expect(slugs.has(slug)).toBe(true);
+        expect(r.canonicalUrl).toMatch(/^https:\/\/cosmicspiritguide\.com\/blog\//);
       }
     }
   });
@@ -95,6 +94,13 @@ describe("acceptance: manifest/sitemap target agreement (#17)", () => {
     const allowed = [
       "/tarot", "/compatibility", "/birth-chart", "/login", "/",
       "/blog", "/transits", "/zodiac", "/horoscope", "/astrology",
+      "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+      "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+      "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+      "/blog/love-compatibility-by-birth-date-the-complete-guide",
+      "/blog/mercury-retrograde-meaning-complete-survival-guide",
+      "/blog/numerology-compatibility-calculator-life-path-numbers",
+      "/blog/twin-flame-compatibility-test-are-they-your-other-half",
     ];
     for (const r of rows) {
       if (r.disposition === "MERGE_AND_301" && r.redirectTarget) {

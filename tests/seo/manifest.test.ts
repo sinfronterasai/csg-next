@@ -26,6 +26,14 @@ const KNOWN_ROUTES = [
   "/transits/2026-08-30",
   "/pricing",
   "/services",
+  // Canonical blog bases (301 targets for slop consolidation, confirmed live in Sanity prod)
+  "/blog/free-moon-sign-calculator-discover-your-emotional-core",
+  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+  "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
+  "/blog/love-compatibility-by-birth-date-the-complete-guide",
+  "/blog/mercury-retrograde-meaning-complete-survival-guide",
+  "/blog/numerology-compatibility-calculator-life-path-numbers",
+  "/blog/twin-flame-compatibility-test-are-they-your-other-half",
 ];
 
 describe("legacy migration manifest", () => {
@@ -45,7 +53,6 @@ describe("legacy migration manifest", () => {
   });
 
   test("live programmatic grids are NOT redirected (routes kept, index flag earned per page)", () => {
-    // astrology/compatibility/zodiac/horoscope/transits grids are live pages now.
     expect(resolveLegacyRedirect("/astrology/aries/taurus")).toBeNull();
     expect(resolveLegacyRedirect("/compatibility/aries-and-libra")).toBeNull();
     expect(resolveLegacyRedirect("/zodiac/aries")).toBeNull();
