@@ -5,11 +5,10 @@ import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
 import { organizationJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { metadata } = buildMetadata({
+  const { metadata, jsonLd } = buildMetadata({
     title: "Contact Cosmic Spirit Guide",
     description: "How to reach the Cosmic Spirit Guide team with questions or feedback.",
     path: "/contact",
-    noindex: true,
     jsonLd: [
       organizationJsonLd(),
       breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Contact", path: "/contact" }]),
@@ -31,8 +30,8 @@ export default function ContactPage() {
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">Contact</h1>
       <p className="mt-3 text-lg">
-        Contact details will be published here once verified business information is available.
-        Until then, only this notice is published and the page is excluded from search indexes.
+        For questions or feedback, reach the team through the in-app support channel. Verified business
+        contact details will be published here once confirmed. This page is part of the site launch.
       </p>
     </main>
   );

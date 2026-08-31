@@ -5,11 +5,10 @@ import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
 import { organizationJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { metadata } = buildMetadata({
+  const { metadata, jsonLd } = buildMetadata({
     title: "Terms of Use | Cosmic Spirit Guide",
     description: "The terms that govern your use of Cosmic Spirit Guide.",
     path: "/terms",
-    noindex: true,
     jsonLd: [
       organizationJsonLd(),
       breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Terms", path: "/terms" }]),

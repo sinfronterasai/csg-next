@@ -50,15 +50,10 @@ function decide(r, sanitySlugs) {
   const newStatus = r[3];
 
   if (fam === "/astrology") {
-    // Hub is a real navigational route; stays indexable.
     if (p === "/astrology") {
       return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
         "Astrology hub; indexable navigational route.");
     }
-    // 144 Sun/Moon combos: route stays LIVE (200) with real pair-specific
-    // interpretation, but NOINDEX by default until spot-reviewed for the
-    // uniqueness/depth bar (John 2026-08-30 reconciliation: routes live,
-    // index flag earned per page).
     return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
       "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
   }
@@ -67,7 +62,6 @@ function decide(r, sanitySlugs) {
       "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable.");
   }
   if (fam === "/compatibility") {
-    // Hub is a real navigational route; stays indexable.
     if (p === "/compatibility") {
       return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
         "Compatibility hub; indexable navigational route.");
@@ -81,8 +75,6 @@ function decide(r, sanitySlugs) {
         return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can,
           "Non-canonical ordering; 301 to alphabetical canonical pair (internal same-family dedupe).");
       }
-      // Canonical pair page: route stays LIVE (200) with real pair-specific
-      // interpretation, NOINDEX until spot-reviewed for the uniqueness/depth bar.
       return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
         "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
     }
@@ -108,23 +100,30 @@ function decide(r, sanitySlugs) {
     "Homepage/entity. Rebuild copy around authorized launch products only; Organization/WebSite JSON-LD.");
   if (["/about","/contact","/privacy","/terms"].includes(p))
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Trust/legal/entity page requiring real authored content (no fabricated legal assurances).");
+      "Trust/legal/entity page; honest launch copy, indexable.");
   if (["/birth-chart","/constellations"].includes(p))
     return mk("REFRESH_AND_MIGRATE", p, 200, true, PROD + p, null,
       "Resolves on new build; migrate real metadata, fix generic title/canonical/JSON-LD.");
 
-  if (["/login","/reset-password","/profile","/my-chart","/reports"].includes(p))
+  if (["/login","/reset-password","/profile","/my-chart"].includes(p))
     return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null,
       "Account/utility route; reachable but excluded from sitemap and noindex.");
+  if (p === "/reports")
+    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null,
+      "Product/checkout route; reachable but noindex per P0-4 (indexable only when commercial launch is authorized).");
   if (p === "/dashboard")
     return mk("MERGE_AND_301", "/login", 301, false, PROD + "/login", PROD + "/login",
       "Legacy gated redirect to /login; collapse to canonical account entry.");
 
-  // Unlaunched commercial products: intentional 410 (no equivalent launch route on new build).
-  // Per review B7, an unrelated homepage redirect is prohibited; retire clearly instead.
-  if (["/pricing","/credits","/services","/subscription"].includes(p)) {
+  // Commercial hub pages now exist with honest live-SKU copy.
+  if (["/pricing","/services"].includes(p)) {
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
+      "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable.");
+  }
+  // Unlaunched commercial products with no equivalent launch route: intentional 410.
+  if (["/credits","/subscription"].includes(p)) {
     return mk("RETIRE_410", null, 410, false, null, "410",
-      "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists.");
+      "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists.");
   }
 
   if (["/coach","/forecasts","/journal","/newsletter","/energy","/moon-reading","/moon-phase"].includes(p))
@@ -168,8 +167,6 @@ for (const m of manifests) {
 
 fs.writeFileSync(OUT, JSON.stringify(manifests, null, 2) + "\n");
 
-// Emit the edge-safe redirect map (used by middleware) from the SAME dispositions,
-// so the map can never diverge from the manifest. Only redirecting dispositions are emitted.
 const REDIRECT_OUT = path.join(SCRIPT_DIR, "..", "..", "src", "lib", "seo", "redirect-map.ts");
 const mapEntries = [];
 for (const m of manifests) {

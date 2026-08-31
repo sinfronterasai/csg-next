@@ -37,8 +37,6 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/moon-phase": { status: 410, target: null },
   "/moon-reading": { status: 410, target: null },
   "/newsletter": { status: 410, target: null },
-  "/pricing": { status: 410, target: null },
-  "/services": { status: 410, target: null },
   "/subscription": { status: 410, target: null },
   "/transits": { status: 410, target: null },
   "/transits/2026-08-24": { status: 410, target: null },

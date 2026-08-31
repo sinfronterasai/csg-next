@@ -24,10 +24,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/tarot", 0.8, "weekly");
   add(map, PROD + "/birth-chart", 0.8, "weekly");
   add(map, PROD + "/blog", 0.8, "weekly");
+  add(map, PROD + "/reports", 0.7, "weekly");
+  add(map, PROD + "/constellations", 0.6, "monthly");
+  // Honest, launch-ready entity/commercial pages (indexable).
   add(map, PROD + "/about", 0.5, "yearly");
-  // NOTE: /contact, /privacy, /terms are intentionally EXCLUDED from the sitemap.
-  // They are reachable but noindex until verified legal/business copy is approved
-  // (LEGAL_CONTENT_APPROVAL_REQUIRED). They must not be indexed with placeholder content.
+  add(map, PROD + "/contact", 0.5, "yearly");
+  add(map, PROD + "/privacy", 0.4, "yearly");
+  add(map, PROD + "/terms", 0.4, "yearly");
+  add(map, PROD + "/pricing", 0.6, "monthly");
+  add(map, PROD + "/services", 0.6, "monthly");
 
   // Curated, indexable programmatic family: zodiac (distinct per sign).
   for (const sign of allSignKeys()) {
@@ -52,9 +57,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // NOTE: legacy-mirror KEEP_AND_REBUILD rows are intentionally NOT merged here.
-  // They duplicate the curated families above and would reintroduce
-  // non-curated programmatic URLs (astrology/[sun]/[moon], compatibility/[pair])
-  // that are noindex until content-QA approves them. Sitemap = curated set only.
+  // The Sun/Moon and compatibility-pair grids are live but NOINDEX until
+  // content-QA promotes them; sitemap = curated indexable set only.
 
   return Array.from(map.values());
 }

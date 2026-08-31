@@ -21,7 +21,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/about",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Trust/legal/entity page requiring real authored content (no fabricated legal assurances)."
+    "reason": "Trust/legal/entity page; honest launch copy, indexable."
   },
   {
     "oldPath": "/astrology/aquarius/aquarius",
@@ -3057,7 +3057,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/contact",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Trust/legal/entity page requiring real authored content (no fabricated legal assurances)."
+    "reason": "Trust/legal/entity page; honest launch copy, indexable."
   },
   {
     "oldPath": "/credits",
@@ -3069,7 +3069,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists."
+    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists."
   },
   {
     "oldPath": "/dashboard",
@@ -3339,13 +3339,13 @@
     "oldPath": "/pricing",
     "oldStatus": "200",
     "routeFamily": "/pricing",
-    "newPath": null,
-    "intendedStatus": 410,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists."
+    "newPath": "/pricing",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/pricing",
+    "disposition": "KEEP_AND_REBUILD",
+    "redirectTarget": null,
+    "reason": "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable."
   },
   {
     "oldPath": "/privacy",
@@ -3357,7 +3357,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/privacy",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Trust/legal/entity page requiring real authored content (no fabricated legal assurances)."
+    "reason": "Trust/legal/entity page; honest launch copy, indexable."
   },
   {
     "oldPath": "/profile",
@@ -3381,7 +3381,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/reports",
     "disposition": "NOINDEX_UTILITY",
     "redirectTarget": null,
-    "reason": "Account/utility route; reachable but excluded from sitemap and noindex."
+    "reason": "Product/checkout route; reachable but noindex per P0-4 (indexable only when commercial launch is authorized)."
   },
   {
     "oldPath": "/reset-password",
@@ -3399,13 +3399,13 @@
     "oldPath": "/services",
     "oldStatus": "200",
     "routeFamily": "/services",
-    "newPath": null,
-    "intendedStatus": 410,
-    "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists."
+    "newPath": "/services",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/services",
+    "disposition": "KEEP_AND_REBUILD",
+    "redirectTarget": null,
+    "reason": "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable."
   },
   {
     "oldPath": "/subscription",
@@ -3417,7 +3417,7 @@
     "canonicalUrl": null,
     "disposition": "RETIRE_410",
     "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists."
+    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists."
   },
   {
     "oldPath": "/tarot",
@@ -4377,7 +4377,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/terms",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Trust/legal/entity page requiring real authored content (no fabricated legal assurances)."
+    "reason": "Trust/legal/entity page; honest launch copy, indexable."
   },
   {
     "oldPath": "/transits",

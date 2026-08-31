@@ -15,11 +15,13 @@ describe("sitemap contract (B3)", () => {
     for (const e of entries) {
       expect((e as any).lastModified).toBeUndefined();
     }
-    // noindex/legal/trust pages must be absent
-    expect(urls).not.toContain("https://cosmicspiritguide.com/contact");
-    expect(urls).not.toContain("https://cosmicspiritguide.com/privacy");
-    expect(urls).not.toContain("https://cosmicspiritguide.com/terms");
-    // programmatic token-swap combos must be absent
+    // Honest, launch-ready trust/commercial pages ARE present (indexable).
+    expect(urls).toContain("https://cosmicspiritguide.com/contact");
+    expect(urls).toContain("https://cosmicspiritguide.com/privacy");
+    expect(urls).toContain("https://cosmicspiritguide.com/terms");
+    expect(urls).toContain("https://cosmicspiritguide.com/pricing");
+    expect(urls).toContain("https://cosmicspiritguide.com/services");
+    // programmatic token-swap combos must be absent (live-but-NOINDEX until curated)
     expect(urls).not.toContain("https://cosmicspiritguide.com/astrology/aries/taurus");
     expect(urls).not.toContain("https://cosmicspiritguide.com/compatibility/aries-and-libra");
     // curated families present

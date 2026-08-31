@@ -20,6 +20,8 @@ const KNOWN_ROUTES = [
   "/zodiac",
   "/zodiac/aries",
   "/astrology/aries/taurus",
+  "/pricing",
+  "/services",
 ];
 
 describe("legacy migration manifest", () => {
@@ -46,16 +48,18 @@ describe("legacy migration manifest", () => {
     expect(d2!.status).toBe(410);
   });
 
-  test("unlaunched commercial routes are retired (410), not redirected to hub (B7)", () => {
-    const d = resolveLegacyRedirect("/pricing");
-    expect(d).not.toBeNull();
-    expect(d!.status).toBe(410);
+  test("unlaunched commercial routes are retired (410); live commercial hubs are NOT redirected (B7)", () => {
+    // /credits and /subscription are unlaunched => 410.
     const d2 = resolveLegacyRedirect("/credits");
     expect(d2!.status).toBe(410);
+    const d3 = resolveLegacyRedirect("/subscription");
+    expect(d3!.status).toBe(410);
+    // /pricing and /services now EXIST as live pages => no redirect entry (not 410, not 301).
+    expect(resolveLegacyRedirect("/pricing")).toBeNull();
+    expect(resolveLegacyRedirect("/services")).toBeNull();
   });
 
   test("no catch-all to / for unknown paths", () => {
-    // an unknown legacy path not in manifest must NOT be force-routed to /
     const d = resolveLegacyRedirect("/some-never-existed-path");
     expect(d).toBeNull();
   });
