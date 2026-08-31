@@ -46,11 +46,12 @@ describe("legacy migration manifest", () => {
     expect(d2!.status).toBe(410);
   });
 
-  test("merged pricing 301s to hub", () => {
+  test("unlaunched commercial routes are retired (410), not redirected to hub (B7)", () => {
     const d = resolveLegacyRedirect("/pricing");
     expect(d).not.toBeNull();
-    expect(d!.status).toBe(301);
-    expect(d!.target).toBe("https://cosmicspiritguide.com/");
+    expect(d!.status).toBe(410);
+    const d2 = resolveLegacyRedirect("/credits");
+    expect(d2!.status).toBe(410);
   });
 
   test("no catch-all to / for unknown paths", () => {

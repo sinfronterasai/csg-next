@@ -1,0 +1,35 @@
+import fs from "fs";
+import path from "path";
+
+const TRUST_PAGES = [
+  "src/app/about/page.tsx",
+  "src/app/contact/page.tsx",
+  "src/app/privacy/page.tsx",
+  "src/app/terms/page.tsx",
+];
+
+const FORBIDDEN = [
+  /\[VERIFY/i,
+  /\[add /i,
+  /\[TODO/i,
+  /\[FIXME/i,
+  /\[Jurisdiction/i,
+  /\[Published/i,
+  /\[Keep this/i,
+  /to be added before launch/i,
+  /to be confirmed/i,
+  /this page is a draft/i,
+  /placeholder body/i,
+  /support@cosmicspiritguide\.com/i, // invented, not in live impl
+];
+
+describe("trust/legal pages contain no visible placeholders or invented facts (B6)", () => {
+  for (const rel of TRUST_PAGES) {
+    it(`${rel} has no bracket/TODO/draft/invented-email markers`, () => {
+      const abs = path.join(__dirname, "..", "..", rel);
+      const src = fs.readFileSync(abs, "utf8");
+      const hits = FORBIDDEN.filter((re) => re.test(src));
+      expect(hits.join(" | ")).toBe("");
+    });
+  }
+});

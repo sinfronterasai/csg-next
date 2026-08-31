@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Privacy Policy | Cosmic Spirit Guide",
     description: "How Cosmic Spirit Guide collects, uses, and protects your data.",
     path: "/privacy",
+    noindex: true,
     jsonLd: [
       organizationJsonLd(),
       breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Privacy", path: "/privacy" }]),
@@ -29,30 +30,9 @@ export default function PrivacyPage() {
         <Link href="/">Home</Link> / <span>Privacy</span>
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-muted-foreground">Last updated: [add publication date before launch]</p>
-
-      <section className="mt-6">
-        <h2 className="text-xl font-medium">What we collect</h2>
-        <p className="mt-2">
-          To generate your birth chart we ask for birth date, time, and place. We store this only as
-          needed to deliver your report. We retain the chart inputs and the derived report
-        </p>
-      </section>
-      <section className="mt-6">
-        <h2 className="text-xl font-medium">Your rights</h2>
-        <p className="mt-2">
-          You can request access to or deletion of your data by emailing privacy@cosmicspiritguide.com.
-          You may have rights to access, correct, or delete your data under applicable privacy laws. [Jurisdiction-specific rights (GDPR/CCPA) to be confirmed before publishing.]
-        </p>
-      </section>
-      <section className="mt-6">
-        <h2 className="text-xl font-medium">Third parties</h2>
-        <p className="mt-2">
-          We use third-party services for payments and hosting necessary to operate the site. [List each processor and its role before publishing; name only services we actually use.]
-        </p>
-      </section>
-      <p className="mt-6 text-sm text-muted-foreground">
-        This page is a draft. No legal assurances are made until reviewed by the site owner.
+      <p className="mt-3 text-lg">
+        We are preparing a complete privacy policy with verified business and data-handling details.
+        Until then this page is a placeholder and is not indexed.
       </p>
     </main>
   );

@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Terms of Use | Cosmic Spirit Guide",
     description: "The terms that govern your use of Cosmic Spirit Guide.",
     path: "/terms",
+    noindex: true,
     jsonLd: [
       organizationJsonLd(),
       breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Terms", path: "/terms" }]),
@@ -29,7 +30,6 @@ export default function TermsPage() {
         <Link href="/">Home</Link> / <span>Terms</span>
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">Terms of Use</h1>
-      <p className="mt-3 text-sm text-muted-foreground">Last updated: [add publication date before launch]</p>
 
       <section className="mt-6">
         <h2 className="text-xl font-medium">Use of the service</h2>
@@ -43,16 +43,13 @@ export default function TermsPage() {
         <p className="mt-2">
           The free Natal chart is available to all visitors. The Love Blueprint is available by
           invite during beta. Other premium reports are not yet offered in this interface.
-          The products available are shown on the homepage and are subject to change. [Keep this list aligned with the live launch allowlist before publishing.]
+          The products available are shown on the homepage and are subject to change.
         </p>
       </section>
       <section className="mt-6">
         <h2 className="text-xl font-medium">Changes</h2>
-        <p className="mt-2">We will post material changes here and update the Last updated date. [State how users are notified of changes before publishing.]</p>
+        <p className="mt-2">We will post material changes here and update the Last updated date.</p>
       </section>
-      <p className="mt-6 text-sm text-muted-foreground">
-        This page is a draft. No legal terms are binding until reviewed by the site owner.
-      </p>
     </main>
   );
 }

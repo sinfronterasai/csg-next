@@ -46,7 +46,8 @@ export default function AboutPage() {
         </ul>
       </section>
       <p className="mt-6 text-sm text-muted-foreground">
-        Cosmic Spirit Guide is an AI-assisted astrology and tarot companion. [Founder and team details to be added before launch.]
+        Cosmic Spirit Guide is an AI-assisted astrology and tarot companion built on real
+        astrological calculation.
       </p>
     </main>
   );

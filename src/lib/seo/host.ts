@@ -44,7 +44,8 @@ export function getXRobotsTag(host: string | null | undefined): string | null {
 
 export function resolveCanonicalUrl(path: string, host: string | null | undefined): string {
   const clean = path.startsWith("/") ? path : "/" + path;
-  if (isProductionHost(host)) return "https://" + getCanonicalProdHost() + clean;
-  if (host) return "https://" + hostnameOf(host) + clean;
-  return getActiveBaseUrl() + clean;
+  // Always emit the production canonical host so every environment (prod, preview,
+  // localhost) advertises the same absolute canonical. Preview/noindex is handled
+  // by the middleware's X-Robots-Tag, not by canonical host switching.
+  return "https://" + getCanonicalProdHost() + clean;
 }

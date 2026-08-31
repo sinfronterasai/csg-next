@@ -50,6 +50,8 @@ export async function generateMetadata({
     title,
     description,
     path: "/compatibility/" + slug,
+    type: "website",
+    noindex: true,
     jsonLd: mergeJsonLd(
       organizationJsonLd(),
       breadcrumbJsonLd([

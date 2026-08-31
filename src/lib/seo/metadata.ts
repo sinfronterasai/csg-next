@@ -61,8 +61,10 @@ export function buildMetadata(input: BuildMetadataInput): BuiltMetadata {
   const isProd = isProductionHost(host);
   const canonical = resolveCanonicalUrl(input.path, host);
 
-  const allowIndex = isProd ? !input.noindex : false;
-  const allowFollow = isProd ? true : false;
+  // noindex is honored in every environment (e.g. programmatic pages awaiting
+  // content-QA must stay out of index until curated — never padded to fake quality).
+  const allowIndex = !input.noindex;
+  const allowFollow = !input.noindex;
 
   const jsonLd = Array.isArray(input.jsonLd)
     ? input.jsonLd

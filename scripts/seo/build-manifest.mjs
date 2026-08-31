@@ -1,12 +1,20 @@
 // Deterministic mirror generator. Reads the audit CSV and emits docs/seo/legacy-url-migration-manifest.json.
 // Disposition logic is centralized here (the integration owner's canonical IA).
+// Portable: CSV resolved relative to THIS script (committed at docs/seo/evidence/route-parity-audit.csv).
+// Missing input fails the process with a nonzero exit code.
 import fs from "fs";
 import path from "path";
 import { BLOG_OVERRIDES, loadSanitySlugs, decideBlog } from "./blog-dispositions.mjs";
 
-const CSV = "/workspace/csg-report-handoff/content-route-parity-audit-2026-08-30.csv";
-const OUT = "docs/seo/legacy-url-migration-manifest.json";
+const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
+const CSV = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "evidence", "route-parity-audit.csv");
+const OUT = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "legacy-url-migration-manifest.json");
 const PROD = "https://cosmicspiritguide.com";
+
+if (!fs.existsSync(CSV)) {
+  console.error("FATAL: audit CSV not found at " + CSV);
+  process.exit(1);
+}
 
 function parseLine(line) {
   const out = [];
@@ -30,101 +38,84 @@ const raw = fs.readFileSync(CSV, "utf8");
 const lines = raw.split("\n").filter((l) => l.length > 0);
 const rows = lines.slice(1).map(parseLine);
 
-const SIGNS = ["aries","taurus","gemini","cancer","leo","virgo","libra","scorpio","sagittarius","capricorn","aquarius","pisces"];
-
-// Canonical commercial hub for merged unlaunched-product pages.
-const HUB = "/";
-
-function familyOf(path) {
-  const seg = path.split("/")[1] || "";
+function familyOf(p) {
+  const seg = p.split("/")[1] || "";
   return "/" + seg;
 }
 
-// Returns { disposition, newPath, intendedStatus, indexable, canonicalUrl, redirectTarget, reason, reviewState }
 function decide(r, sanitySlugs) {
-  const path = r[0];
-  const family = r[1];
-  const oldStatus = r[2];
+  const p = r[0];
+  const fam = familyOf(p);
   const newStatus = r[3];
-  const fam = familyOf(path);
 
-  // --- Programmatic families ---
   if (fam === "/astrology") {
-    // Natal Sun+Moon combos: distinct intent. Rebuild from deterministic SIGNS data.
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
-      "Distinct natal Sun+Moon combo with deterministic sign-derived content (element/modality/ruler/traits); unique self-understanding intent, not a token swap of compatibility.");
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
+      "Distinct natal Sun+Moon combo with deterministic sign-derived content (element/modality/ruler/traits); unique self-understanding intent.");
   }
   if (fam === "/zodiac") {
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
       "Distinct sign hub/page with deterministic traits from SIGNS data; unique informational intent.");
   }
   if (fam === "/compatibility") {
-    // canonical pair format: /compatibility/<a>-and-<b> with a <= b alphabetically.
-    const slug = path.replace("/compatibility/", "");
+    const slug = p.replace("/compatibility/", "");
     const parts = slug.split("-and-");
     if (parts.length === 2) {
       const [a, b] = parts.sort();
       const can = "/compatibility/" + a + "-and-" + b;
-      if (can !== path) {
+      if (can !== p) {
         return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can,
           "Non-canonical ordering; 301 to alphabetical canonical pair.");
       }
-      return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
+      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
         "Canonical unordered love-pair page; deterministic compatibility from SIGNS element/modality dynamics.");
     }
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
-      "Compatibility hub; indexable.");
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }
   if (fam === "/transits") {
     return mk("RETIRE_410", null, 410, false, null, "410",
-      "Static generic transit prose with no real computed ephemeris data; transit engine not served as dated public pages. Retire until a real transit engine page exists. (src/lib/transit.ts is the future source.)");
+      "Static generic transit prose with no real computed ephemeris data; retire until a real transit engine exists.");
   }
   if (fam === "/horoscope") {
     return mk("RETIRE_410", null, 410, false, null, "410",
-      "All 13 share one title/description with no real dated data; do-not-fabricate-daily. Retire until a genuine dated horoscope source exists.");
+      "All 13 share one title/description with no real dated data; do-not-fabricate-daily; retire until a genuine source exists.");
   }
 
   if (fam === "/blog") return decideBlog(r, sanitySlugs, PROD);
 
-  // --- Tarot cards: keep (already built from deck) ---
   if (fam === "/tarot") {
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
       "Tarot card page already generated from deck data; ensure canonical + schema.");
   }
 
-  // --- Trust / legal / entity / utility (W3) ---
-  if (path === "/") return mk("KEEP_AND_REBUILD", "/", 200, true, PROD + "/", null,
+  if (p === "/") return mk("KEEP_AND_REBUILD", "/", 200, true, PROD + "/", null,
     "Homepage/entity. Rebuild copy around authorized launch products only; Organization/WebSite JSON-LD.");
-  if (["/about","/contact","/privacy","/terms"].includes(path))
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null,
+  if (["/about","/contact","/privacy","/terms"].includes(p))
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
       "Trust/legal/entity page requiring real authored content (no fabricated legal assurances).");
-  if (["/birth-chart","/constellations"].includes(path))
-    return mk("REFRESH_AND_MIGRATE", path, 200, true, PROD + path, null,
+  if (["/birth-chart","/constellations"].includes(p))
+    return mk("REFRESH_AND_MIGRATE", p, 200, true, PROD + p, null,
       "Resolves on new build; migrate real metadata, fix generic title/canonical/JSON-LD.");
 
-  // Account / utility -> NOINDEX
-  if (["/login","/reset-password","/profile","/my-chart","/reports"].includes(path))
-    return mk("NOINDEX_UTILITY", path, 200, false, PROD + path, null,
+  if (["/login","/reset-password","/profile","/my-chart","/reports"].includes(p))
+    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null,
       "Account/utility route; reachable but excluded from sitemap and noindex.");
-  if (path === "/dashboard")
+  if (p === "/dashboard")
     return mk("MERGE_AND_301", "/login", 301, false, PROD + "/login", PROD + "/login",
       "Legacy gated redirect to /login; collapse to canonical account entry.");
 
-  // Unlaunched commercial -> MERGE to hub (authorized launch products only live on /).
-  // /dashboard is a real account route, so it 301s to /login instead.
-  if (["/pricing","/credits","/services","/subscription"].includes(path)) {
-    return mk("MERGE_AND_301", HUB, 301, false, PROD + HUB, PROD + HUB,
-      "Advertises unlaunched products; 301 to canonical commercial hub (authorized products only).");
+  // Unlaunched commercial products: intentional 410 (no equivalent launch route on new build).
+  // Per review B7, an unrelated homepage redirect is prohibited; retire clearly instead.
+  if (["/pricing","/credits","/services","/subscription"].includes(p)) {
+    return mk("RETIRE_410", null, 410, false, null, "410",
+      "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial hub exists.");
   }
 
-  // Clear retire: unlaunched/duplicate/dead
-  if (["/coach","/forecasts","/journal","/newsletter","/energy","/moon-reading","/moon-phase"].includes(path))
+  if (["/coach","/forecasts","/journal","/newsletter","/energy","/moon-reading","/moon-phase"].includes(p))
     return mk("RETIRE_410", null, 410, false, null, "410",
       "Unlaunched, duplicate, or dead route with no defensible launch intent; intentional 410.");
 
-  // Default: keep synced if resolves, else investigate
   if (newStatus === "200")
-    return mk("KEEP_AND_REBUILD", path, 200, true, PROD + path, null, "Resolves on new build; review.");
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Resolves on new build; review.");
   return mk("RETIRE_410", null, 410, false, null, "410", "No healthy legacy and no launch intent; retire.");
 
   function mk(disposition, newPath, intendedStatus, indexable, canonicalUrl, redirectTarget, reason) {
@@ -135,58 +126,56 @@ function decide(r, sanitySlugs) {
 const sanitySlugs = loadSanitySlugs();
 const manifests = [];
 for (const r of rows) {
-  const path = r[0];
+  const p = r[0];
   const d = decide(r, sanitySlugs);
   manifests.push({
-    oldPath: path,
+    oldPath: p,
     oldStatus: r[2],
-    routeFamily: familyOf(path),
+    routeFamily: familyOf(p),
     newPath: d.newPath,
     intendedStatus: d.intendedStatus,
     indexable: d.indexable,
     canonicalUrl: d.canonicalUrl,
     disposition: d.disposition,
-    reason: d.reason,
-    primaryIntent: d.disposition === "RETIRE_410" ? "n/a" : "see rationale",
-    uniqueValue: d.disposition === "RETIRE_410" ? "none" : "deterministic sign/route data",
-    sourceOrDataset: path.startsWith("/blog") ? "sanity:blogPost" : "deterministic:src/lib/astrology",
     redirectTarget: d.redirectTarget,
-    metadataKey: path,
-    schemaTypes: d.indexable ? "WebSite,BreadcrumbList" : "",
-    reviewState: d.disposition === "KEEP_AND_REBUILD" ? "needs-acceptance" : "decided",
-    owner: "pike",
+    reason: d.reason,
   });
 }
 
-// Emit edge-safe redirect map for middleware (no fs/node at runtime).
-const REDIR = manifests
-  .filter((m) => m.disposition === "RETIRE_410" || ((m.disposition === "MERGE_AND_301" || m.disposition === "301_EQUIVALENT") && m.redirectTarget && m.redirectTarget !== "410"))
-  .map((m) => {
-    const key = (m.oldPath || "/").replace(/\/$/, "") || "/";
-    if (m.disposition === "RETIRE_410") {
-      return '  ' + JSON.stringify(key) + ': { status: 410, target: null },';
-    }
-    return '  ' + JSON.stringify(key) + ': { status: 301, target: ' + JSON.stringify(m.redirectTarget) + ' },';
-  });
-const mapOut = [
-  '// AUTO-GENERATED from docs/seo/legacy-url-migration-manifest.json by scripts/seo/build-manifest.mjs.',
-  '// Edge-safe redirect map (no fs/node). Used by middleware.',
-  'export interface EdgeRedirect { status: 301 | 410; target: string | null; }',
-  'export const REDIRECT_MAP: Record<string, EdgeRedirect> = {',
-  ...REDIR,
-  '};',
-  '',
-].join("\n");
-fs.writeFileSync("src/lib/seo/redirect-map.ts", mapOut);
+const seen = new Set();
+let dup = 0;
+for (const m of manifests) {
+  if (seen.has(m.oldPath)) dup++;
+  seen.add(m.oldPath);
+}
 
-fs.mkdirSync("docs/seo", { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify(manifests, null, 2));
-console.log("WROTE", OUT, "rows:", manifests.length);
+fs.writeFileSync(OUT, JSON.stringify(manifests, null, 2) + "\n");
+
+// Emit the edge-safe redirect map (used by middleware) from the SAME dispositions,
+// so the map can never diverge from the manifest. Only redirecting dispositions are emitted.
+const REDIRECT_OUT = path.join(SCRIPT_DIR, "..", "..", "src", "lib", "seo", "redirect-map.ts");
+const mapEntries = [];
+for (const m of manifests) {
+  if (m.disposition === "MERGE_AND_301" || m.disposition === "301_EQUIVALENT") {
+    if (m.redirectTarget && m.redirectTarget !== "410") {
+      mapEntries.push('  ' + JSON.stringify(m.oldPath) + ': { status: 301, target: ' + JSON.stringify(m.redirectTarget) + ' },');
+    }
+  } else if (m.disposition === "RETIRE_410") {
+    mapEntries.push('  ' + JSON.stringify(m.oldPath) + ': { status: 410, target: null },');
+  }
+}
+const mapSrc =
+  '// AUTO-GENERATED from docs/seo/legacy-url-migration-manifest.json by scripts/seo/build-manifest.mjs.\n' +
+  '// Edge-safe redirect map (no fs/node). Used by middleware.\n' +
+  'export interface EdgeRedirect { status: 301 | 410; target: string | null; }\n' +
+  'export const REDIRECT_MAP: Record<string, EdgeRedirect> = {\n' +
+  mapEntries.join("\n") + '\n};\n';
+fs.writeFileSync(REDIRECT_OUT, mapSrc);
+console.log("WROTE " + REDIRECT_OUT + " redirect entries: " + mapEntries.length);
+
 const counts = {};
 for (const m of manifests) counts[m.disposition] = (counts[m.disposition] || 0) + 1;
-console.log("DISPOSITIONS:", JSON.stringify(counts));
-// sanity: every oldPath unique
-const seen = {};
-let dup = 0;
-for (const m of manifests) { if (seen[m.oldPath]) dup++; seen[m.oldPath] = 1; }
-console.log("DUPLICATE_OLDPATHS:", dup);
+console.log("WROTE " + OUT + " rows: " + manifests.length);
+console.log("DISPOSITIONS: " + JSON.stringify(counts));
+console.log("DUPLICATE_OLDPATHS: " + dup);
+if (dup > 0) { console.error("FATAL: duplicate oldPath entries present"); process.exit(1); }

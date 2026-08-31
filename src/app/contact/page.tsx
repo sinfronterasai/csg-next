@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Contact Cosmic Spirit Guide",
     description: "How to reach the Cosmic Spirit Guide team with questions or feedback.",
     path: "/contact",
+    noindex: true,
     jsonLd: [
       organizationJsonLd(),
       breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Contact", path: "/contact" }]),
@@ -30,13 +31,8 @@ export default function ContactPage() {
       </nav>
       <h1 className="mt-4 text-3xl font-semibold">Contact</h1>
       <p className="mt-3 text-lg">
-        Questions or feedback? Email us at support@cosmicspiritguide.com.
-      </p>
-      <p className="mt-4">
-        For data requests, see our <Link className="underline" href="/privacy">privacy policy</Link>.
-      </p>
-      <p className="mt-6 text-sm text-muted-foreground">
-        Questions? Email our support team at the address shown in your account, or use the form below. [Published contact email and support hours to be added before launch.]
+        Contact details will be published here once verified business information is available.
+        This page is not indexed until then.
       </p>
     </main>
   );

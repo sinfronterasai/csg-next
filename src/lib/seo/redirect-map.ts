@@ -2,7 +2,6 @@
 // Edge-safe redirect map (no fs/node). Used by middleware.
 export interface EdgeRedirect { status: 301 | 410; target: string | null; }
 export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
-  "/blog": { status: 410, target: null },
   "/blog/ai-tarot-reading-free-personalized-astrology-insights": { status: 301, target: "https://cosmicspiritguide.com/tarot" },
   "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach": { status: 410, target: null },
   "/blog/composite-chart-relationship-soul": { status: 410, target: null },
@@ -12,7 +11,7 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1": { status: 301, target: "https://cosmicspiritguide.com/compatibility" },
   "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11": { status: 301, target: "https://cosmicspiritguide.com/compatibility" },
   "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions": { status: 410, target: null },
-  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": { status: 301, target: "https://cosmicspiritguide.com/" },
+  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": { status: 410, target: null },
   "/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone": { status: 410, target: null },
   "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
   "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
@@ -32,7 +31,7 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-2": { status: 301, target: "https://cosmicspiritguide.com/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met" },
   "/blog/what-is-my-birth-chart": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
   "/coach": { status: 410, target: null },
-  "/credits": { status: 301, target: "https://cosmicspiritguide.com/" },
+  "/credits": { status: 410, target: null },
   "/dashboard": { status: 301, target: "https://cosmicspiritguide.com/login" },
   "/energy": { status: 410, target: null },
   "/forecasts": { status: 410, target: null },
@@ -53,9 +52,9 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/moon-phase": { status: 410, target: null },
   "/moon-reading": { status: 410, target: null },
   "/newsletter": { status: 410, target: null },
-  "/pricing": { status: 301, target: "https://cosmicspiritguide.com/" },
-  "/services": { status: 301, target: "https://cosmicspiritguide.com/" },
-  "/subscription": { status: 301, target: "https://cosmicspiritguide.com/" },
+  "/pricing": { status: 410, target: null },
+  "/services": { status: 410, target: null },
+  "/subscription": { status: 410, target: null },
   "/transits": { status: 410, target: null },
   "/transits/2026-08-24": { status: 410, target: null },
   "/transits/2026-08-25": { status: 410, target: null },

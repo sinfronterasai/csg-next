@@ -21,7 +21,7 @@ export const BLOG_OVERRIDES = {
   "/blog/rising-sign-calculator-find-your-ascendant-sign-free": { d: "301_EQUIVALENT", t: "/birth-chart", r: "Rising/ascendant is part of the birth chart; equivalent is /birth-chart." },
   "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2": { d: "301_EQUIVALENT", t: "/birth-chart", r: "Rising/ascendant is part of the birth chart; equivalent is /birth-chart." },
   "/blog/what-is-my-birth-chart": { d: "301_EQUIVALENT", t: "/birth-chart", r: "Birth-chart explainer; equivalent tool is /birth-chart." },
-  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": { d: "301_EQUIVALENT", t: "/", r: "Product/growth promo; equivalent canonical is the homepage." },
+  "/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth": { d: "RETIRE_410", t: null, r: "Product/growth promo with no equivalent launch route; intentional 410 (no broad homepage redirect)." },
   "/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach": { d: "RETIRE_410", t: null, r: "No Sanity source, no equivalent launch route; intentional 410 after evidence review." },
   "/blog/composite-chart-relationship-soul": { d: "RETIRE_410", t: null, r: "Synastry/composite feature unlaunched; no equivalent route; 410." },
   "/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology": { d: "RETIRE_410", t: null, r: "No Sanity source, no equivalent tool; 410." },
@@ -36,7 +36,8 @@ export const BLOG_OVERRIDES = {
 
 export function loadSanitySlugs() {
   try {
-    const raw = fs.readFileSync(path.join(process.cwd(), "scripts", "seo", "sanity-slugs.txt"), "utf8");
+    const here = path.dirname(new URL(import.meta.url).pathname);
+    const raw = fs.readFileSync(path.join(here, "sanity-slugs.txt"), "utf8");
     return new Set(raw.split("\n").map((s) => s.trim()).filter(Boolean));
   } catch {
     return new Set();
@@ -46,7 +47,7 @@ export function loadSanitySlugs() {
 export function decideBlog(r, sanitySlugs, PROD) {
   const p = r[0];
   const slug = p.replace("/blog/", "");
-  if (slug === "") {
+  if (p === "/blog" || slug === "") {
     return { disposition: "KEEP_AND_REBUILD", newPath: p, intendedStatus: 200, indexable: true, canonicalUrl: PROD + p, redirectTarget: null, reason: "Blog hub; indexable. Real posts served from Sanity production." };
   }
   if (sanitySlugs.has(slug)) {

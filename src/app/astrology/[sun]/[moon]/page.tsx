@@ -40,6 +40,8 @@ export async function generateMetadata({
     title,
     description,
     path: "/astrology/" + sun + "/" + moon,
+    type: "website",
+    noindex: true,
     jsonLd: mergeJsonLd(
       organizationJsonLd(),
       breadcrumbJsonLd([

@@ -61,7 +61,13 @@ export function resolveLegacyRedirect(oldPath: string): RedirectDecision | null 
 }
 
 export function validateManifest(knownExistingPaths: string[]): string[] {
-  const rows = loadManifest();
+  return validateManifestRows(loadManifest(), knownExistingPaths);
+}
+
+export function validateManifestRows(
+  rows: ManifestRow[],
+  knownExistingPaths: string[]
+): string[] {
   const errors: string[] = [];
   const byPath = new Map<string, ManifestRow>();
   for (const r of rows) byPath.set(r.oldPath, r);
@@ -69,18 +75,24 @@ export function validateManifest(knownExistingPaths: string[]): string[] {
   if (byPath.size !== rows.length) errors.push("duplicate oldPath present");
 
   const existing = new Set(knownExistingPaths);
+  const REDIR_DISPOSITIONS = ["MERGE_AND_301", "301_EQUIVALENT"] as const;
   for (const r of rows) {
-    if (r.disposition === "MERGE_AND_301") {
+    if ((REDIR_DISPOSITIONS as readonly string[]).includes(r.disposition)) {
       const tgt = r.redirectTarget;
       if (!tgt) {
-        errors.push(r.oldPath + ": MERGE_AND_301 with no valid target");
+        errors.push(r.oldPath + ": " + r.disposition + " with no valid target");
         continue;
       }
       if (tgt === "410") {
-        errors.push(r.oldPath + ": MERGE_AND_301 pointing at 410");
+        errors.push(r.oldPath + ": " + r.disposition + " pointing at 410");
         continue;
       }
       const tgtNorm = tgt.replace(/^https?:\/\/[^/]+/, "").replace(/\/$/, "") || "/";
+      // No self-redirect / loop.
+      if (tgtNorm === r.oldPath) {
+        errors.push(r.oldPath + ": " + r.disposition + " loops to itself");
+        continue;
+      }
       const tgtRow = byPath.get(tgtNorm);
       if (!existing.has(tgtNorm)) {
         if (!tgtRow) {
