@@ -9,7 +9,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Homepage/entity. Rebuild copy around authorized launch products only; Organization/WebSite JSON-LD."
+    "reason": "Homepage/entity. Launch products only; Organization/WebSite JSON-LD."
   },
   {
     "oldPath": "/about",
@@ -33,7 +33,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/aries",
@@ -45,7 +45,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/cancer",
@@ -57,7 +57,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/capricorn",
@@ -69,7 +69,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/gemini",
@@ -81,7 +81,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/leo",
@@ -93,7 +93,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/libra",
@@ -105,7 +105,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/pisces",
@@ -117,7 +117,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/sagittarius",
@@ -129,7 +129,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/scorpio",
@@ -141,7 +141,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/taurus",
@@ -153,7 +153,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aquarius/virgo",
@@ -165,7 +165,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aquarius/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/aquarius",
@@ -177,7 +177,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/aries",
@@ -189,7 +189,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/cancer",
@@ -201,7 +201,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/capricorn",
@@ -213,7 +213,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/gemini",
@@ -225,7 +225,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/leo",
@@ -237,7 +237,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/libra",
@@ -249,7 +249,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/pisces",
@@ -261,7 +261,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/sagittarius",
@@ -273,7 +273,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/scorpio",
@@ -285,7 +285,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/taurus",
@@ -297,7 +297,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/aries/virgo",
@@ -309,7 +309,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/aries/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/aquarius",
@@ -321,7 +321,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/aries",
@@ -333,7 +333,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/cancer",
@@ -345,7 +345,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/capricorn",
@@ -357,7 +357,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/gemini",
@@ -369,7 +369,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/leo",
@@ -381,7 +381,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/libra",
@@ -393,7 +393,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/pisces",
@@ -405,7 +405,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/sagittarius",
@@ -417,7 +417,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/scorpio",
@@ -429,7 +429,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/taurus",
@@ -441,7 +441,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/cancer/virgo",
@@ -453,7 +453,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/cancer/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/aquarius",
@@ -465,7 +465,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/aries",
@@ -477,7 +477,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/cancer",
@@ -489,7 +489,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/capricorn",
@@ -501,7 +501,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/gemini",
@@ -513,7 +513,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/leo",
@@ -525,7 +525,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/libra",
@@ -537,7 +537,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/pisces",
@@ -549,7 +549,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/sagittarius",
@@ -561,7 +561,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/scorpio",
@@ -573,7 +573,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/taurus",
@@ -585,7 +585,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/capricorn/virgo",
@@ -597,7 +597,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/capricorn/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/aquarius",
@@ -609,7 +609,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/aries",
@@ -621,7 +621,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/cancer",
@@ -633,7 +633,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/capricorn",
@@ -645,7 +645,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/gemini",
@@ -657,7 +657,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/leo",
@@ -669,7 +669,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/libra",
@@ -681,7 +681,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/pisces",
@@ -693,7 +693,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/sagittarius",
@@ -705,7 +705,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/scorpio",
@@ -717,7 +717,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/taurus",
@@ -729,7 +729,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/gemini/virgo",
@@ -741,7 +741,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/gemini/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/aquarius",
@@ -753,7 +753,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/aries",
@@ -765,7 +765,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/cancer",
@@ -777,7 +777,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/capricorn",
@@ -789,7 +789,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/gemini",
@@ -801,7 +801,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/leo",
@@ -813,7 +813,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/libra",
@@ -825,7 +825,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/pisces",
@@ -837,7 +837,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/sagittarius",
@@ -849,7 +849,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/scorpio",
@@ -861,7 +861,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/taurus",
@@ -873,7 +873,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/leo/virgo",
@@ -885,7 +885,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/leo/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/aquarius",
@@ -897,7 +897,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/aries",
@@ -909,7 +909,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/cancer",
@@ -921,7 +921,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/capricorn",
@@ -933,7 +933,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/gemini",
@@ -945,7 +945,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/leo",
@@ -957,7 +957,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/libra",
@@ -969,7 +969,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/pisces",
@@ -981,7 +981,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/sagittarius",
@@ -993,7 +993,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/scorpio",
@@ -1005,7 +1005,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/taurus",
@@ -1017,7 +1017,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/libra/virgo",
@@ -1029,7 +1029,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/libra/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/aquarius",
@@ -1041,7 +1041,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/aries",
@@ -1053,7 +1053,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/cancer",
@@ -1065,7 +1065,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/capricorn",
@@ -1077,7 +1077,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/gemini",
@@ -1089,7 +1089,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/leo",
@@ -1101,7 +1101,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/libra",
@@ -1113,7 +1113,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/pisces",
@@ -1125,7 +1125,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/sagittarius",
@@ -1137,7 +1137,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/scorpio",
@@ -1149,7 +1149,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/taurus",
@@ -1161,7 +1161,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/pisces/virgo",
@@ -1173,7 +1173,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/pisces/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/aquarius",
@@ -1185,7 +1185,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/aries",
@@ -1197,7 +1197,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/cancer",
@@ -1209,7 +1209,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/capricorn",
@@ -1221,7 +1221,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/gemini",
@@ -1233,7 +1233,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/leo",
@@ -1245,7 +1245,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/libra",
@@ -1257,7 +1257,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/pisces",
@@ -1269,7 +1269,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/sagittarius",
@@ -1281,7 +1281,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/scorpio",
@@ -1293,7 +1293,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/taurus",
@@ -1305,7 +1305,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/sagittarius/virgo",
@@ -1317,7 +1317,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/sagittarius/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/aquarius",
@@ -1329,7 +1329,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/aries",
@@ -1341,7 +1341,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/cancer",
@@ -1353,7 +1353,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/capricorn",
@@ -1365,7 +1365,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/gemini",
@@ -1377,7 +1377,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/leo",
@@ -1389,7 +1389,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/libra",
@@ -1401,7 +1401,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/pisces",
@@ -1413,7 +1413,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/sagittarius",
@@ -1425,7 +1425,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/scorpio",
@@ -1437,7 +1437,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/taurus",
@@ -1449,7 +1449,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/scorpio/virgo",
@@ -1461,7 +1461,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/scorpio/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/aquarius",
@@ -1473,7 +1473,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/aries",
@@ -1485,7 +1485,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/cancer",
@@ -1497,7 +1497,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/capricorn",
@@ -1509,7 +1509,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/gemini",
@@ -1521,7 +1521,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/leo",
@@ -1533,7 +1533,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/libra",
@@ -1545,7 +1545,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/pisces",
@@ -1557,7 +1557,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/sagittarius",
@@ -1569,7 +1569,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/scorpio",
@@ -1581,7 +1581,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/taurus",
@@ -1593,7 +1593,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/taurus/virgo",
@@ -1605,7 +1605,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/taurus/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/aquarius",
@@ -1617,7 +1617,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/aries",
@@ -1629,7 +1629,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/cancer",
@@ -1641,7 +1641,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/capricorn",
@@ -1653,7 +1653,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/gemini",
@@ -1665,7 +1665,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/leo",
@@ -1677,7 +1677,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/libra",
@@ -1689,7 +1689,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/pisces",
@@ -1701,7 +1701,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/sagittarius",
@@ -1713,7 +1713,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/scorpio",
@@ -1725,7 +1725,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/taurus",
@@ -1737,7 +1737,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/astrology/virgo/virgo",
@@ -1749,7 +1749,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/astrology/virgo/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/birth-chart",
@@ -1761,7 +1761,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/birth-chart",
     "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Resolves on new build; migrate real metadata, fix generic title/canonical/JSON-LD."
+    "reason": "Resolves on new build; migrate real metadata."
   },
   {
     "oldPath": "/blog",
@@ -1857,7 +1857,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/free-moon-sign-calculator-discover-your-emotional-core-2",
@@ -1869,7 +1869,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1",
@@ -1881,7 +1881,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11",
@@ -1893,7 +1893,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions",
@@ -1941,7 +1941,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2",
@@ -1953,7 +1953,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/lions-gate-portal-on-8-8-a-balanced-guide-to-meaning-rituals-and-manifestation",
@@ -1977,7 +1977,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/love-compatibility-by-birth-date-the-complete-guide-5",
@@ -1989,7 +1989,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/love-compatibility-by-birth-date-the-complete-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-1",
@@ -2001,7 +2001,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/mercury-retrograde-meaning-complete-survival-guide-2",
@@ -2013,7 +2013,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology",
@@ -2037,7 +2037,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/numerology-compatibility-calculator-life-path-numbers-2",
@@ -2049,7 +2049,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/reading-the-love-line-a-heart-centered-guide-to-palmistry-emotional-patterns-and-self-discovery",
@@ -2091,13 +2091,13 @@
     "oldPath": "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2",
     "oldStatus": "200",
     "routeFamily": "/blog",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "No keeper intent and no Sanity source; intentional 410 after evidence review."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog/rising-sign-calculator-find-your-ascendant-sign-free",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog/rising-sign-calculator-find-your-ascendant-sign-free",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today",
@@ -2181,7 +2181,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/twin-flame-compatibility-test-are-they-your-other-half-2",
@@ -2193,7 +2193,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met",
@@ -2223,13 +2223,13 @@
     "oldPath": "/coach",
     "oldStatus": "200",
     "routeFamily": "/coach",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/services",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/services",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/services",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/compatibility",
@@ -2241,7 +2241,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Compatibility hub; indexable navigational route."
+    "reason": "Compatibility hub; indexable."
   },
   {
     "oldPath": "/compatibility/aquarius-and-aries",
@@ -2253,7 +2253,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-cancer",
@@ -2265,7 +2265,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-capricorn",
@@ -2277,7 +2277,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-gemini",
@@ -2289,7 +2289,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-leo",
@@ -2301,7 +2301,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-libra",
@@ -2313,7 +2313,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-pisces",
@@ -2325,7 +2325,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-sagittarius",
@@ -2337,7 +2337,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-scorpio",
@@ -2349,7 +2349,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-taurus",
@@ -2361,7 +2361,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aquarius-and-virgo",
@@ -2373,7 +2373,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aquarius-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-cancer",
@@ -2385,7 +2385,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-capricorn",
@@ -2397,7 +2397,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-gemini",
@@ -2409,7 +2409,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-leo",
@@ -2421,7 +2421,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-libra",
@@ -2433,7 +2433,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-pisces",
@@ -2445,7 +2445,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-sagittarius",
@@ -2457,7 +2457,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-scorpio",
@@ -2469,7 +2469,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-taurus",
@@ -2481,7 +2481,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/aries-and-virgo",
@@ -2493,7 +2493,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/aries-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-capricorn",
@@ -2505,7 +2505,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-gemini",
@@ -2517,7 +2517,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-leo",
@@ -2529,7 +2529,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-libra",
@@ -2541,7 +2541,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-pisces",
@@ -2553,7 +2553,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-sagittarius",
@@ -2565,7 +2565,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-scorpio",
@@ -2577,7 +2577,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-taurus",
@@ -2589,7 +2589,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/cancer-and-virgo",
@@ -2601,7 +2601,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/cancer-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-gemini",
@@ -2613,7 +2613,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-leo",
@@ -2625,7 +2625,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-libra",
@@ -2637,7 +2637,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-pisces",
@@ -2649,7 +2649,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-sagittarius",
@@ -2661,7 +2661,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-scorpio",
@@ -2673,7 +2673,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-taurus",
@@ -2685,7 +2685,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/capricorn-and-virgo",
@@ -2697,7 +2697,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/capricorn-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-leo",
@@ -2709,7 +2709,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-libra",
@@ -2721,7 +2721,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-pisces",
@@ -2733,7 +2733,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-sagittarius",
@@ -2745,7 +2745,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-scorpio",
@@ -2757,7 +2757,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-taurus",
@@ -2769,7 +2769,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/gemini-and-virgo",
@@ -2781,7 +2781,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/gemini-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-libra",
@@ -2793,7 +2793,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-pisces",
@@ -2805,7 +2805,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-sagittarius",
@@ -2817,7 +2817,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-scorpio",
@@ -2829,7 +2829,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-taurus",
@@ -2841,7 +2841,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/leo-and-virgo",
@@ -2853,7 +2853,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/leo-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/libra-and-pisces",
@@ -2865,7 +2865,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/libra-and-pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/libra-and-sagittarius",
@@ -2877,7 +2877,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/libra-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/libra-and-scorpio",
@@ -2889,7 +2889,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/libra-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/libra-and-taurus",
@@ -2901,7 +2901,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/libra-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/libra-and-virgo",
@@ -2913,7 +2913,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/libra-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/pisces-and-sagittarius",
@@ -2925,7 +2925,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/pisces-and-sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/pisces-and-scorpio",
@@ -2937,7 +2937,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/pisces-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/pisces-and-taurus",
@@ -2949,7 +2949,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/pisces-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/pisces-and-virgo",
@@ -2961,7 +2961,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/pisces-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/sagittarius-and-scorpio",
@@ -2973,7 +2973,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/sagittarius-and-scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/sagittarius-and-taurus",
@@ -2985,7 +2985,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/sagittarius-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/sagittarius-and-virgo",
@@ -2997,7 +2997,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/sagittarius-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/scorpio-and-taurus",
@@ -3009,7 +3009,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/scorpio-and-taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/scorpio-and-virgo",
@@ -3021,7 +3021,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/scorpio-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/compatibility/taurus-and-virgo",
@@ -3033,7 +3033,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/compatibility/taurus-and-virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar."
+    "reason": "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed."
   },
   {
     "oldPath": "/constellations",
@@ -3045,7 +3045,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/constellations",
     "disposition": "REFRESH_AND_MIGRATE",
     "redirectTarget": null,
-    "reason": "Resolves on new build; migrate real metadata, fix generic title/canonical/JSON-LD."
+    "reason": "Resolves on new build; migrate real metadata."
   },
   {
     "oldPath": "/contact",
@@ -3063,49 +3063,49 @@
     "oldPath": "/credits",
     "oldStatus": "200",
     "routeFamily": "/credits",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/pricing",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists."
+    "canonicalUrl": "https://cosmicspiritguide.com/pricing",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/pricing",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/dashboard",
     "oldStatus": "200",
     "routeFamily": "/dashboard",
-    "newPath": "/login",
-    "intendedStatus": 301,
+    "newPath": "/dashboard",
+    "intendedStatus": 200,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/login",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/login",
-    "reason": "Legacy gated redirect to /login; collapse to canonical account entry."
+    "canonicalUrl": "https://cosmicspiritguide.com/dashboard",
+    "disposition": "NOINDEX_UTILITY",
+    "redirectTarget": null,
+    "reason": "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX)."
   },
   {
     "oldPath": "/energy",
     "oldStatus": "404",
     "routeFamily": "/energy",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/transits",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/transits",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/transits",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/forecasts",
     "oldStatus": "200",
     "routeFamily": "/forecasts",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/transits",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/transits",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/transits",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/horoscope",
@@ -3117,7 +3117,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope hub; indexable navigational route."
+    "reason": "Horoscope hub; indexable."
   },
   {
     "oldPath": "/horoscope/aquarius",
@@ -3129,7 +3129,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/aries",
@@ -3141,7 +3141,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/cancer",
@@ -3153,7 +3153,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/capricorn",
@@ -3165,7 +3165,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/gemini",
@@ -3177,7 +3177,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/leo",
@@ -3189,7 +3189,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/libra",
@@ -3201,7 +3201,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/pisces",
@@ -3213,7 +3213,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/sagittarius",
@@ -3225,7 +3225,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/scorpio",
@@ -3237,7 +3237,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/taurus",
@@ -3249,7 +3249,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/horoscope/virgo",
@@ -3261,19 +3261,19 @@
     "canonicalUrl": "https://cosmicspiritguide.com/horoscope/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed."
+    "reason": "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired."
   },
   {
     "oldPath": "/journal",
     "oldStatus": "200",
     "routeFamily": "/journal",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/journal",
+    "intendedStatus": 200,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/journal",
+    "disposition": "NOINDEX_UTILITY",
+    "redirectTarget": null,
+    "reason": "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX)."
   },
   {
     "oldPath": "/login",
@@ -3285,7 +3285,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/login",
     "disposition": "NOINDEX_UTILITY",
     "redirectTarget": null,
-    "reason": "Account/utility route; reachable but excluded from sitemap and noindex."
+    "reason": "Account/utility route; reachable, noindex, excluded from sitemap."
   },
   {
     "oldPath": "/moon-phase",
@@ -3297,19 +3297,19 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits",
     "disposition": "MERGE_AND_301",
     "redirectTarget": "https://cosmicspiritguide.com/transits",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/moon-reading",
     "oldStatus": "200",
     "routeFamily": "/moon-reading",
-    "newPath": "/tarot",
+    "newPath": "/birth-chart",
     "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/tarot",
+    "canonicalUrl": "https://cosmicspiritguide.com/birth-chart",
     "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/tarot",
-    "reason": "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage."
+    "redirectTarget": "https://cosmicspiritguide.com/birth-chart",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/my-chart",
@@ -3317,23 +3317,23 @@
     "routeFamily": "/my-chart",
     "newPath": "/my-chart",
     "intendedStatus": 200,
-    "indexable": false,
+    "indexable": true,
     "canonicalUrl": "https://cosmicspiritguide.com/my-chart",
-    "disposition": "NOINDEX_UTILITY",
+    "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Account/utility route; reachable but excluded from sitemap and noindex."
+    "reason": "Resolves on new build; review."
   },
   {
     "oldPath": "/newsletter",
     "oldStatus": "200",
     "routeFamily": "/newsletter",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/blog",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410."
+    "canonicalUrl": "https://cosmicspiritguide.com/blog",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/blog",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/pricing",
@@ -3345,7 +3345,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/pricing",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable."
+    "reason": "Commercial hub listing only live SKUs; indexable."
   },
   {
     "oldPath": "/privacy",
@@ -3363,13 +3363,13 @@
     "oldPath": "/profile",
     "oldStatus": "200",
     "routeFamily": "/profile",
-    "newPath": "/profile",
-    "intendedStatus": 200,
+    "newPath": "/dashboard",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/profile",
-    "disposition": "NOINDEX_UTILITY",
-    "redirectTarget": null,
-    "reason": "Account/utility route; reachable but excluded from sitemap and noindex."
+    "canonicalUrl": "https://cosmicspiritguide.com/dashboard",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/dashboard",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/reports",
@@ -3381,7 +3381,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/reports",
     "disposition": "NOINDEX_UTILITY",
     "redirectTarget": null,
-    "reason": "Product/checkout route; reachable but noindex per P0-4 (indexable only when commercial launch is authorized)."
+    "reason": "Product/checkout route; reachable, noindex (indexable only when commercial launch authorized)."
   },
   {
     "oldPath": "/reset-password",
@@ -3393,7 +3393,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/reset-password",
     "disposition": "NOINDEX_UTILITY",
     "redirectTarget": null,
-    "reason": "Account/utility route; reachable but excluded from sitemap and noindex."
+    "reason": "Account/utility route; reachable, noindex, excluded from sitemap."
   },
   {
     "oldPath": "/services",
@@ -3405,19 +3405,19 @@
     "canonicalUrl": "https://cosmicspiritguide.com/services",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable."
+    "reason": "Commercial hub listing only live SKUs; indexable."
   },
   {
     "oldPath": "/subscription",
     "oldStatus": "200",
     "routeFamily": "/subscription",
-    "newPath": null,
-    "intendedStatus": 410,
+    "newPath": "/pricing",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": null,
-    "disposition": "RETIRE_410",
-    "redirectTarget": "410",
-    "reason": "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists."
+    "canonicalUrl": "https://cosmicspiritguide.com/pricing",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/pricing",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/tarot",
@@ -3429,7 +3429,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ace-of-cups",
@@ -3441,7 +3441,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ace-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ace-of-pentacles",
@@ -3453,7 +3453,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ace-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ace-of-swords",
@@ -3465,7 +3465,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ace-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ace-of-wands",
@@ -3477,7 +3477,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ace-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/death",
@@ -3489,7 +3489,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/death",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/eight-of-cups",
@@ -3501,7 +3501,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/eight-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/eight-of-pentacles",
@@ -3513,7 +3513,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/eight-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/eight-of-swords",
@@ -3525,7 +3525,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/eight-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/eight-of-wands",
@@ -3537,7 +3537,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/eight-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/five-of-cups",
@@ -3549,7 +3549,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/five-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/five-of-pentacles",
@@ -3561,7 +3561,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/five-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/five-of-swords",
@@ -3573,7 +3573,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/five-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/five-of-wands",
@@ -3585,7 +3585,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/five-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/four-of-cups",
@@ -3597,7 +3597,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/four-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/four-of-pentacles",
@@ -3609,7 +3609,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/four-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/four-of-swords",
@@ -3621,7 +3621,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/four-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/four-of-wands",
@@ -3633,7 +3633,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/four-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/judgement",
@@ -3645,7 +3645,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/judgement",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/justice",
@@ -3657,7 +3657,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/justice",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/king-of-cups",
@@ -3669,7 +3669,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/king-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/king-of-pentacles",
@@ -3681,7 +3681,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/king-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/king-of-swords",
@@ -3693,7 +3693,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/king-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/king-of-wands",
@@ -3705,7 +3705,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/king-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/knight-of-cups",
@@ -3717,7 +3717,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/knight-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/knight-of-pentacles",
@@ -3729,7 +3729,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/knight-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/knight-of-swords",
@@ -3741,7 +3741,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/knight-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/knight-of-wands",
@@ -3753,7 +3753,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/knight-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/nine-of-cups",
@@ -3765,7 +3765,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/nine-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/nine-of-pentacles",
@@ -3777,7 +3777,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/nine-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/nine-of-swords",
@@ -3789,7 +3789,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/nine-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/nine-of-wands",
@@ -3801,7 +3801,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/nine-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/page-of-cups",
@@ -3813,7 +3813,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/page-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/page-of-pentacles",
@@ -3825,7 +3825,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/page-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/page-of-swords",
@@ -3837,7 +3837,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/page-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/page-of-wands",
@@ -3849,7 +3849,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/page-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/queen-of-cups",
@@ -3861,7 +3861,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/queen-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/queen-of-pentacles",
@@ -3873,7 +3873,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/queen-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/queen-of-swords",
@@ -3885,7 +3885,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/queen-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/queen-of-wands",
@@ -3897,7 +3897,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/queen-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/seven-of-cups",
@@ -3909,7 +3909,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/seven-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/seven-of-pentacles",
@@ -3921,7 +3921,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/seven-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/seven-of-swords",
@@ -3933,7 +3933,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/seven-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/seven-of-wands",
@@ -3945,7 +3945,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/seven-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/six-of-cups",
@@ -3957,7 +3957,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/six-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/six-of-pentacles",
@@ -3969,7 +3969,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/six-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/six-of-swords",
@@ -3981,7 +3981,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/six-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/six-of-wands",
@@ -3993,7 +3993,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/six-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/strength",
@@ -4005,7 +4005,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/strength",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/temperance",
@@ -4017,7 +4017,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/temperance",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ten-of-cups",
@@ -4029,7 +4029,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ten-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ten-of-pentacles",
@@ -4041,7 +4041,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ten-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ten-of-swords",
@@ -4053,7 +4053,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ten-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/ten-of-wands",
@@ -4065,7 +4065,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/ten-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-chariot",
@@ -4077,7 +4077,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-chariot",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-devil",
@@ -4089,7 +4089,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-devil",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-emperor",
@@ -4101,7 +4101,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-emperor",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-empress",
@@ -4113,7 +4113,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-empress",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-fool",
@@ -4125,7 +4125,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-fool",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-hanged-man",
@@ -4137,7 +4137,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-hanged-man",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-hermit",
@@ -4149,7 +4149,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-hermit",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-hierophant",
@@ -4161,7 +4161,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-hierophant",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-high-priestess",
@@ -4173,7 +4173,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-high-priestess",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-lovers",
@@ -4185,7 +4185,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-lovers",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-magician",
@@ -4197,7 +4197,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-magician",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-moon",
@@ -4209,7 +4209,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-moon",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-star",
@@ -4221,7 +4221,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-star",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-sun",
@@ -4233,7 +4233,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-sun",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-tower",
@@ -4245,7 +4245,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-tower",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/the-world",
@@ -4257,7 +4257,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/the-world",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/three-of-cups",
@@ -4269,7 +4269,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/three-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/three-of-pentacles",
@@ -4281,7 +4281,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/three-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/three-of-swords",
@@ -4293,7 +4293,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/three-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/three-of-wands",
@@ -4305,7 +4305,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/three-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/two-of-cups",
@@ -4317,7 +4317,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/two-of-cups",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/two-of-pentacles",
@@ -4329,7 +4329,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/two-of-pentacles",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/two-of-swords",
@@ -4341,7 +4341,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/two-of-swords",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/two-of-wands",
@@ -4353,7 +4353,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/two-of-wands",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/tarot/wheel-of-fortune",
@@ -4365,7 +4365,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/tarot/wheel-of-fortune",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Tarot card page already generated from deck data; ensure canonical + schema."
+    "reason": "Tarot card page from deck data; canonical + schema."
   },
   {
     "oldPath": "/terms",
@@ -4389,7 +4389,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-24",
@@ -4401,7 +4401,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-24",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-25",
@@ -4413,7 +4413,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-25",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-26",
@@ -4425,7 +4425,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-26",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-27",
@@ -4437,7 +4437,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-27",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-28",
@@ -4449,7 +4449,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-28",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-29",
@@ -4461,7 +4461,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-29",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-30",
@@ -4473,7 +4473,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-30",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-08-31",
@@ -4485,7 +4485,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-08-31",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-01",
@@ -4497,7 +4497,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-01",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-02",
@@ -4509,7 +4509,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-02",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-03",
@@ -4521,7 +4521,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-03",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-04",
@@ -4533,7 +4533,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-04",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-05",
@@ -4545,7 +4545,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-05",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-06",
@@ -4557,7 +4557,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-06",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-07",
@@ -4569,7 +4569,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-07",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-08",
@@ -4581,7 +4581,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-08",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-09",
@@ -4593,7 +4593,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-09",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-10",
@@ -4605,7 +4605,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-10",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-11",
@@ -4617,7 +4617,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-11",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-12",
@@ -4629,7 +4629,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-12",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-13",
@@ -4641,7 +4641,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-13",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-14",
@@ -4653,7 +4653,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-14",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-15",
@@ -4665,7 +4665,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-15",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-16",
@@ -4677,7 +4677,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-16",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-17",
@@ -4689,7 +4689,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-17",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-18",
@@ -4701,7 +4701,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-18",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-19",
@@ -4713,7 +4713,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-19",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-20",
@@ -4725,7 +4725,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-20",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-21",
@@ -4737,7 +4737,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-21",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/transits/2026-09-22",
@@ -4749,7 +4749,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/transits/2026-09-22",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed."
+    "reason": "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired."
   },
   {
     "oldPath": "/zodiac",
@@ -4761,7 +4761,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/aquarius",
@@ -4773,7 +4773,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/aquarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/aries",
@@ -4785,7 +4785,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/aries",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/cancer",
@@ -4797,7 +4797,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/cancer",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/capricorn",
@@ -4809,7 +4809,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/capricorn",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/gemini",
@@ -4821,7 +4821,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/gemini",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/leo",
@@ -4833,7 +4833,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/leo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/libra",
@@ -4845,7 +4845,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/libra",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/pisces",
@@ -4857,7 +4857,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/pisces",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/sagittarius",
@@ -4869,7 +4869,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/sagittarius",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/scorpio",
@@ -4881,7 +4881,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/scorpio",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/taurus",
@@ -4893,7 +4893,7 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/taurus",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   },
   {
     "oldPath": "/zodiac/virgo",
@@ -4905,6 +4905,6 @@
     "canonicalUrl": "https://cosmicspiritguide.com/zodiac/virgo",
     "disposition": "KEEP_AND_REBUILD",
     "redirectTarget": null,
-    "reason": "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable."
+    "reason": "Zodiac sign page; curated, distinct per sign; indexable."
   }
 ]

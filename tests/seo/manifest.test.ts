@@ -12,8 +12,9 @@ const KNOWN_ROUTES = [
   "/tarot",
   "/login",
   "/reset-password",
+  "/dashboard",
+  "/journal",
   "/profile",
-  "/my-chart",
   "/reports",
   "/compatibility",
   "/compatibility/aries-and-taurus",
@@ -26,13 +27,14 @@ const KNOWN_ROUTES = [
   "/transits/2026-08-30",
   "/pricing",
   "/services",
-  // Canonical blog bases (301 targets for slop consolidation, confirmed live in Sanity prod)
+  // Canonical blog bases (301 targets for slop consolidation, confirmed in John's map)
   "/blog/free-moon-sign-calculator-discover-your-emotional-core",
   "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
   "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
   "/blog/love-compatibility-by-birth-date-the-complete-guide",
   "/blog/mercury-retrograde-meaning-complete-survival-guide",
   "/blog/numerology-compatibility-calculator-life-path-numbers",
+  "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
   "/blog/twin-flame-compatibility-test-are-they-your-other-half",
 ];
 
@@ -60,13 +62,18 @@ describe("legacy migration manifest", () => {
     expect(resolveLegacyRedirect("/transits/2026-08-30")).toBeNull();
   });
 
-  test("unlaunched commercial routes are retired (410); live commercial hubs are NOT redirected (B7)", () => {
-    const d2 = resolveLegacyRedirect("/credits");
-    expect(d2!.status).toBe(410);
-    const d3 = resolveLegacyRedirect("/subscription");
-    expect(d3!.status).toBe(410);
-    expect(resolveLegacyRedirect("/pricing")).toBeNull();
-    expect(resolveLegacyRedirect("/services")).toBeNull();
+  test("app singletons 301 to same-intent hub per John's map (no 410, no homepage)", () => {
+    expect(resolveLegacyRedirect("/credits")!.status).toBe(301);
+    expect(resolveLegacyRedirect("/credits")!.target).toBe("https://cosmicspiritguide.com/pricing");
+    expect(resolveLegacyRedirect("/subscription")!.target).toBe("https://cosmicspiritguide.com/pricing");
+    expect(resolveLegacyRedirect("/coach")!.target).toBe("https://cosmicspiritguide.com/services");
+    expect(resolveLegacyRedirect("/energy")!.target).toBe("https://cosmicspiritguide.com/transits");
+    expect(resolveLegacyRedirect("/forecasts")!.target).toBe("https://cosmicspiritguide.com/transits");
+    expect(resolveLegacyRedirect("/moon-phase")!.target).toBe("https://cosmicspiritguide.com/transits");
+    expect(resolveLegacyRedirect("/moon-reading")!.target).toBe("https://cosmicspiritguide.com/birth-chart");
+    expect(resolveLegacyRedirect("/newsletter")!.target).toBe("https://cosmicspiritguide.com/blog");
+    expect(resolveLegacyRedirect("/profile")!.target).toBe("https://cosmicspiritguide.com/dashboard");
+    expect(resolveLegacyRedirect("/")).toBeNull();
   });
 
   test("no catch-all to / for unknown paths", () => {

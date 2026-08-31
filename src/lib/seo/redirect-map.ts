@@ -1,5 +1,6 @@
 // AUTO-GENERATED from docs/seo/legacy-url-migration-manifest.json by scripts/seo/build-manifest.mjs.
 // Edge-safe redirect map (no fs/node). Used by middleware.
+// NOTE: redirect semantics follow /workspace/seo-migration/redirects-map.csv (authoritative).
 export interface EdgeRedirect { status: 301 | 410; target: string | null; }
 export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/blog/free-moon-sign-calculator-discover-your-emotional-core-1": { status: 301, target: "https://cosmicspiritguide.com/blog/free-moon-sign-calculator-discover-your-emotional-core" },
@@ -14,17 +15,16 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/blog/mercury-retrograde-meaning-complete-survival-guide-2": { status: 301, target: "https://cosmicspiritguide.com/blog/mercury-retrograde-meaning-complete-survival-guide" },
   "/blog/numerology-compatibility-calculator-life-path-numbers-1": { status: 301, target: "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers" },
   "/blog/numerology-compatibility-calculator-life-path-numbers-2": { status: 301, target: "https://cosmicspiritguide.com/blog/numerology-compatibility-calculator-life-path-numbers" },
-  "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2": { status: 410, target: null },
+  "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2": { status: 301, target: "https://cosmicspiritguide.com/blog/rising-sign-calculator-find-your-ascendant-sign-free" },
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-1": { status: 301, target: "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half" },
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-2": { status: 301, target: "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half" },
-  "/coach": { status: 410, target: null },
-  "/credits": { status: 410, target: null },
-  "/dashboard": { status: 301, target: "https://cosmicspiritguide.com/login" },
-  "/energy": { status: 410, target: null },
-  "/forecasts": { status: 410, target: null },
-  "/journal": { status: 410, target: null },
+  "/coach": { status: 301, target: "https://cosmicspiritguide.com/services" },
+  "/credits": { status: 301, target: "https://cosmicspiritguide.com/pricing" },
+  "/energy": { status: 301, target: "https://cosmicspiritguide.com/transits" },
+  "/forecasts": { status: 301, target: "https://cosmicspiritguide.com/transits" },
   "/moon-phase": { status: 301, target: "https://cosmicspiritguide.com/transits" },
-  "/moon-reading": { status: 301, target: "https://cosmicspiritguide.com/tarot" },
-  "/newsletter": { status: 410, target: null },
-  "/subscription": { status: 410, target: null },
+  "/moon-reading": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
+  "/newsletter": { status: 301, target: "https://cosmicspiritguide.com/blog" },
+  "/profile": { status: 301, target: "https://cosmicspiritguide.com/dashboard" },
+  "/subscription": { status: 301, target: "https://cosmicspiritguide.com/pricing" },
 };

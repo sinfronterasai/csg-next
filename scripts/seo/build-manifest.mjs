@@ -2,6 +2,12 @@
 // Disposition logic is centralized here (the integration owner's canonical IA).
 // Portable: CSV resolved relative to THIS script (committed at docs/seo/evidence/route-parity-audit.csv).
 // Missing input fails the process with a nonzero exit code.
+//
+// REDIRECT semantics are OVERRIDDEN by John's canonical map at
+// /workspace/seo-migration/redirects-map.csv (sha256 d8112628...). That map is
+// authoritative and supersedes any hand-rolled redirect logic. The SAME_INTENT_301
+// table below is transcribed verbatim from that map's 24 REDIRECT rows (zero 410s,
+// all one-hop, none to homepage).
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "node:url";
@@ -12,17 +18,14 @@ const CSV = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "evidence", "route-
 const OUT = path.join(SCRIPT_DIR, "..", "..", "docs", "seo", "legacy-url-migration-manifest.json");
 const PROD = "https://cosmicspiritguide.com";
 
-// Same-intent 301 overrides (brief P4 #20 + §4b + §6). One-hop, never homepage.
-// Blog slop (§4b, 15 suffixed variants) 301 to their CONFIRMED-LIVE canonical base
-// slug (verified in Sanity production kicslgfz/dataset production on 2026-08-31).
+// Verbatim from /workspace/seo-migration/redirects-map.csv (24 REDIRECT rows).
+// All one-hop 301s to same-intent hubs. Zero 410s. Never homepage.
 const SAME_INTENT_301 = {
-  "/moon-phase": "/transits",
-  "/moon-reading": "/tarot",
   "/blog/free-moon-sign-calculator-discover-your-emotional-core-1": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
   "/blog/free-moon-sign-calculator-discover-your-emotional-core-2": "/blog/free-moon-sign-calculator-discover-your-emotional-core",
   "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
-  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-2": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
   "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
+  "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-2": "/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match",
   "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
   "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2": "/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide",
   "/blog/love-compatibility-by-birth-date-the-complete-guide-1": "/blog/love-compatibility-by-birth-date-the-complete-guide",
@@ -32,8 +35,18 @@ const SAME_INTENT_301 = {
   "/blog/mercury-retrograde-meaning-complete-survival-guide-2": "/blog/mercury-retrograde-meaning-complete-survival-guide",
   "/blog/numerology-compatibility-calculator-life-path-numbers-1": "/blog/numerology-compatibility-calculator-life-path-numbers",
   "/blog/numerology-compatibility-calculator-life-path-numbers-2": "/blog/numerology-compatibility-calculator-life-path-numbers",
+  "/blog/rising-sign-calculator-find-your-ascendant-sign-free-2": "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-1": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-2": "/blog/twin-flame-compatibility-test-are-they-your-other-half",
+  "/coach": "/services",
+  "/credits": "/pricing",
+  "/energy": "/transits",
+  "/forecasts": "/transits",
+  "/moon-phase": "/transits",
+  "/moon-reading": "/birth-chart",
+  "/newsletter": "/blog",
+  "/profile": "/dashboard",
+  "/subscription": "/pricing",
 };
 
 if (!fs.existsSync(CSV)) {
@@ -73,98 +86,61 @@ function decide(r, sanitySlugs) {
   const fam = familyOf(p);
   const newStatus = r[3];
 
-  // Same-intent 301 overrides (brief P4 + §4b + §6).
+  // Canonical redirect map (John's redirects-map.csv) wins.
   if (SAME_INTENT_301[p]) {
     const target = PROD + SAME_INTENT_301[p];
     return mk("MERGE_AND_301", SAME_INTENT_301[p], 301, false, target, target,
-      "Same-intent 301 to confirmed-live canonical base slug (brief P4 #20 / §4b). Never homepage.");
+      "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage.");
   }
 
   if (fam === "/astrology") {
-    if (p === "/astrology") {
-      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-        "Astrology hub; indexable navigational route.");
-    }
-    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
-      "Sun/Moon combo: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
+    if (p === "/astrology") return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Astrology hub; indexable navigational route.");
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null, "Sun/Moon combo: live deterministic content; NOINDEX until spot-reviewed.");
   }
   if (fam === "/zodiac") {
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Zodiac sign page (SELECTIVE REFRESH): curated, distinct per sign; indexable.");
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Zodiac sign page; curated, distinct per sign; indexable.");
   }
   if (fam === "/compatibility") {
-    if (p === "/compatibility") {
-      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-        "Compatibility hub; indexable navigational route.");
-    }
+    if (p === "/compatibility") return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
     const slug = p.replace("/compatibility/", "");
     const parts = slug.split("-and-");
     if (parts.length === 2) {
       const [a, b] = parts.sort();
       const can = "/compatibility/" + a + "-and-" + b;
-      if (can !== p) {
-        return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can,
-          "Non-canonical ordering; 301 to alphabetical canonical pair (internal same-family dedupe).");
-      }
-      return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
-        "Canonical love-pair: live with deterministic pair-specific content; NOINDEX until spot-reviewed for uniqueness/depth bar.");
+      if (can !== p) return mk("MERGE_AND_301", can, 301, false, PROD + can, PROD + can, "Non-canonical ordering; 301 to alphabetical canonical pair.");
+      return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null, "Canonical love-pair: live deterministic content; NOINDEX until spot-reviewed.");
     }
     return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Compatibility hub; indexable.");
   }
   if (fam === "/transits") {
-    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
-      "Transit page: live with evergreen explainer; NOINDEX until real ephemeris interpretation is wired and spot-reviewed.");
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null, "Transit page: live evergreen explainer; NOINDEX until real ephemeris wired.");
   }
   if (fam === "/horoscope") {
-    if (p === "/horoscope") {
-      return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-        "Horoscope hub; indexable navigational route.");
-    }
-    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null,
-      "Horoscope sign page: live with evergreen guidance framing; NOINDEX until daily content is wired and spot-reviewed.");
+    if (p === "/horoscope") return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Horoscope hub; indexable.");
+    return mk("KEEP_AND_REBUILD", p, 200, false, PROD + p, null, "Horoscope sign page: live evergreen guidance; NOINDEX until daily content wired.");
   }
 
   if (fam === "/blog") return decideBlog(r, sanitySlugs, PROD);
 
-  if (fam === "/tarot") {
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Tarot card page already generated from deck data; ensure canonical + schema.");
-  }
+  if (fam === "/tarot") return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Tarot card page from deck data; canonical + schema.");
 
-  if (p === "/") return mk("KEEP_AND_REBUILD", "/", 200, true, PROD + "/", null,
-    "Homepage/entity. Rebuild copy around authorized launch products only; Organization/WebSite JSON-LD.");
+  if (p === "/") return mk("KEEP_AND_REBUILD", "/", 200, true, PROD + "/", null, "Homepage/entity. Launch products only; Organization/WebSite JSON-LD.");
   if (["/about","/contact","/privacy","/terms"].includes(p))
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Trust/legal/entity page; honest launch copy, indexable.");
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Trust/legal/entity page; honest launch copy, indexable.");
   if (["/birth-chart","/constellations"].includes(p))
-    return mk("REFRESH_AND_MIGRATE", p, 200, true, PROD + p, null,
-      "Resolves on new build; migrate real metadata, fix generic title/canonical/JSON-LD.");
+    return mk("REFRESH_AND_MIGRATE", p, 200, true, PROD + p, null, "Resolves on new build; migrate real metadata.");
 
-  if (["/login","/reset-password","/profile","/my-chart"].includes(p))
-    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null,
-      "Account/utility route; reachable but excluded from sitemap and noindex.");
+  if (["/login","/reset-password"].includes(p))
+    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Account/utility route; reachable, noindex, excluded from sitemap.");
+  if (["/dashboard","/journal","/profile"].includes(p))
+    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX).");
   if (p === "/reports")
-    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null,
-      "Product/checkout route; reachable but noindex per P0-4 (indexable only when commercial launch is authorized).");
-  if (p === "/dashboard")
-    return mk("MERGE_AND_301", "/login", 301, false, PROD + "/login", PROD + "/login",
-      "Legacy gated redirect to /login; collapse to canonical account entry.");
+    return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Product/checkout route; reachable, noindex (indexable only when commercial launch authorized).");
 
-  if (["/pricing","/services"].includes(p)) {
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null,
-      "Commercial hub rebuilt to list only live SKUs (Free Natal; invite-only Love Blueprint); indexable.");
-  }
-  if (["/credits","/subscription"].includes(p)) {
-    return mk("RETIRE_410", null, 410, false, null, "410",
-      "Advertises unlaunched products with no equivalent launch route on the new build; intentional 410 until an authorized commercial route exists.");
-  }
+  if (["/pricing","/services"].includes(p))
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Commercial hub listing only live SKUs; indexable.");
 
-  if (["/coach","/forecasts","/journal","/newsletter","/energy"].includes(p))
-    return mk("RETIRE_410", null, 410, false, null, "410",
-      "Unlaunched/dead route with no same-intent hub on csg-next; intentional 410.");
-
-  if (newStatus === "200")
-    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Resolves on new build; review.");
+  if (newStatus === "200") return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Resolves on new build; review.");
   return mk("RETIRE_410", null, 410, false, null, "410", "No healthy legacy and no launch intent; retire.");
 
   function mk(disposition, newPath, intendedStatus, indexable, canonicalUrl, redirectTarget, reason) {
@@ -175,12 +151,11 @@ function decide(r, sanitySlugs) {
 const sanitySlugs = loadSanitySlugs();
 const manifests = [];
 for (const r of rows) {
-  const p = r[0];
   const d = decide(r, sanitySlugs);
   manifests.push({
-    oldPath: p,
+    oldPath: r[0],
     oldStatus: r[2],
-    routeFamily: familyOf(p),
+    routeFamily: familyOf(r[0]),
     newPath: d.newPath,
     intendedStatus: d.intendedStatus,
     indexable: d.indexable,
@@ -193,20 +168,15 @@ for (const r of rows) {
 
 const seen = new Set();
 let dup = 0;
-for (const m of manifests) {
-  if (seen.has(m.oldPath)) dup++;
-  seen.add(m.oldPath);
-}
+for (const m of manifests) { if (seen.has(m.oldPath)) dup++; seen.add(m.oldPath); }
 
 fs.writeFileSync(OUT, JSON.stringify(manifests, null, 2) + "\n");
 
 const REDIRECT_OUT = path.join(SCRIPT_DIR, "..", "..", "src", "lib", "seo", "redirect-map.ts");
 const mapEntries = [];
 for (const m of manifests) {
-  if (m.disposition === "MERGE_AND_301" || m.disposition === "301_EQUIVALENT") {
-    if (m.redirectTarget && m.redirectTarget !== "410") {
-      mapEntries.push('  ' + JSON.stringify(m.oldPath) + ': { status: 301, target: ' + JSON.stringify(m.redirectTarget) + ' },');
-    }
+  if ((m.disposition === "MERGE_AND_301" || m.disposition === "301_EQUIVALENT") && m.redirectTarget && m.redirectTarget !== "410") {
+    mapEntries.push('  ' + JSON.stringify(m.oldPath) + ': { status: 301, target: ' + JSON.stringify(m.redirectTarget) + ' },');
   } else if (m.disposition === "RETIRE_410") {
     mapEntries.push('  ' + JSON.stringify(m.oldPath) + ': { status: 410, target: null },');
   }
@@ -214,6 +184,7 @@ for (const m of manifests) {
 const mapSrc =
   '// AUTO-GENERATED from docs/seo/legacy-url-migration-manifest.json by scripts/seo/build-manifest.mjs.\n' +
   '// Edge-safe redirect map (no fs/node). Used by middleware.\n' +
+  '// NOTE: redirect semantics follow /workspace/seo-migration/redirects-map.csv (authoritative).\n' +
   'export interface EdgeRedirect { status: 301 | 410; target: string | null; }\n' +
   'export const REDIRECT_MAP: Record<string, EdgeRedirect> = {\n' +
   mapEntries.join("\n") + '\n};\n';

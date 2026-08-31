@@ -101,6 +101,8 @@ describe("acceptance: manifest/sitemap target agreement (#17)", () => {
       "/blog/mercury-retrograde-meaning-complete-survival-guide",
       "/blog/numerology-compatibility-calculator-life-path-numbers",
       "/blog/twin-flame-compatibility-test-are-they-your-other-half",
+      "/blog/rising-sign-calculator-find-your-ascendant-sign-free",
+      "/pricing", "/services", "/dashboard", "/journal", "/reset-password", "/profile",
     ];
     for (const r of rows) {
       if (r.disposition === "MERGE_AND_301" && r.redirectTarget) {
