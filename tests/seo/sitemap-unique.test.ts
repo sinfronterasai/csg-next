@@ -2,7 +2,7 @@
  * Regression: the final sitemap must contain no duplicate <loc> entries.
  *
  * Live defect reproduced on csg-pr-15.onrender.com/sitemap.xml: 400 rows but only
- * 399 unique URLs — the known duplicate was
+ * 399 unique URLs. The known duplicate was
  *   https://cosmicspiritguide.com/blog/the-future-of-fate-how-ai-powered-tarot-readings-work
  * appearing twice (the source slug list itself contained the slug twice).
  *
@@ -13,7 +13,7 @@ jest.mock("@/lib/blog/queries", () => ({
   fetchAllPostSlugs: jest.fn().mockResolvedValue([
     "what-is-my-birth-chart",
     "the-future-of-fate-how-ai-powered-tarot-readings-work",
-    // Duplicated in the source list — must still appear exactly once in output.
+    // Duplicated in the source list; must still appear exactly once in output.
     "the-future-of-fate-how-ai-powered-tarot-readings-work",
   ]),
 }));

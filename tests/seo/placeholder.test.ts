@@ -23,7 +23,7 @@ const FORBIDDEN = [
   /is a placeholder/i,        // C8: must not call a launch-hold page a "placeholder"
   /this page is a placeholder/i,
   // NOTE: support@cosmicspiritguide.com is the REAL, monitored support channel
-  // established by f307af5 (final legal/commercial copy, "real channel — monitored
+  // established by f307af5 (final legal/commercial copy, "real channel, monitored
   // support@cosmicspiritguide.com"). It is no longer an "invented" placeholder,
   // so it is intentionally NOT forbidden here. The placeholder/draft markers above
   // remain in force.

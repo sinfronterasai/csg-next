@@ -6,7 +6,7 @@
  * canonical ("https://cosmicspiritguide.com") instead of its own path.
  *
  * These tests exercise each page's real generateMetadata() so the exact exported
- * wiring is covered — not just buildMetadata() in isolation — and assert the
+ * wiring is covered, not just buildMetadata() in isolation, and assert the
  * canonical is the page's own absolute production URL.
  */
 import { generateMetadata as privacyMeta } from "@/app/privacy/page";
