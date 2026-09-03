@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, breadcrumbJsonLd, mergeJsonLd } from "@/lib/seo/jsonld";
@@ -50,7 +51,7 @@ export default async function HoroscopeSignPage({
 }) {
   const { sign: raw } = await params;
   const sign = getSign(raw);
-  if (!sign) return null;
+  if (!sign) notFound();
   const jsonLd = mergeJsonLd(
     organizationJsonLd(),
     breadcrumbJsonLd([

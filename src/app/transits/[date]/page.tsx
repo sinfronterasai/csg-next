@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, breadcrumbJsonLd, mergeJsonLd } from "@/lib/seo/jsonld";
@@ -7,12 +8,25 @@ import { isProgrammaticIndexed } from "@/lib/seo/programmatic-approval";
 
 export const dynamicParams = true;
 
+function isValidIsoDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= daysInMonth[month - 1];
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ date: string }>;
 }): Promise<Metadata> {
   const { date } = await params;
+  if (!isValidIsoDate(date)) notFound();
   const title = "Transits for " + date + " | Cosmic Spirit Guide";
   const description =
     "How the moving planets color " + date + ": what each transit means and how to work with it. Real ephemeris interpretation, not generic filler.";
@@ -40,6 +54,7 @@ export default async function TransitDatePage({
   params: Promise<{ date: string }>;
 }) {
   const { date } = await params;
+  if (!isValidIsoDate(date)) notFound();
   const jsonLd = mergeJsonLd(
     organizationJsonLd(),
     breadcrumbJsonLd([
