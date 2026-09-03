@@ -1,4 +1,5 @@
 import { canonicalPair, allSignKeys, zodiacData, compatibilityData } from "@/lib/seo/programmatic";
+import { programmaticComboKey } from "@/lib/seo/programmatic-approval";
 
 describe("programmatic content derivation", () => {
   test("canonicalPair is order-independent", () => {
@@ -24,5 +25,16 @@ describe("programmatic content derivation", () => {
   test("astrology combo never throws for valid signs", () => {
     const d = compatibilityData("aries", "aries");
     expect(d).not.toBeNull();
+  });
+
+  test("single-key families use the documented approval key format", () => {
+    expect(programmaticComboKey("zodiac", "leo", "ignored")).toBe("zodiac:leo");
+    expect(programmaticComboKey("horoscope", "virgo", "ignored")).toBe("horoscope:virgo");
+    expect(programmaticComboKey("transits", "2026-09-03", "ignored")).toBe("transits:2026-09-03");
+  });
+
+  test("pair families retain their ordering contracts", () => {
+    expect(programmaticComboKey("astrology", "leo", "aries")).toBe("astrology:leo-aries");
+    expect(programmaticComboKey("compatibility", "leo", "aries")).toBe("compatibility:aries-leo");
   });
 });

@@ -3,6 +3,7 @@ import { deck } from "@/lib/tarot/deck";
 import { slugify, SITE_BASE_URL } from "@/lib/seo";
 import { fetchAllPostSlugs } from "@/lib/blog/queries";
 import { allSignKeys } from "@/lib/seo/programmatic";
+import { isProgrammaticIndexed } from "@/lib/seo/programmatic-approval";
 
 const PROD = "https://cosmicspiritguide.com";
 
@@ -34,9 +35,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/pricing", 0.6, "monthly");
   add(map, PROD + "/services", 0.6, "monthly");
 
-  // Curated, indexable programmatic family: zodiac (distinct per sign).
+  // Programmatic routes enter the sitemap only after page-level approval.
   for (const sign of allSignKeys()) {
-    add(map, PROD + "/zodiac/" + sign, 0.6, "monthly");
+    if (isProgrammaticIndexed("zodiac", sign, sign)) {
+      add(map, PROD + "/zodiac/" + sign, 0.6, "monthly");
+    }
   }
 
   // Tarot cards (generated from deck data, distinct per card).

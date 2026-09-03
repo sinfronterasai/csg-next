@@ -43,8 +43,10 @@ export function programmaticComboKey(
     const [x, y] = ka <= kb ? [ka, kb] : [kb, ka];
     return `compatibility:${x}-${y}`;
   }
-  // astrology uses ordered pair; single-key families (zodiac/horoscope/transits) ignore b.
-  return `${kind}:${ka}-${kb}`;
+  if (kind === "zodiac" || kind === "horoscope" || kind === "transits") {
+    return `${kind}:${ka}`;
+  }
+  return `astrology:${ka}-${kb}`;
 }
 
 /** True only if this exact page has been spot-reviewed and approved for indexing. */

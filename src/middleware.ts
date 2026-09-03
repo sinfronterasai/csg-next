@@ -4,7 +4,12 @@ import { REDIRECT_MAP } from "@/lib/seo/redirect-map";
 
 export function middleware(req: NextRequest) {
   const host =
-    req.headers.get("x-forwarded-host") || req.headers.get("host") || null;
+    req.headers.get("host") || req.headers.get("x-forwarded-host") || null;
+  const tag = getXRobotsTag(host);
+  const withRobotsTag = (response: NextResponse) => {
+    if (tag) response.headers.set("X-Robots-Tag", tag);
+    return response;
+  };
   const url = req.nextUrl.clone();
   const key = url.pathname.replace(/\/$/, "") || "/";
 
@@ -12,26 +17,23 @@ export function middleware(req: NextRequest) {
   const decision = REDIRECT_MAP[key];
   if (decision) {
     if (decision.status === 410) {
-      return new NextResponse("This page is no longer published.", {
+      return withRobotsTag(new NextResponse("This page is no longer published.", {
         status: 410,
         headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" },
-      });
+      }));
     }
-    if (decision.status === 301) {
-      if (decision.target) {
-        return NextResponse.redirect(decision.target, 301);
-      }
+    if (decision.status === 301 && decision.target) {
+      return withRobotsTag(NextResponse.redirect(decision.target, 301));
     }
   }
 
-  const res = NextResponse.next();
-  const tag = getXRobotsTag(host);
-  if (tag) res.headers.set("X-Robots-Tag", tag);
-  return res;
+  return withRobotsTag(NextResponse.next());
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|json|xml)$).*)",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|json)$).*)",
   ],
 };
