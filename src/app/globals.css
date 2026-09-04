@@ -4,14 +4,22 @@
 
 @layer base {
   :root {
-    --cosmic-950: #03000a;
-    --cosmic-900: #080214;
-    --cosmic-800: #12072B;
-    --cosmic-700: #1A0B36;
+    --cosmic-100: #f3f0f8;
+    --cosmic-200: #ddd5e9;
+    --cosmic-300: #bbaecc;
+    --cosmic-400: #9382ab;
+    --cosmic-500: #6d598a;
     --cosmic-600: #261047;
+    --cosmic-700: #1A0B36;
+    --cosmic-800: #12072B;
+    --cosmic-900: #080214;
+    --cosmic-950: #03000a;
     --cosmic-primary: #8A2BE2;
     --cosmic-secondary: #DA70D6;
+    --gold-300: #f0d494;
+    --gold-400: #e7c477;
     --gold: #DFB76C;
+    --gold-600: #b88942;
   }
 
   html {
