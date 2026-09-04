@@ -6,15 +6,25 @@ const config: Config = {
     extend: {
       colors: {
         cosmic: {
-          950: 'var(--cosmic-950)',
-          900: 'var(--cosmic-900)',
-          800: 'var(--cosmic-800)',
-          700: 'var(--cosmic-700)',
+          100: 'var(--cosmic-100)',
+          200: 'var(--cosmic-200)',
+          300: 'var(--cosmic-300)',
+          400: 'var(--cosmic-400)',
+          500: 'var(--cosmic-500)',
           600: 'var(--cosmic-600)',
+          700: 'var(--cosmic-700)',
+          800: 'var(--cosmic-800)',
+          900: 'var(--cosmic-900)',
+          950: 'var(--cosmic-950)',
           primary: 'var(--cosmic-primary)',
           secondary: 'var(--cosmic-secondary)',
         },
-        gold: 'var(--gold)',
+        gold: {
+          DEFAULT: 'var(--gold)',
+          300: 'var(--gold-300)',
+          400: 'var(--gold-400)',
+          600: 'var(--gold-600)',
+        },
       },
       keyframes: {
         spin: {
