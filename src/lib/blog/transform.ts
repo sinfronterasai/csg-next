@@ -99,7 +99,7 @@ export function transformPost(raw: any, baseUrl: string): BlogPost {
   const seo = {
     seoTitle: raw?.seoTitle ?? title,
     metaDescription: raw?.metaDescription ?? raw?.excerpt ?? "",
-    canonicalUrl: raw?.canonicalUrl ?? (slug ? `${baseUrl}/blog/${slug}` : null),
+    canonicalUrl: raw?.canonicalUrl || (slug ? `${baseUrl}/blog/${slug}` : null),
     robots: raw?.robots ?? "index, follow",
     ogTitle: raw?.ogTitle ?? raw?.seoTitle ?? title,
     ogDescription: raw?.ogDescription ?? raw?.metaDescription ?? raw?.excerpt ?? "",

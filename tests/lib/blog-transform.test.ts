@@ -71,6 +71,11 @@ describe("transformPost", () => {
     const p2 = transformPost({ ...rawPost, canonicalUrl: null }, "https://base.com");
     expect(p2.seo.canonicalUrl).toBe("https://base.com/blog/lions-gate-portal");
   });
+
+  it("backfills canonical when the CMS value is blank", () => {
+    const p2 = transformPost({ ...rawPost, canonicalUrl: "" }, "https://base.com");
+    expect(p2.seo.canonicalUrl).toBe("https://base.com/blog/lions-gate-portal");
+  });
 });
 
 describe("transformList", () => {
