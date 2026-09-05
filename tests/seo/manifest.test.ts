@@ -71,8 +71,9 @@ describe("legacy migration manifest", () => {
     expect(resolveLegacyRedirect("/forecasts")!.target).toBe("https://cosmicspiritguide.com/transits");
     expect(resolveLegacyRedirect("/moon-phase")!.target).toBe("https://cosmicspiritguide.com/transits");
     expect(resolveLegacyRedirect("/moon-reading")!.target).toBe("https://cosmicspiritguide.com/birth-chart");
-    expect(resolveLegacyRedirect("/newsletter")!.target).toBe("https://cosmicspiritguide.com/blog");
-    expect(resolveLegacyRedirect("/profile")!.target).toBe("https://cosmicspiritguide.com/dashboard");
+    expect(resolveLegacyRedirect("/profile")).toBeNull();
+    expect(resolveLegacyRedirect("/dashboard")!.status).toBe(301);
+    expect(resolveLegacyRedirect("/dashboard")!.target).toBe("https://cosmicspiritguide.com/profile");
     expect(resolveLegacyRedirect("/")).toBeNull();
   });
 

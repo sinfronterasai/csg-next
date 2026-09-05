@@ -3075,13 +3075,13 @@
     "oldPath": "/dashboard",
     "oldStatus": "200",
     "routeFamily": "/dashboard",
-    "newPath": "/dashboard",
-    "intendedStatus": 200,
+    "newPath": "/profile",
+    "intendedStatus": 301,
     "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/dashboard",
-    "disposition": "NOINDEX_UTILITY",
-    "redirectTarget": null,
-    "reason": "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX)."
+    "canonicalUrl": "https://cosmicspiritguide.com/profile",
+    "disposition": "MERGE_AND_301",
+    "redirectTarget": "https://cosmicspiritguide.com/profile",
+    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
   },
   {
     "oldPath": "/energy",
@@ -3363,13 +3363,13 @@
     "oldPath": "/profile",
     "oldStatus": "200",
     "routeFamily": "/profile",
-    "newPath": "/dashboard",
-    "intendedStatus": 301,
-    "indexable": false,
-    "canonicalUrl": "https://cosmicspiritguide.com/dashboard",
-    "disposition": "MERGE_AND_301",
-    "redirectTarget": "https://cosmicspiritguide.com/dashboard",
-    "reason": "Canonical-same-intent 301 per /workspace/seo-migration/redirects-map.csv (authoritative). One-hop, never homepage."
+    "newPath": "/profile",
+    "intendedStatus": 200,
+    "indexable": true,
+    "canonicalUrl": "https://cosmicspiritguide.com/profile",
+    "disposition": "KEEP_AND_REBUILD",
+    "redirectTarget": null,
+    "reason": "Canonical account/profile route; reachable, indexable navigation."
   },
   {
     "oldPath": "/reports",

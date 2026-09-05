@@ -20,11 +20,11 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/blog/twin-flame-compatibility-test-are-they-your-other-half-2": { status: 301, target: "https://cosmicspiritguide.com/blog/twin-flame-compatibility-test-are-they-your-other-half" },
   "/coach": { status: 301, target: "https://cosmicspiritguide.com/services" },
   "/credits": { status: 301, target: "https://cosmicspiritguide.com/pricing" },
+  "/dashboard": { status: 301, target: "https://cosmicspiritguide.com/profile" },
   "/energy": { status: 301, target: "https://cosmicspiritguide.com/transits" },
   "/forecasts": { status: 301, target: "https://cosmicspiritguide.com/transits" },
   "/moon-phase": { status: 301, target: "https://cosmicspiritguide.com/transits" },
   "/moon-reading": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
   "/newsletter": { status: 301, target: "https://cosmicspiritguide.com/blog" },
-  "/dashboard": { status: 301, target: "https://cosmicspiritguide.com/profile" },
   "/subscription": { status: 301, target: "https://cosmicspiritguide.com/pricing" },
 };

@@ -45,6 +45,7 @@ const SAME_INTENT_301 = {
   "/moon-phase": "/transits",
   "/moon-reading": "/birth-chart",
   "/newsletter": "/blog",
+  "/dashboard": "/profile",
   "/subscription": "/pricing",
 };
 
