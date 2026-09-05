@@ -25,6 +25,6 @@ export const REDIRECT_MAP: Record<string, EdgeRedirect> = {
   "/moon-phase": { status: 301, target: "https://cosmicspiritguide.com/transits" },
   "/moon-reading": { status: 301, target: "https://cosmicspiritguide.com/birth-chart" },
   "/newsletter": { status: 301, target: "https://cosmicspiritguide.com/blog" },
-  "/profile": { status: 301, target: "https://cosmicspiritguide.com/dashboard" },
+  "/dashboard": { status: 301, target: "https://cosmicspiritguide.com/profile" },
   "/subscription": { status: 301, target: "https://cosmicspiritguide.com/pricing" },
 };

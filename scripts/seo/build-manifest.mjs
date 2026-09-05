@@ -45,7 +45,6 @@ const SAME_INTENT_301 = {
   "/moon-phase": "/transits",
   "/moon-reading": "/birth-chart",
   "/newsletter": "/blog",
-  "/profile": "/dashboard",
   "/subscription": "/pricing",
 };
 
@@ -132,8 +131,10 @@ function decide(r, sanitySlugs) {
 
   if (["/login","/reset-password"].includes(p))
     return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Account/utility route; reachable, noindex, excluded from sitemap.");
-  if (["/dashboard","/journal","/profile"].includes(p))
+  if (["/dashboard","/journal"].includes(p))
     return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX).");
+  if (["/profile"].includes(p))
+    return mk("KEEP_AND_REBUILD", p, 200, true, PROD + p, null, "Canonical account/profile route; reachable, indexable navigation.");
   if (p === "/reports")
     return mk("NOINDEX_UTILITY", p, 200, false, PROD + p, null, "Product/checkout route; reachable, noindex (indexable only when commercial launch authorized).");
 
