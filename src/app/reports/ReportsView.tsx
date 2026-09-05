@@ -5,15 +5,16 @@ import Link from 'next/link';
 import ReportResult from '@/components/reports/ReportResult';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
-// launch slice. Free Natal is available to everyone. Love Blueprint is invite-only
-// during beta (the server gate enforces the beta allowlist; this UI never shows a
-// price or an unlock CTA for it). Every other report/bundle/tarot spread is hidden
-// from the public UI until it is part of an approved launch. The server generation
-// route independently rejects any non-launch type (gateGeneration), so hiding here
-// is defense-in-depth, not the enforcement boundary.
+// launch slice. Free Natal is available to everyone. Love Blueprint is a paid
+// product available to all authenticated users (the server gate enforces
+// authentication + payment/purchase entitlement; this UI calls the checkout
+// endpoint rather than attempting generation directly). Every other report/bundle/
+// tarot spread is hidden from the public UI until it is part of an approved
+// launch. The server generation route independently rejects any non-launch type
+// (gateGeneration), so hiding here is defense-in-depth, not the enforcement boundary.
 
 type Accent = 'teal' | 'gold';
-type Kind = 'free' | 'invite';
+type Kind = 'free' | 'paid';
 
 const ALLOWED: {
   id: string; name: string; blurb: string; icon: string; accent: Accent; cta: string; kind: Kind;
@@ -23,8 +24,8 @@ const ALLOWED: {
     icon: 'fa-sun', accent: 'teal', cta: 'START FREE', kind: 'free',
   },
   {
-    id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. Available by invite during the private beta.',
-    icon: 'fa-heart', accent: 'gold', cta: 'REQUEST INVITE', kind: 'invite',
+    id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. $39 — one-time purchase, yours forever.',
+    icon: 'fa-heart', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid',
   },
 ];
 
@@ -42,6 +43,7 @@ export default function Reports() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   async function generate(id: string) {
     setLoading(id);
@@ -57,8 +59,6 @@ export default function Reports() {
       if (!res.ok) {
         if (data.requiresBirthChart) {
           setError('Create your birth chart first, then return here.');
-        } else if (res.status === 403) {
-          setError('Love Blueprint is invite-only during the private beta.');
         } else {
           setError(data.error || 'Generation failed');
         }
@@ -77,6 +77,37 @@ export default function Reports() {
       setError(e?.message || 'Generation failed');
     } finally {
       setLoading(null);
+    }
+  }
+
+  async function startCheckout(id: string) {
+    setCheckoutLoading(id);
+    setError(null);
+    try {
+      const res = await fetch('/api/billing/checkout-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportType: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        setError(data.error || 'Checkout failed');
+        return;
+      }
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError('Could not start checkout. Please try again.');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Checkout failed');
+    } finally {
+      setCheckoutLoading(null);
     }
   }
 
@@ -153,20 +184,30 @@ export default function Reports() {
                     <i className={`fa-solid ${p.icon}`} />
                   </div>
                   <span className={`text-[10px] uppercase tracking-widest rounded-full px-2.5 py-1 ${p.kind === 'free' ? 'text-[#2DD4BF] border border-[#2DD4BF]/40' : 'text-gold border border-gold/40'}`}>
-                    {p.kind === 'free' ? 'Free' : 'Invite only'}
+                    {p.kind === 'free' ? 'Free' : 'Paid'}
                   </span>
                 </div>
                 <h3 className="font-serif text-2xl text-white mb-2">{p.name}</h3>
                 <p className="text-cosmic-200 text-sm leading-relaxed mb-5">{p.blurb}</p>
               </div>
               <div className="pt-5 border-t border-white/5">
-                <button
-                  onClick={() => generate(p.id)}
-                  disabled={loading === p.id}
-                  className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
-                >
-                  {loading === p.id ? 'Generating…' : p.cta}
-                </button>
+                {p.kind === 'free' ? (
+                  <button
+                    onClick={() => generate(p.id)}
+                    disabled={loading === p.id}
+                    className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
+                  >
+                    {loading === p.id ? 'Generating…' : p.cta}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startCheckout(p.id)}
+                    disabled={checkoutLoading === p.id}
+                    className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
+                  >
+                    {checkoutLoading === p.id ? 'Loading…' : p.cta}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -176,7 +217,7 @@ export default function Reports() {
       <section className="max-w-4xl mx-auto px-6 pt-16">
         <div className="glass-panel p-6 rounded-2xl border border-white/5 text-center">
           <i className="fa-solid fa-shield-halved text-gold text-xl mb-3" />
-          <p className="text-cosmic-100 text-sm">Your birth metrics are sacred. We reuse your saved chart so you never re-enter them, and your data isn’t sold or shared.</p>
+          <p className="text-cosmic-100 text-sm">Your birth metrics are sacred. We reuse your saved chart so you never re-enter them, and your data isn't sold or shared.</p>
         </div>
       </section>
 
@@ -198,17 +239,15 @@ export default function Reports() {
               onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
             />
           ) : (
-            <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20">
-              <h3 className="text-2xl font-serif text-gold mb-4 capitalize">{result.type} Report</h3>
-              <div className="prose prose-invert max-w-none text-gray-200 leading-relaxed whitespace-pre-wrap">{result.text}</div>
-              {result.readingId && (
-                <div className="mt-6 pt-6 border-t border-gold/10 text-center">
-                  <Link href="/profile?tab=reports" className="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest rounded-full uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] transform hover:-translate-y-0.5">
-                    View in Library
-                  </Link>
-                </div>
-              )}
-            </div>
+            <ReportResult
+              type={result.type as any}
+              title={result.title}
+              overview={result.overview || []}
+              sections={result.sections || []}
+              readingId={result.readingId}
+              shareUrl={shareUrl ?? undefined}
+              onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
+            />
           )
         )}
       </section>

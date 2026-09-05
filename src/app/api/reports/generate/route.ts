@@ -45,15 +45,13 @@ export async function POST(request: Request) {
     const { type: rawType, partner, purchaseId } = body;
     const type = rawType as ReportType;
 
-    // Launch allowlist gate (L3): server-authoritative. Reject non-launch types
+    // Launch allowlist gate (L3): server-authoritative. Rejects non-launch types.
+    // Love Blueprint is now publicly available; no beta allowlist check.
     // BEFORE any checkout creation, entitlement use, pipeline dispatch, or
     // generation. Client-supplied `tier` is never consulted, so it cannot
     // downgrade or unlock a product.
     const gate = gateGeneration(type, String(decoded.userId));
     if (!gate.allowed) {
-      if (gate.code === 'beta_not_allowlisted') {
-        return NextResponse.json({ error: 'Love Blueprint is invite-only during beta.' }, { status: 403 });
-      }
       return NextResponse.json({ error: 'Report type is not available at this time.' }, { status: 404 });
     }
 

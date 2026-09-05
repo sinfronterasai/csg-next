@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
     title: "Services | Cosmic Spirit Guide",
     description:
-      "Cosmic Spirit Guide services: free birth-chart computation, tarot readings, and the invite-only Love Blueprint. Other services are not yet offered.",
+      "Cosmic Spirit Guide services: free birth-chart computation, tarot readings, and the Love Blueprint — your Venus, Mars and Moon signature. Other services are not yet offered.",
     path: "/services",
     jsonLd: [
       organizationJsonLd(),
@@ -44,9 +44,12 @@ export default function ServicesPage() {
           <Link className="mt-2 inline-block underline" href="/tarot">Read tarot</Link>
         </li>
         <li className="rounded-lg border p-4">
-          <h2 className="text-xl font-medium">Love Blueprint</h2>
-          <p className="mt-2">Invite-only relationship report during beta.</p>
-          <Link className="mt-2 inline-block underline" href="/reports">Request access</Link>
+          <h2 className="text-xl font-medium">Love Blueprint — $39</h2>
+          <p className="mt-2">
+            Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
+            One-time purchase, yours forever. Available now.
+          </p>
+          <Link className="mt-2 inline-block underline" href="/reports">Get Love Blueprint</Link>
         </li>
       </ul>
     </main>

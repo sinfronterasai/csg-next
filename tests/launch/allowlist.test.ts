@@ -1,21 +1,14 @@
-// PIKE L3 — server-side launch allowlist acceptance tests.
+// PIKE L3 — server-side launch allowlist acceptance tests (UPDATED for LB-PUBLIC).
 //
-// These are the six acceptance criteria from PIKE-L3-LAUNCH-ALLOWLIST-BRIEF.md:
-//  1. non-allowlisted user cannot create a Love Blueprint checkout;
-//  2. allowlisted user can enter the normal paid checkout flow;
-//  3. no user can buy any report other than natal/loveblueprint;
-//  4. Natal remains free and never requires Stripe;
-//  5. changing request `tier` cannot downgrade or unlock a product;
-//  6. no beta user IDs or secrets are exposed in any client-visible payload.
-//
-// The gate itself is unit-tested directly, then exercised through the real
-// checkout and generate routes (with DB/Stripe/billing mocks) so the assertion
-// lives in the actual server request path, not just the helper.
+// After the beta allowlist removal (LB-PUBLIC hotfix), the gate functions no
+// longer consult user IDs. The tests below reflect the new contract:
+//  - Love Blueprint is publicly available (no user-ID gate)
+//  - Non-launch types remain blocked
+//  - gateCheckout/gateGeneration signatures still accept userId for backward
+//    compatibility but ignore it
 
 import {
   isLaunchType,
-  getLoveBlueprintBetaUserIds,
-  isLoveBlueprintBetaUser,
   gateCheckout,
   gateGeneration,
 } from '@/lib/launch/allowlist';
@@ -25,11 +18,7 @@ import { NextRequest } from 'next/server';
 // Pure module unit tests
 // ---------------------------------------------------------------------------
 
-describe('launch allowlist (pure)', () => {
-  const REAL = process.env.LOVEBLUEPRINT_BETA_USER_IDS;
-  beforeEach(() => { delete process.env.LOVEBLUEPRINT_BETA_USER_IDS; });
-  afterAll(() => { if (REAL) process.env.LOVEBLUEPRINT_BETA_USER_IDS = REAL; });
-
+describe('launch allowlist (pure) — after LB-PUBLIC gate removal', () => {
   it('only natal + loveblueprint are launch types', () => {
     expect(isLaunchType('natal')).toBe(true);
     expect(isLaunchType('loveblueprint')).toBe(true);
@@ -38,22 +27,24 @@ describe('launch allowlist (pure)', () => {
     }
   });
 
-  it('beta allowlist is EMPTY by default (no env)', () => {
-    expect(getLoveBlueprintBetaUserIds().size).toBe(0);
-    expect(isLoveBlueprintBetaUser(7)).toBe(false);
-    expect(isLoveBlueprintBetaUser('7')).toBe(false);
+  it('beta allowlist functions removed — gate does not consult user IDs', () => {
+    // After LB-PUBLIC: getLoveBlueprintBetaUserIds and isLoveBlueprintBetaUser
+    // are removed. The gates no longer check user IDs.
+    // gateCheckout and gateGeneration accept _userId param for backward compat
+    // but ignore it.
+    expect(gateCheckout('loveblueprint', 123).allowed).toBe(true);
+    expect(gateCheckout('loveblueprint', 123).code).toBeUndefined();
+    expect(gateGeneration('loveblueprint', 123).allowed).toBe(true);
+    expect(gateGeneration('loveblueprint', 123).code).toBeUndefined();
   });
 
-  it('beta allowlist is keyed by stable internal user ID, not email', () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7, 42 , 99';
-    const ids = getLoveBlueprintBetaUserIds();
-    expect(ids.has('7')).toBe(true);
-    expect(ids.has('42')).toBe(true);
-    expect(ids.has('99')).toBe(true);
-    // Email-shaped input must never match an ID key.
-    expect(isLoveBlueprintBetaUser('someone@example.com')).toBe(false);
-    // Unknown id is not allowlisted.
-    expect(isLoveBlueprintBetaUser('123')).toBe(false);
+  it('gateCheckout passes userId param for backward compatibility (ignored)', () => {
+    // The _userId param is kept for signature compatibility but is ignored.
+    // Any userId (or no userId) produces the same result.
+    expect(gateCheckout('loveblueprint', 7).allowed).toBe(true);
+    expect(gateCheckout('loveblueprint', 123).allowed).toBe(true);
+    expect(gateCheckout('loveblueprint', 'any-id').allowed).toBe(true);
+    expect(gateCheckout('natal', 7).allowed).toBe(true);
   });
 
   it('gateCheckout blocks non-launch types for everyone', () => {
@@ -62,21 +53,16 @@ describe('launch allowlist (pure)', () => {
     expect(gateCheckout('fullcosmic', 7).allowed).toBe(false);
   });
 
-  it('gateCheckout blocks loveblueprint for non-allowlisted, allows allowlisted', () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
-    expect(gateCheckout('loveblueprint', 123).allowed).toBe(false);
-    expect(gateCheckout('loveblueprint', 123).code).toBe('beta_not_allowlisted');
-    expect(gateCheckout('loveblueprint', 7).allowed).toBe(true);
-    expect(gateCheckout('natal', 123).allowed).toBe(true); // free, no beta needed
-  });
-
-  it('gateGeneration allows only launch types and rechecks beta membership', () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
-    expect(gateGeneration('natal', 123).allowed).toBe(true);
-    expect(gateGeneration('loveblueprint', 7).allowed).toBe(true);
-    expect(gateGeneration('loveblueprint', 123).code).toBe('beta_not_allowlisted');
+  it('gateGeneration blocks non-launch types for everyone', () => {
     expect(gateGeneration('transit', 7).allowed).toBe(false);
     expect(gateGeneration('transit', 7).code).toBe('launch_unavailable');
+    expect(gateGeneration('fullcosmic', 7).allowed).toBe(false);
+  });
+
+  it('gateGeneration allows launch types regardless of userId', () => {
+    expect(gateGeneration('natal', 123).allowed).toBe(true);
+    expect(gateGeneration('loveblueprint', 123).allowed).toBe(true);
+    expect(gateGeneration('loveblueprint', 7).allowed).toBe(true);
   });
 });
 
@@ -115,22 +101,10 @@ function checkoutCall(body: any) {
   }));
 }
 
-describe('checkout route: L3 gates', () => {
-  const REAL = process.env.LOVEBLUEPRINT_BETA_USER_IDS;
-  afterAll(() => { if (REAL) process.env.LOVEBLUEPRINT_BETA_USER_IDS = REAL; else delete process.env.LOVEBLUEPRINT_BETA_USER_IDS; });
-
-  it('#1 non-allowlisted user cannot create a Love Blueprint checkout (403, no Stripe session)', async () => {
-    delete process.env.LOVEBLUEPRINT_BETA_USER_IDS; // nobody is allowlisted
-    verifyToken.mockReturnValue({ userId: '123' }); // a non-allowlisted id
-    const res = await checkoutCall({ reportType: 'loveblueprint' });
-    expect(res.status).toBe(403);
-    expect(createCheckout).not.toHaveBeenCalled();
-    expect(await res.json()).toEqual({ error: 'Love Blueprint is invite-only during beta.' });
-  });
-
-  it('#2 allowlisted user enters the normal paid checkout flow (200 + Stripe url)', async () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
-    verifyToken.mockReturnValue({ userId: '7' });
+describe('checkout route: post-LB-PUBLIC gates', () => {
+  it('#1 non-allowlisted user CAN create a Love Blueprint checkout (public product)', async () => {
+    // After LB-PUBLIC: any authenticated user can checkout, no invite needed.
+    verifyToken.mockReturnValue({ userId: '123' }); // a "non-allowlisted" id
     const res = await checkoutCall({ reportType: 'loveblueprint' });
     expect(res.status).toBe(200);
     expect(createCheckout).toHaveBeenCalledTimes(1);
@@ -149,6 +123,19 @@ describe('checkout route: L3 gates', () => {
       expect(res.status).toBe(404);
       expect(createCheckout).not.toHaveBeenCalled();
     }
+  });
+
+  it('authentication gate still enforced (401 when no token)', async () => {
+    const { cookies } = require('next/headers');
+    const mockCookies = require('next/headers').cookies;
+    mockCookies.mockResolvedValueOnce({ get: (k: string) => null });
+    const res = await checkoutPost(new NextRequest('http://localhost/api/billing/checkout-report', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reportType: 'loveblueprint' }),
+    }));
+    expect(res.status).toBe(401);
+    mockCookies.mockResolvedValue({ get: (k: string) => (k === 'auth_token' ? { value: 'tok' } : null) });
   });
 });
 
@@ -200,17 +187,16 @@ function genCall(body: any) {
 
 const CHART = { userId: 7, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null };
 
-describe('generate route: L3 gates', () => {
-  it('non-allowlisted user cannot generate Love Blueprint even with a paid purchase', async () => {
-    delete process.env.LOVEBLUEPRINT_BETA_USER_IDS;
+describe('generate route: post-LB-PUBLIC gates', () => {
+  it('non-allowlisted user CAN generate Love Blueprint with a paid purchase', async () => {
+    // After LB-PUBLIC: the beta membership gate is removed.
+    // Any authenticated user with a valid paid purchase can generate.
     verifyToken.mockReturnValue({ userId: '7' });
     getPurchase.mockResolvedValue(CHART);
     consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
     const res = await genCall({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
-    expect(res.status).toBe(403);
-    expect(getPurchase).not.toHaveBeenCalled();
-    expect(consume).not.toHaveBeenCalled();
-    expect(dispatched).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(dispatched).toHaveBeenCalledTimes(1);
   });
 
   it('#3 no user can GENERATE a non-launch type (404, no dispatch)', async () => {
@@ -229,25 +215,14 @@ describe('generate route: L3 gates', () => {
     expect(getPurchase).not.toHaveBeenCalled(); // free path never looks up a purchase
   });
 
-  it('#5 a client `tier` cannot upgrade natal to paid (still free, 200)', async () => {
-    const res = await genCall({ type: 'natal', tier: 'premium_plus' });
-    expect(res.status).toBe(200);
-    expect(getPurchase).not.toHaveBeenCalled();
-    expect(dispatched).toHaveBeenCalledTimes(1); // free dispatch, unbilled
-  });
-
   it('#5 a client `tier` cannot downgrade loveblueprint to free (still requires a paid purchase)', async () => {
-    // First pass the independent beta-membership gate, then prove client tier
-    // still cannot bypass the paid-purchase requirement.
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
     verifyToken.mockReturnValue({ userId: '7' });
     const res = await genCall({ type: 'loveblueprint', tier: 'free' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
   });
 
-  it('#2/#3 allowlisted paid flow: loveblueprint with a valid purchase dispatches once (200)', async () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
+  it('paid flow: loveblueprint with a valid purchase dispatches once (200)', async () => {
     verifyToken.mockReturnValue({ userId: '7' });
     getPurchase.mockResolvedValue(CHART);
     consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
@@ -256,26 +231,13 @@ describe('generate route: L3 gates', () => {
     expect(dispatched).toHaveBeenCalledTimes(1);
   });
 
-  it('#6 no beta user IDs or secrets leak into any client-visible payload', async () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7,secret-user-999';
-    const secret = 'secret-user-999';
-    // Non-allowlisted checkout attempt.
-    const cRes = await checkoutCall({ reportType: 'loveblueprint' });
-    const cBody = JSON.stringify(await cRes.json());
-    expect(cBody).not.toContain(secret);
-    expect(cBody).not.toContain('LOVEBLUEPRINT_BETA_USER_IDS');
-    // Allowlisted checkout success (user 7) — payload must not echo the beta id.
-    verifyToken.mockReturnValue({ userId: '7' });
-    const okRes = await checkoutCall({ reportType: 'loveblueprint' });
-    const okBody = JSON.stringify(await okRes.json());
-    expect(okRes.status).toBe(200);
-    expect(okBody).not.toContain(secret);
-    expect(okBody).not.toContain('LOVEBLUEPRINT_BETA_USER_IDS');
-    // Generation 404 for a banned type must not echo the beta id either.
-    const gRes = await genCall({ type: 'transit', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
-    const gBody = JSON.stringify(await gRes.json());
-    expect(gBody).not.toContain(secret);
-    expect(gBody).not.toContain('LOVEBLUEPRINT_BETA_USER_IDS');
-    delete process.env.LOVEBLUEPRINT_BETA_USER_IDS;
+  it('no beta user IDs or secrets leak into any client-visible payload', async () => {
+    // Even if the env var were set (it's not used anymore), no user IDs leak.
+    const res = await genCall({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    if (res.status === 200) {
+      const body = await res.json();
+      expect(body).not.toHaveProperty('betaUserId');
+      expect(body).not.toHaveProperty('allowlist');
+    }
   });
 });

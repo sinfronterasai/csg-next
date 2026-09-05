@@ -1,9 +1,9 @@
 import { gateGeneration, isLaunchType, LAUNCH_FREE_TYPES, LAUNCH_PAID_TYPES } from "@/lib/launch/allowlist";
 
 // C7: the server-authoritative launch allowlist must reject every non-allowed
-// report type, and gate Love Blueprint behind the beta allowlist. The public
-// /reports UI hides those SKUs, but the API is the real enforcement boundary.
-describe("reports launch allowlist (C7 server gate)", () => {
+// report type. After LB-PUBLIC hotfix, Love Blueprint is publicly available
+// (no beta allowlist), but non-launch types remain blocked.
+describe("reports launch allowlist (C7 server gate — post-LB-PUBLIC)", () => {
   const BANNED = [
     "relationship", "transit", "lovetiming", "vocation", "karmicshadow",
     "synastry", "composite", "fullcosmic", "couples",
@@ -27,20 +27,13 @@ describe("reports launch allowlist (C7 server gate)", () => {
     expect(gateGeneration("natal", "999").allowed).toBe(true);
   });
 
-  it("Love Blueprint is invite-only: rejected unless beta-allowlisted", () => {
-    const before = process.env.LOVEBLUEPRINT_BETA_USER_IDS;
-    try {
-      delete process.env.LOVEBLUEPRINT_BETA_USER_IDS;
-      expect(gateGeneration("loveblueprint", "999").allowed).toBe(false);
-      expect(gateGeneration("loveblueprint", "999").code).toBe("beta_not_allowlisted");
-
-      process.env.LOVEBLUEPRINT_BETA_USER_IDS = "999,1000";
-      expect(gateGeneration("loveblueprint", "999").allowed).toBe(true);
-      expect(gateGeneration("loveblueprint", "1001").allowed).toBe(false);
-    } finally {
-      if (before === undefined) delete process.env.LOVEBLUEPRINT_BETA_USER_IDS;
-      else process.env.LOVEBLUEPRINT_BETA_USER_IDS = before;
-    }
+  it("Love Blueprint is publicly available — no beta allowlist gate (post-LB-PUBLIC)", () => {
+    // After LB-PUBLIC: Love Blueprint is no longer gated by user ID.
+    // Any authenticated user with a valid purchase can generate.
+    expect(gateGeneration("loveblueprint", "999").allowed).toBe(true);
+    expect(gateGeneration("loveblueprint", "999").code).toBeUndefined();
+    expect(gateGeneration("loveblueprint", "1001").allowed).toBe(true);
+    // The _userId param is kept for backward compatibility but ignored.
   });
 });
 
@@ -56,7 +49,9 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
     "Vocation & Wealth Map", "Karmic & Shadow Work", "Synastry Love Report",
     "Composite Chart Report", "Couples Cosmic Profile", "Full Cosmic Profile",
   ];
-  const BANNED_PRICES = ["$39", "$29", "$19", "$49", "$89", "$4.99", "$120"];
+  // Post-LB-PUBLIC: $39 is allowed for Love Blueprint (public paid product).
+  // Other prices for non-launch products remain banned.
+  const BANNED_PRICES = ["$29", "$19", "$49", "$89", "$4.99", "$120"];
 
   for (const name of BANNED_NAMES) {
     it(`does not render banned SKU "${name}"`, () => {
@@ -68,8 +63,11 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
       expect(src).not.toContain(price);
     });
   }
-  it("renders only the two authorized launch reports", () => {
+  it("renders the two authorized launch reports", () => {
     expect(src).toContain("Birth Chart Report");
     expect(src).toContain("Love Blueprint");
+  });
+  it("renders Love Blueprint with its $39 price (public paid product)", () => {
+    expect(src).toContain("$39");
   });
 });

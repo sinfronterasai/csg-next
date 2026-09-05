@@ -1,18 +1,18 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo/metadata";
-import { organizationJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
-import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { buildMetadata } from '@/lib/seo/metadata';
+import { organizationJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonld';
+import { SeoJsonLd } from '@/components/seo/SeoJsonLd';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
-    title: "Products & Pricing | Cosmic Spirit Guide",
+    title: 'Products & Pricing | Cosmic Spirit Guide',
     description:
-      "Cosmic Spirit Guide products: the free Birth Chart for everyone, and the Love Blueprint available by invite during beta. Other premium reports are not yet offered.",
-    path: "/pricing",
+      'Cosmic Spirit Guide products: the free Birth Chart for everyone, and the Love Blueprint — your Venus, Mars and Moon signature. Other premium reports are not yet offered.',
+    path: '/pricing',
     jsonLd: [
       organizationJsonLd(),
-      breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }]),
+      breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]),
     ],
   });
   return metadata;
@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function PricingPage() {
   const jsonLd = [
     organizationJsonLd(),
-    breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }]),
+    breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]),
   ];
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -41,12 +41,12 @@ export default function PricingPage() {
       </section>
 
       <section className="mt-6 rounded-lg border p-4">
-        <h2 className="text-xl font-medium">Love Blueprint</h2>
+        <h2 className="text-xl font-medium">Love Blueprint — $39</h2>
         <p className="mt-2">
-          Available by invite during beta. Not yet publicly priced. Join the waitlist from your
-          reports page to request access.
+          Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
+          One-time purchase, yours forever. Available now.
         </p>
-        <Link className="mt-2 inline-block underline" href="/reports">Request access</Link>
+        <Link className="mt-2 inline-block underline" href="/reports">Get Love Blueprint</Link>
       </section>
 
       <p className="mt-6 text-sm text-muted-foreground">

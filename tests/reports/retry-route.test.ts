@@ -50,7 +50,6 @@ function call(readingId = 50) {
 describe('retry route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '7';
   });
 
   it('launch gate — rejects a disabled SKU before claim or dispatch', async () => {
@@ -61,13 +60,14 @@ describe('retry route', () => {
     expect(dispatched).not.toHaveBeenCalled();
   });
 
-  it('launch gate — rejects Love Blueprint after beta membership removal', async () => {
-    process.env.LOVEBLUEPRINT_BETA_USER_IDS = '';
-    setup({ reportType: 'loveblueprint' });
+  it('launch gate — Love Blueprint is now publicly retryable (post-LB-PUBLIC)', async () => {
+    // After LB-PUBLIC: Love Blueprint is no longer gated by beta membership.
+    // Any authenticated user with a consumed purchase can retry.
+    setup({ reportType: 'loveblueprint', status: 'dispatch_failed' });
     const res = await call();
-    expect(res.status).toBe(403);
-    expect(claim).not.toHaveBeenCalled();
-    expect(dispatched).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(claim).toHaveBeenCalled();
+    expect(dispatched).toHaveBeenCalledTimes(1);
   });
 
   it('r2 — rejects a queued reading (never re-dispatch active)', async () => {
