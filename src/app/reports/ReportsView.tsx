@@ -79,18 +79,35 @@ export default function Reports() {
         }
         return;
       }
-      // #7 — pending-result gate: a queued/processing pipeline response is NOT a
-      // ready dossier. Do NOT render the empty overview/sections + PDF/share actions
-      // while the report is still in flight. Show an honest "being prepared" state
-      // and keep the purchase correlation so a retry can re-attach without re-charging.
-      if (data.pending === true || data.status === 'queued' || data.status === 'processing') {
+      const status = typeof data.status === 'string' ? data.status : 'unknown';
+      const nonReadyMessages: Record<string, string> = {
+        dispatch_failed: 'Your previous report generation failed. You can retry at no extra charge.',
+        needs_editor: 'Your report is awaiting editorial review before it can be released.',
+        rejected: 'Your report was not approved and has not been released.',
+        'missing-content': 'We could not complete your report. It has not been released.',
+        unknown: 'We could not determine the status of your report. It has not been released.',
+      };
+      if (data.pending === true || status === 'queued' || status === 'processing' || status === 'needs_editor') {
         setResumeState('pending');
-        setResumeMessage(data.message || 'Your report is being prepared by our astrology engine. It will be ready shortly.');
-        // Keep result null so ReportResult is never rendered with empty data.
+        setResumeMessage(data.message || nonReadyMessages[status] || 'Your report is being prepared by our astrology engine. It will be ready shortly.');
         setResult(null);
         return;
       }
-      // ready/repeat with real content
+      if (status !== 'approved') {
+        setResumeState('failed');
+        setResumeMessage(data.message || nonReadyMessages[status] || nonReadyMessages.unknown);
+        setResult(null);
+        return;
+      }
+      const hasApprovedContent = typeof data.title === 'string' && data.title.trim().length > 0 &&
+        Array.isArray(data.overview) && data.overview.length > 0 &&
+        Array.isArray(data.sections) && data.sections.length > 0;
+      if (!hasApprovedContent) {
+        setResumeState('failed');
+        setResumeMessage('Your approved report is not yet available. Please contact support if this persists.');
+        setResult(null);
+        return;
+      }
       setResumeState('ready');
       setResult({
         type: id,
@@ -334,28 +351,16 @@ export default function Reports() {
             {error}
           </div>
         )}
-        {result && resumeState === 'ready' && (
-          result.overview && result.sections ? (
-            <ReportResult
-              type={result.type as any}
-              title={result.title}
-              overview={result.overview!}
-              sections={result.sections!}
-              readingId={result.readingId}
-              shareUrl={shareUrl ?? undefined}
-              onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
-            />
-          ) : (
-            <ReportResult
-              type={result.type as any}
-              title={result.title}
-              overview={result.overview || []}
-              sections={result.sections || []}
-              readingId={result.readingId}
-              shareUrl={shareUrl ?? undefined}
-              onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
-            />
-          )
+        {result && resumeState === 'ready' && result.overview && result.sections && (
+          <ReportResult
+            type={result.type as any}
+            title={result.title}
+            overview={result.overview}
+            sections={result.sections}
+            readingId={result.readingId}
+            shareUrl={shareUrl ?? undefined}
+            onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
+          />
         )}
       </section>
     </div>

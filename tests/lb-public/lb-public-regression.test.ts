@@ -247,7 +247,7 @@ function genCall(body: any) {
 }
 
 describe('LB-PUBLIC: generation route — paid reports still require verified purchase', () => {
-  const CHART = { userId: 123, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null };
+  const CHART = { userId: 123, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null };
 
   it('generation WITHOUT verified paid purchase fails (402) — even after gate removal', async () => {
     // This is the critical regression: removing the beta allowlist must NOT
@@ -271,7 +271,7 @@ describe('LB-PUBLIC: generation route — paid reports still require verified pu
   });
 
   it('generation with unpaid purchase fails (402)', async () => {
-    getPurchase.mockResolvedValue({ userId: 123, reportType: 'loveblueprint', status: 'pending', readingId: null, reportId: null });
+    getPurchase.mockResolvedValue({ userId: 123, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'pending', readingId: null, reportId: null });
     const res = await genCall({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     const body = await res.json();
@@ -279,7 +279,7 @@ describe('LB-PUBLIC: generation route — paid reports still require verified pu
   });
 
   it('generation with wrong-user purchase fails (402)', async () => {
-    getPurchase.mockResolvedValue({ userId: 999, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null });
+    getPurchase.mockResolvedValue({ userId: 999, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null });
     const res = await genCall({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     const body = await res.json();
@@ -304,7 +304,7 @@ describe('LB-PUBLIC: generation route — paid reports still require verified pu
     });
     // Must also mock getPurchase to return a valid purchase so the
     // purchase validation passes before we reach the correlated check.
-    getPurchase.mockResolvedValue({ userId: 123, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null });
+    getPurchase.mockResolvedValue({ userId: 123, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null });
     const res = await genCall({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(200);
     const body = await res.json();

@@ -56,13 +56,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const origin = request.nextUrl.origin;
-    const { url, purchaseId, sessionId } = await createReportCheckoutSession({
+    const { url, purchaseId, sessionId, existingStatus } = await createReportCheckoutSession({
       userId: user.id,
       reportType,
       email: user.email,
-      origin,
     });
+    if (purchaseId && (existingStatus === 'paid' || existingStatus === 'consumed')) {
+      return NextResponse.json({ purchaseId, reportType, alreadyPurchased: true });
+    }
+    if (purchaseId && existingStatus === 'pending') {
+      return NextResponse.json(
+        { error: 'A checkout is already in progress for this report.', purchaseId, checkoutInProgress: true },
+        { status: 409 },
+      );
+    }
     if (!url || !purchaseId) {
       return NextResponse.json({ error: 'Could not create checkout session.' }, { status: 502 });
     }

@@ -190,7 +190,7 @@ function genCall(body: any) {
   }));
 }
 
-const CHART = { userId: 7, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null };
+const CHART = { userId: 7, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null };
 
 describe('generate route: post-LB-PUBLIC gates', () => {
   it('non-allowlisted user CAN generate Love Blueprint with a paid purchase', async () => {

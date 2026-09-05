@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
-import { getReportPurchaseBySession, getReportPurchaseByUserIdAndType, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
+import { getReportPurchaseBySession } from '@/lib/billing/reportPurchaseStore';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
+
+const MAX_BODY_BYTES = 50_000;
 
 /**
  * POST /api/billing/checkout/resume
@@ -24,9 +26,13 @@ import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
  *          401 / 400 / 403 / 404 / 402 on failure.
  */
 export async function POST(request: NextRequest) {
+  const raw = await request.text().catch(() => '');
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  }
   let body: any;
   try {
-    body = await request.json();
+    body = JSON.parse(raw);
   } catch {
     return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
   }
@@ -56,8 +62,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This purchase does not belong to your account.' }, { status: 403 });
   }
 
-  // Step 3: SKU gate. Resume must only work for loveblueprint.
-  if (purchase.reportType !== 'loveblueprint') {
+  // Step 3: exact product gate. Both type and SKU must identify Love Blueprint.
+  if (purchase.reportType !== 'loveblueprint' || purchase.sku !== 'report-loveblueprint') {
     return NextResponse.json({ error: 'This session is not for a Love Blueprint purchase.' }, { status: 403 });
   }
 
@@ -65,6 +71,9 @@ export async function POST(request: NextRequest) {
   const verified = await verifyPurchasePaidViaStripe(purchase.purchaseId);
   if (!verified) {
     return NextResponse.json({ error: 'Purchase has not been paid yet.' }, { status: 402 });
+  }
+  if (verified.reportType !== 'loveblueprint' || verified.sku !== 'report-loveblueprint') {
+    return NextResponse.json({ error: 'Verified purchase is not a Love Blueprint entitlement.' }, { status: 403 });
   }
 
   return NextResponse.json({

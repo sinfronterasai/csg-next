@@ -237,6 +237,21 @@ describe('LB-PUBLIC: checkout route — already-purchased buyer cannot create a 
     expect(createCheckout).toHaveBeenCalledTimes(1);
   });
 
+  it('returns 409 when the atomic checkout claim finds a concurrent pending checkout', async () => {
+    getPurchaseByUserIdAndType.mockResolvedValue(null);
+    createCheckout.mockResolvedValue({
+      url: null,
+      purchaseId: 'pid-pending',
+      sessionId: null,
+      existingStatus: 'pending',
+    });
+    const res = await checkoutCall({ reportType: 'loveblueprint' });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.checkoutInProgress).toBe(true);
+    expect(body.purchaseId).toBe('pid-pending');
+  });
+
   it('still rejects non-paid or non-launch types (unchanged)', async () => {
     for (const banned of ['natal', 'transit', 'relationship']) {
       getPurchaseByUserIdAndType.mockResolvedValue(null);
@@ -552,7 +567,15 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
     query.mockImplementation(async (text: string) => {
       if (text.includes('FROM natal_charts')) return { rows: [{ birth_date: '1990-06-15', birth_time: '12:00', location_name: 'Paris', unknown_time: false, latitude: 48.8, longitude: 2.3, timezone: 'Europe/Paris' }] };
       if (text.includes('report_orders o JOIN readings r') && text.includes('purchase_id')) {
-        return { rows: [{ reading_id: READING_ID, report_id: REPORT_ID, pipeline_status: 'processing' }] };
+        return { rows: [{
+          reading_id: READING_ID, user_id: 123, report_id: REPORT_ID, pipeline_status: 'approved',
+          title: 'Love Blueprint', created_at: new Date().toISOString(),
+          result: {
+            title: 'Love Blueprint', reportType: 'loveblueprint',
+            overview: [{ label: 'Venus', value: 'Pisces' }],
+            pipeline: { status: 'approved', sections: [{ id: 'howYouLove', prose: 'You connect through empathy.' }] },
+          },
+        }] };
       }
       return { rows: [] };
     });
@@ -570,9 +593,12 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
     expect(body.mode).toBe('repeat');
     expect(body.readingId).toBe(READING_ID);
     expect(body.reportId).toBe(REPORT_ID);
-    expect(body.status).toBe('processing');
-    expect(body.pending).toBe(true);
+    expect(body.status).toBe('approved');
+    expect(body.pending).toBe(false);
     expect(body.retryAvailable).toBe(false);
+    expect(body.title).toBe('Love Blueprint');
+    expect(body.overview).toEqual([{ label: 'Venus', value: 'Pisces' }]);
+    expect(body.sections).toEqual([{ heading: 'How You Love', body: 'You connect through empathy.' }]);
     // No second consumption — the store is never called because we hit the correlated fast path.
     expect(storeMod.consumeReportPurchase).not.toHaveBeenCalled();
   });
@@ -654,6 +680,26 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.error).toContain('Purchase does not match the requested report type');
+  });
+
+  it('generate rejects a Love Blueprint purchase with the wrong SKU', async () => {
+    const authMod = require('@/lib/auth');
+    const storeMod = require('@/lib/billing/reportPurchaseStore');
+    authMod.verifyToken.mockReturnValue({ userId: '123' });
+    authMod.getUserById.mockResolvedValue({ id: 123, first_name: 'Test', email: 'test@example.com', role: 'customer' });
+    storeMod.getReportPurchase.mockResolvedValue({
+      id: 1, purchaseId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', userId: 123,
+      reportType: 'loveblueprint', sku: 'report-transit', amount: 3900, currency: 'usd', status: 'consumed',
+      stripeSessionId: 'si-wrong-sku', stripePaymentId: 'pi-wrong-sku', readingId: 99, reportId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+    const generateMod = require('@/app/api/reports/generate/route');
+    const res = await generateMod.POST(new Request('http://localhost/api/reports/generate', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'loveblueprint', purchaseId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' }),
+    }));
+    expect(res.status).toBe(409);
+    expect(storeMod.consumeReportPurchase).not.toHaveBeenCalled();
   });
 
   it('generate still rejects unpaid purchase (pending status, no consumed correlation exists)', async () => {

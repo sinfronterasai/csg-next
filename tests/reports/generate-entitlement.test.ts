@@ -93,7 +93,7 @@ describe('commercial model: subscription/tarot do NOT grant reports', () => {
 });
 
 describe('purchase verification gates dispatch', () => {
-  const paidPurchase = { userId: 7, reportType: 'loveblueprint', status: 'paid', readingId: null, reportId: null };
+  const paidPurchase = { userId: 7, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null };
 
   it('matching paid purchase dispatches once (200 + 1 dispatch)', async () => {
     setup({ purchase: paidPurchase });

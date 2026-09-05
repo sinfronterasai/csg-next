@@ -4,9 +4,9 @@
 import Stripe from 'stripe';
 import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
+import { SITE_BASE_URL } from '@/lib/seo';
 import {
-  createReportPurchase, verifyAndMarkReportPurchasePaid, getReportPurchase,
-  getReportPurchaseBySession, getReportPurchaseByUserIdAndType,
+  createReportPurchase, ReportCheckoutConflictError, verifyAndMarkReportPurchasePaid, getReportPurchase,
   type ReportPurchaseRow,
 } from '@/lib/billing/reportPurchaseStore';
 
@@ -22,6 +22,30 @@ export function isPaidReportType(type: ReportType): boolean {
   return (REPORT_META[type]?.price ?? 0) > 0;
 }
 
+export function resolveReportCheckoutOrigin(): string {
+  const configured = process.env.CSG_REPORT_CHECKOUT_ORIGIN || SITE_BASE_URL;
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    throw new Error('Report checkout origin is invalid.');
+  }
+  if (url.protocol !== 'https:') throw new Error('Report checkout origin must use HTTPS.');
+  if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error('Report checkout origin must not contain credentials, a path, query, or hash.');
+  }
+  const allowlist = new Set([
+    new URL(SITE_BASE_URL).origin,
+    ...(process.env.CSG_REPORT_CHECKOUT_ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => new URL(value).origin),
+  ]);
+  if (!allowlist.has(url.origin)) throw new Error('Report checkout origin is not in the allowlist.');
+  return url.origin;
+}
+
 /**
  * Create a pending purchase record + a one-time Stripe Checkout Session.
  * Returns the hosted URL, our purchaseId, and the Stripe session id (to verify
@@ -33,8 +57,7 @@ export async function createReportCheckoutSession(opts: {
   userId: number | string;
   reportType: ReportType;
   email: string;
-  origin: string;
-}): Promise<{ url: string | null; purchaseId: string | null; sessionId: string | null }> {
+}): Promise<{ url: string | null; purchaseId: string | null; sessionId: string | null; existingStatus?: string }> {
   if (!stripe) throw new Error('Stripe is not configured (STRIPE_SECRET_KEY missing).');
   if (!isPaidReportType(opts.reportType)) {
     throw new Error(`Report type '${opts.reportType}' is free and does not require purchase.`);
@@ -42,14 +65,28 @@ export async function createReportCheckoutSession(opts: {
   const meta = REPORT_META[opts.reportType];
   const amountCents = Math.round(meta.price * 100);
   const sku = reportSku(opts.reportType);
+  const origin = resolveReportCheckoutOrigin();
 
-  const { purchaseId } = await createReportPurchase({
-    userId: opts.userId,
-    reportType: opts.reportType,
-    sku,
-    amount: amountCents,
-    currency: 'usd',
-  });
+  let purchaseId: string;
+  try {
+    ({ purchaseId } = await createReportPurchase({
+      userId: opts.userId,
+      reportType: opts.reportType,
+      sku,
+      amount: amountCents,
+      currency: 'usd',
+    }));
+  } catch (error) {
+    if (error instanceof ReportCheckoutConflictError) {
+      return {
+        url: null,
+        purchaseId: error.purchase.purchaseId,
+        sessionId: error.purchase.stripeSessionId,
+        existingStatus: error.purchase.status,
+      };
+    }
+    throw error;
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -76,13 +113,12 @@ export async function createReportCheckoutSession(opts: {
     // {CHECKOUT_SESSION_ID} in success_url with the real session id at redirect
     // time. Do NOT interpolate a JS variable here — it must be the literal token
     // Stripe recognizes.
-    success_url: `${opts.origin}/reports?purchase=success&sessionId={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${opts.origin}/reports?purchase=canceled`,
+    success_url: `${origin}/reports?purchase=success&sessionId={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/reports?purchase=canceled`,
     allow_promotion_codes: false,
   });
 
-  // Stripe expands {session_id} placeholders in success_url with the real id.
-  const url = session.url?.replace('SESSION_PLACEHOLDER', session.id) ?? null;
+  const url = session.url ?? null;
 
   // Record the session id so webhook correlation + idempotency are robust.
   await query(

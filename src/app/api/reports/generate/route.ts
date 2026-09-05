@@ -10,6 +10,7 @@ import {
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
+import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -93,9 +94,10 @@ export async function POST(request: Request) {
           { status: 402 },
         );
       }
-      if (purchase.reportType !== type) {
+      const expectedSku = `report-${type}`;
+      if (purchase.reportType !== type || purchase.sku !== expectedSku) {
         return NextResponse.json(
-          { error: 'Purchase does not match the requested report type', requiresPurchase: true },
+          { error: 'Purchase does not match the requested report type and SKU', requiresPurchase: true },
           { status: 409 },
         );
       }
@@ -105,19 +107,8 @@ export async function POST(request: Request) {
       // This is evaluated BEFORE the paid-only gate so a consumed correlated
       // report can be retrieved without a second consumption or generation.
       if (purchase.status === 'consumed') {
-        const correlated = await query(
-          `SELECT r.id AS reading_id, r.result->>'reportId' AS report_id, r.pipeline_status
-           FROM report_orders o JOIN readings r ON r.id = o.reading_id
-           WHERE o.purchase_id = $1 LIMIT 1`,
-          [purchaseId],
-        );
-        if (correlated.rows.length > 0) {
-          return buildRepeatResponse(
-            Number(correlated.rows[0].reading_id),
-            correlated.rows[0].report_id,
-            correlated.rows[0].pipeline_status,
-          );
-        }
+        const response = await findCorrelatedReport(purchaseId, Number(decoded.userId));
+        if (response) return response;
       }
 
       if (purchase.status !== 'paid') {
@@ -134,19 +125,8 @@ export async function POST(request: Request) {
       // Generate ONE reportId and thread it through the locked consume (which
       // stores it in report_orders.report_id AND the reading result JSON) and the
       // n8n dispatch. The callback later locates the reading by this exact value.
-      const correlated = await query(
-        `SELECT r.id AS reading_id, r.result->>'reportId' AS report_id, r.pipeline_status
-         FROM report_orders o JOIN readings r ON r.id = o.reading_id
-         WHERE o.purchase_id = $1 LIMIT 1`,
-        [purchaseId],
-      );
-      if (correlated.rows.length > 0) {
-        return buildRepeatResponse(
-          Number(correlated.rows[0].reading_id),
-          correlated.rows[0].report_id,
-          correlated.rows[0].pipeline_status,
-        );
-      }
+      const existingResponse = await findCorrelatedReport(purchaseId, Number(decoded.userId));
+      if (existingResponse) return existingResponse;
 
       const reportId = crypto.randomUUID();
       // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
@@ -177,7 +157,8 @@ export async function POST(request: Request) {
         reading: readingInput,
       });
       if (consumed.outcome === 'already_correlated') {
-        return buildRepeatResponse(consumed.readingId, consumed.reportId, consumed.readingStatus);
+        return (await findCorrelatedReport(purchaseId, Number(decoded.userId)))
+          ?? buildRepeatResponse(consumed.readingId, consumed.reportId, consumed.readingStatus);
       }
       if (consumed.outcome !== 'consumed') {
         return NextResponse.json(
@@ -404,5 +385,44 @@ function buildRepeatResponse(readingId: number, reportId: string, readingStatus:
     message: readingStatus === 'dispatch_failed'
       ? 'Your previous report generation failed. You can retry at no extra charge.'
       : 'Your report is already being prepared by our astrology engine.',
+  });
+}
+
+async function findCorrelatedReport(purchaseId: string, userId: number) {
+  const correlated = await query(
+    `SELECT r.id AS reading_id, r.user_id, r.title, r.question, r.category,
+            r.scope, r.period_start, r.period_end, r.price_paid, r.partner_label,
+            r.result, r.reflection, r.created_at, r.pipeline_status,
+            r.pipeline_callback_hash, o.report_id
+       FROM report_orders o JOIN readings r ON r.id = o.reading_id
+      WHERE o.purchase_id = $1 AND o.user_id = $2 LIMIT 1`,
+    [purchaseId, userId],
+  );
+  if (correlated.rows.length === 0) return null;
+  const row = correlated.rows[0];
+  const fallback = buildRepeatResponse(Number(row.reading_id), row.report_id, row.pipeline_status);
+  if (row.pipeline_status !== 'approved') return fallback;
+  const result = typeof row.result === 'string' ? JSON.parse(row.result) : (row.result ?? {});
+  const title = typeof result.title === 'string' && result.title.trim() ? result.title : row.title;
+  const overview = Array.isArray(result.overview) ? result.overview.flatMap((item: unknown) => {
+    if (!item || typeof item !== 'object') return [];
+    const value = item as Record<string, unknown>;
+    if (typeof value.label !== 'string' || !value.label.trim() || typeof value.value !== 'string') return [];
+    return [{
+      ...(typeof value.glyph === 'string' ? { glyph: value.glyph } : {}),
+      label: value.label,
+      value: value.value,
+      ...(typeof value.note === 'string' ? { note: value.note } : {}),
+    }];
+  }) : [];
+  const pipeline = result.pipeline && typeof result.pipeline === 'object'
+    ? result.pipeline as { status?: string; sections?: any[] }
+    : null;
+  const sections = pipeline?.status === 'approved' ? mapAsyncSectionsToPdf(pipeline.sections) : [];
+  if (typeof title !== 'string' || !title.trim() || overview.length === 0 || sections.length === 0) return fallback;
+  return NextResponse.json({
+    mode: 'repeat', success: true, status: 'approved', pending: false, retryAvailable: false,
+    readingId: Number(row.reading_id), reportId: row.report_id,
+    title, overview, sections,
   });
 }
