@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import ReportResult from '@/components/reports/ReportResult';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
@@ -30,6 +32,8 @@ const ALLOWED: {
 ];
 
 export default function Reports() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -44,8 +48,13 @@ export default function Reports() {
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  // Resume flow state: track whether we are waiting on a post-checkout entitlement
+  // to settle so the UI can show an honest "being prepared" message instead of an
+  // empty dossier with PDF/share actions.
+  const [resumeState, setResumeState] = useState<'idle' | 'checking' | 'pending' | 'ready' | 'failed'>('idle');
+  const [resumeMessage, setResumeMessage] = useState<string | null>(null);
 
-  async function generate(id: string) {
+  async function generate(id: string, purchaseId?: string) {
     setLoading(id);
     setError(null);
     setResult(null);
@@ -53,17 +62,36 @@ export default function Reports() {
       const res = await fetch('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: id, partner: (id === 'synastry' || id === 'composite' || id === 'couples') ? partner : undefined }),
+        body: JSON.stringify({ type: id, partner: (id === 'synastry' || id === 'composite' || id === 'couples') ? partner : undefined, purchaseId }),
       });
       const data = await res.json();
       if (!res.ok) {
         if (data.requiresBirthChart) {
           setError('Create your birth chart first, then return here.');
+        } else if (data.requiresPurchase) {
+          // Payment-required: do NOT generate; return the entitlement error so the
+          // UI can tell the buyer to complete checkout rather than spinning forever.
+          setError(data.error || 'A purchase is required to generate this report.');
+          setResumeState('failed');
         } else {
           setError(data.error || 'Generation failed');
+          setResumeState('failed');
         }
         return;
       }
+      // #7 — pending-result gate: a queued/processing pipeline response is NOT a
+      // ready dossier. Do NOT render the empty overview/sections + PDF/share actions
+      // while the report is still in flight. Show an honest "being prepared" state
+      // and keep the purchase correlation so a retry can re-attach without re-charging.
+      if (data.pending === true || data.status === 'queued' || data.status === 'processing') {
+        setResumeState('pending');
+        setResumeMessage(data.message || 'Your report is being prepared by our astrology engine. It will be ready shortly.');
+        // Keep result null so ReportResult is never rendered with empty data.
+        setResult(null);
+        return;
+      }
+      // ready/repeat with real content
+      setResumeState('ready');
       setResult({
         type: id,
         title: (data as any).title,
@@ -75,6 +103,7 @@ export default function Reports() {
       });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
+      setResumeState('failed');
     } finally {
       setLoading(null);
     }
@@ -83,6 +112,8 @@ export default function Reports() {
   async function startCheckout(id: string) {
     setCheckoutLoading(id);
     setError(null);
+    setResumeState('idle');
+    setResumeMessage(null);
     try {
       const res = await fetch('/api/billing/checkout-report', {
         method: 'POST',
@@ -96,20 +127,79 @@ export default function Reports() {
           return;
         }
         setError(data.error || 'Checkout failed');
+        setResumeState('failed');
+        setResumeMessage('Checkout could not be started. Please try again.');
         return;
       }
-      // Redirect to Stripe Checkout
+      // Stripe Checkout hosts the payment page — redirect the browser there.
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.alreadyPurchased) {
+        // Buyer already owns this report: do NOT start a second checkout. Resume
+        // the owned entitlement directly so they can generate without a new charge.
+        setResumeState('checking');
+        setResumeMessage('Continuing your owned Love Blueprint…');
+        await generate(id, data.purchaseId);
       } else {
         setError('Could not start checkout. Please try again.');
+        setResumeState('failed');
       }
     } catch (e: any) {
       setError(e?.message || 'Checkout failed');
+      setResumeState('failed');
     } finally {
       setCheckoutLoading(null);
     }
   }
+
+  // Post-checkout resume: when Stripe redirects back to /reports?purchase=success,
+  // parse the session id from the URL and verify entitlement server-side before
+  // generating. Do NOT trust client-supplied purchase id — the resume route
+  // recomputes ownership + paid status from the Stripe session.
+  useEffect(() => {
+    const purchase = searchParams.get('purchase');
+    const sessionId = searchParams.get('sessionId');
+    if (purchase === 'success' && sessionId) {
+      // Defer to the browser paint so the redirect feels instant; then verify.
+      const timer = setTimeout(async () => {
+        setResumeState('checking');
+        setResumeMessage('Verifying your purchase…');
+        try {
+          const res = await fetch('/api/billing/checkout/resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            if (res.status === 401) {
+              window.location.href = '/login';
+              return;
+            }
+            if (res.status === 402) {
+              setResumeState('failed');
+              setResumeMessage('Your purchase has not been confirmed yet. Please wait a moment and return, or contact support if this persists.');
+              return;
+            }
+            if (res.status === 403 || res.status === 404) {
+              setResumeState('failed');
+              setResumeMessage('We could not verify this purchase. Please try buying again.');
+              return;
+            }
+            setResumeState('failed');
+            setResumeMessage(data.error || 'We could not verify your purchase.');
+            return;
+          }
+          // Entitlement verified: generate the report with the server-verified purchase id.
+          await generate('loveblueprint', data.purchaseId);
+        } catch (e: any) {
+          setResumeState('failed');
+          setResumeMessage(e?.message || 'Verification failed. Please try again.');
+        }
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, router]);
 
   async function shareReport(readingId: number) {
     try {
@@ -137,7 +227,7 @@ export default function Reports() {
             Start with your free birth chart. Additional reports open as they are released.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <a href="#gateway" className="px-8 py-3 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest rounded-full uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] transform hover:-translate-y-0.5">
+            <a href="#gateway" className="px-8 py-3 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] transform hover:-translate-y-0.5">
               Start Free Birth Chart
             </a>
           </div>
@@ -222,12 +312,29 @@ export default function Reports() {
       </section>
 
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-24">
-        {error && (
+        {resumeState === 'checking' && (
+          <div className="text-center text-cosmic-100 glass-panel p-6 rounded-2xl border border-gold/20">
+            <i className="fa-solid fa-circle-check text-gold text-xl mb-3" />
+            <p className="text-sm">{resumeMessage}</p>
+          </div>
+        )}
+        {resumeState === 'pending' && (
+          <div className="text-center text-cosmic-100 glass-panel p-6 rounded-2xl border border-gold/20">
+            <i className="fa-solid fa-spinner fa-spin text-gold text-xl mb-3" />
+            <p className="text-sm">{resumeMessage}</p>
+          </div>
+        )}
+        {resumeState === 'failed' && resumeMessage && (
+          <div className="text-center text-rose-300 glass-panel p-6 rounded-2xl border border-rose-400/20">
+            {resumeMessage}
+          </div>
+        )}
+        {error && resumeState !== 'pending' && resumeState !== 'checking' && resumeState !== 'ready' && (
           <div className="text-center text-rose-300 glass-panel p-6 rounded-2xl border border-rose-400/20">
             {error}
           </div>
         )}
-        {result && (
+        {result && resumeState === 'ready' && (
           result.overview && result.sections ? (
             <ReportResult
               type={result.type as any}

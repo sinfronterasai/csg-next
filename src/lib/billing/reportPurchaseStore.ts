@@ -202,6 +202,20 @@ export async function getReportPurchaseByReadingId(readingId: number | string): 
   return rows.length ? hydrate(rows[0]) : null;
 }
 
+/**
+ * Return a paid/consumed purchase for a given user + report type, if one exists.
+ * Used by checkout to detect "already purchased" and by resume to validate ownership.
+ */
+export async function getReportPurchaseByUserIdAndType(userId: number | string, reportType: string): Promise<ReportPurchaseRow | null> {
+  const { rows } = await query(
+    `SELECT * FROM report_orders
+     WHERE user_id = $1 AND report_type = $2 AND status IN ('paid', 'consumed')
+     ORDER BY updated_at DESC LIMIT 1`,
+    [Number(userId), reportType],
+  );
+  return rows.length ? hydrate(rows[0]) : null;
+}
+
 export type ConsumeResult =
   | { outcome: 'consumed'; readingId: number; reportId: string; readingStatus: string; readingResult?: any }
   | { outcome: 'already_correlated'; readingId: number; reportId: string; readingStatus: string; readingResult?: any }

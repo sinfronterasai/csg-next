@@ -210,6 +210,7 @@ jest.mock('@/lib/reportFacts/integrate', () => ({
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),
+  getReportPurchaseByUserIdAndType: jest.fn(),
   isValidPurchaseId: jest.fn((id: any) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)),
 }));
 jest.mock('@/lib/reportPipeline', () => ({

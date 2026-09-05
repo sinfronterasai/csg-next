@@ -6,6 +6,7 @@ import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import {
   createReportPurchase, verifyAndMarkReportPurchasePaid, getReportPurchase,
+  getReportPurchaseBySession, getReportPurchaseByUserIdAndType,
   type ReportPurchaseRow,
 } from '@/lib/billing/reportPurchaseStore';
 
@@ -23,7 +24,8 @@ export function isPaidReportType(type: ReportType): boolean {
 
 /**
  * Create a pending purchase record + a one-time Stripe Checkout Session.
- * Returns the hosted URL and our purchaseId (to pass back into /api/reports/generate).
+ * Returns the hosted URL, our purchaseId, and the Stripe session id (to verify
+ * the return path server-side without trusting client ownership claims).
  * Promotion codes are DISABLED for launch: the stored amount must equal the exact
  * charged amount_total, so discounts would otherwise break webhook verification.
  */
@@ -69,17 +71,25 @@ export async function createReportCheckoutSession(opts: {
       },
     ],
     metadata: { kind: 'report', userId: String(opts.userId), reportType: opts.reportType, sku },
-    success_url: `${opts.origin}/reports?purchase=success&type=${opts.reportType}`,
+    // Carry the Stripe session id back to the app so the resume path can verify
+    // ownership + paid status server-side. Stripe expands the literal
+    // {CHECKOUT_SESSION_ID} in success_url with the real session id at redirect
+    // time. Do NOT interpolate a JS variable here — it must be the literal token
+    // Stripe recognizes.
+    success_url: `${opts.origin}/reports?purchase=success&sessionId={CHECKOUT_SESSION_ID}`,
     cancel_url: `${opts.origin}/reports?purchase=canceled`,
     allow_promotion_codes: false,
   });
+
+  // Stripe expands {session_id} placeholders in success_url with the real id.
+  const url = session.url?.replace('SESSION_PLACEHOLDER', session.id) ?? null;
 
   // Record the session id so webhook correlation + idempotency are robust.
   await query(
     `UPDATE report_orders SET stripe_session_id = $2, updated_at = now() WHERE purchase_id = $1`,
     [purchaseId, session.id],
   );
-  return { url: session.url, purchaseId, sessionId: session.id };
+  return { url, purchaseId, sessionId: session.id };
 }
 
 /**

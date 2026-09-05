@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, webApplicationJsonLd, breadcrumbJsonLd, mergeJsonLd } from "@/lib/seo/jsonld";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
@@ -29,7 +30,9 @@ export default function ReportsPage() {
   return (
     <>
       <SeoJsonLd data={jsonLd} />
-      <ReportsView />
+      <Suspense fallback={<div className="pt-36 pb-16 text-center text-cosmic-100">Loading reports…</div>}>
+        <ReportsView />
+      </Suspense>
     </>
   );
 }

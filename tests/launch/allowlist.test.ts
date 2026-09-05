@@ -77,8 +77,18 @@ jest.mock('@/lib/auth', () => ({
   verifyToken: jest.fn(() => ({ userId: '7' })),
   getUserById: jest.fn(async () => ({ id: 7, first_name: 'A', email: 'a@x.com', role: 'customer' })),
 }));
+jest.mock('@/lib/billing/reportPurchaseStore', () => ({
+  getReportPurchaseByUserIdAndType: jest.fn(),
+  getReportPurchase: jest.fn(),
+  consumeReportPurchase: jest.fn(),
+  isValidPurchaseId: jest.fn((id: any) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)),
+}));
 jest.mock('@/lib/billing/reportPurchase', () => ({
-  createReportCheckoutSession: jest.fn(async () => ({ url: 'https://pay.stripe.example/c/xyz', purchaseId: 'pid-1' })),
+  createReportCheckoutSession: jest.fn(async () => ({
+    url: 'https://pay.stripe.example/c/xyz',
+    purchaseId: 'pid-1',
+    sessionId: 'si-1',
+  })),
   isPaidReportType: (t: string) => t === 'loveblueprint',
 }));
 
@@ -146,11 +156,6 @@ describe('checkout route: post-LB-PUBLIC gates', () => {
 jest.mock('@/lib/db', () => ({ query: jest.fn() }));
 jest.mock('@/lib/reportFacts/integrate', () => ({
   buildVerifiedFactsForReport: async () => ({ ok: true, ledger: {} as any }),
-}));
-jest.mock('@/lib/billing/reportPurchaseStore', () => ({
-  getReportPurchase: jest.fn(),
-  consumeReportPurchase: jest.fn(),
-  isValidPurchaseId: jest.fn((id: any) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)),
 }));
 jest.mock('@/lib/reportPipeline', () => ({
   mapReportType: (t: string) => (t === 'transit' ? 'yearlytransit' : (t as any)),
