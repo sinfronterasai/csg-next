@@ -3365,11 +3365,11 @@
     "routeFamily": "/profile",
     "newPath": "/profile",
     "intendedStatus": 200,
-    "indexable": true,
+    "indexable": false,
     "canonicalUrl": "https://cosmicspiritguide.com/profile",
-    "disposition": "KEEP_AND_REBUILD",
+    "disposition": "NOINDEX_UTILITY",
     "redirectTarget": null,
-    "reason": "Canonical account/profile route; reachable, indexable navigation."
+    "reason": "Account/utility route; reachable, noindex, excluded from sitemap (John map: REBUILD_SAME_PATH_NOINDEX)."
   },
   {
     "oldPath": "/reports",
