@@ -1,4 +1,4 @@
-import { loadManifest, resolveLegacyRedirect, validateManifest } from "@/lib/seo/redirects";
+import { loadManifest, resolveLegacyRedirect, validateManifest, type ManifestRow } from "@/lib/seo/redirects";
 
 const KNOWN_ROUTES = [
   "/",
@@ -72,8 +72,20 @@ describe("legacy migration manifest", () => {
     expect(resolveLegacyRedirect("/moon-phase")!.target).toBe("https://cosmicspiritguide.com/transits");
     expect(resolveLegacyRedirect("/moon-reading")!.target).toBe("https://cosmicspiritguide.com/birth-chart");
     expect(resolveLegacyRedirect("/newsletter")!.target).toBe("https://cosmicspiritguide.com/blog");
-    expect(resolveLegacyRedirect("/profile")!.target).toBe("https://cosmicspiritguide.com/dashboard");
+    expect(resolveLegacyRedirect("/profile")).toBeNull();
+    expect(resolveLegacyRedirect("/dashboard")!.status).toBe(301);
+    expect(resolveLegacyRedirect("/dashboard")!.target).toBe("https://cosmicspiritguide.com/profile");
     expect(resolveLegacyRedirect("/")).toBeNull();
+  });
+
+  test("/profile is non-indexable NOINDEX_UTILITY account route", () => {
+    const rows = loadManifest();
+    const profileRow: ManifestRow | undefined = rows.find((r: ManifestRow) => r.oldPath === "/profile");
+    expect(profileRow).toBeDefined();
+    expect(profileRow!.disposition).toBe("NOINDEX_UTILITY");
+    expect(profileRow!.indexable).toBe(false);
+    expect(profileRow!.redirectTarget).toBeNull();
+    expect(profileRow!.canonicalUrl).toBe("https://cosmicspiritguide.com/profile");
   });
 
   test("no catch-all to / for unknown paths", () => {
