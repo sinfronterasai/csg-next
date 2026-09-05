@@ -99,6 +99,27 @@ export async function POST(request: Request) {
           { status: 409 },
         );
       }
+
+      // Correlated-reading fast path: if the purchase is already consumed AND
+      // correlated to an existing reading, return that reading's actual state.
+      // This is evaluated BEFORE the paid-only gate so a consumed correlated
+      // report can be retrieved without a second consumption or generation.
+      if (purchase.status === 'consumed') {
+        const correlated = await query(
+          `SELECT r.id AS reading_id, r.result->>'reportId' AS report_id, r.pipeline_status
+           FROM report_orders o JOIN readings r ON r.id = o.reading_id
+           WHERE o.purchase_id = $1 LIMIT 1`,
+          [purchaseId],
+        );
+        if (correlated.rows.length > 0) {
+          return buildRepeatResponse(
+            Number(correlated.rows[0].reading_id),
+            correlated.rows[0].report_id,
+            correlated.rows[0].pipeline_status,
+          );
+        }
+      }
+
       if (purchase.status !== 'paid') {
         return NextResponse.json(
           { error: 'Purchase is not paid', requiresPurchase: true, purchaseStatus: purchase.status },
