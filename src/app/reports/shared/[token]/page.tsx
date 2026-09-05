@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { ReportType } from '@/lib/reportEngine';
 import ReportResult from '@/components/reports/ReportResult';
 import { getReadingByShareToken } from '@/lib/profile/store';
+import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +20,15 @@ export default async function SharedReportPage({
 
   const result = (rec.result ?? {}) as {
     title?: string; overview?: { glyph?: string; label: string; value: string; note?: string }[];
-    sections?: { heading: string; body: string }[]; reportType?: ReportType;
+    reportType?: ReportType;
+    pipeline?: { status?: string; sections?: any[] };
   };
+  const sections = result.pipeline?.status === 'approved'
+    ? mapAsyncSectionsToPdf(result.pipeline.sections)
+    : [];
+  // Defense in depth for tokens minted before the current share gate: never
+  // render a rejected, pending, or empty report even if it has a valid token.
+  if (rec.pipelineStatus !== 'approved' || sections.length === 0) notFound();
 
   return (
     <section className="py-24 relative z-10">
@@ -33,7 +41,7 @@ export default async function SharedReportPage({
           type={result.reportType ?? 'natal'}
           title={result.title ?? rec.title ?? undefined}
           overview={result.overview ?? []}
-          sections={result.sections ?? []}
+          sections={sections}
         />
         <div className="text-center mt-10">
           <Link
