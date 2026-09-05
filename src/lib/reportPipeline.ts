@@ -158,47 +158,158 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
   }
 }
 
-// --- R3: editor decision ------------------------------------------------------
+// --- R6.5: private editor escalation -----------------------------------------
 
-export interface EditorDecisionInput {
+export type EditorAction = 'approve' | 'reject' | 'resubmit' | 'regenerate';
+export interface SafeReportSection { id: string; prose: string; factsCited: string[] }
+export type QualityIssueCategory = 'factual' | 'structure' | 'specificity' | 'narrative' | 'tone' | 'duplication' | 'length' | 'safety';
+export interface QualityRecoveryArtifactV1 {
+  version: 1;
+  candidateHash: string;
+  attemptCount: number;
+  failedSections: string[];
+  issues: Array<{ section: string; category: QualityIssueCategory; repairable: boolean; problem: string; requiredFix: string; factIds: string[] }>;
+  hardGates: { factual: boolean; banned: boolean; specific: boolean; dup: boolean; tone: boolean; structure: boolean; length: boolean; ageConsent: boolean };
+  scores: { precision: number; insightDensity: number; voiceFit: number; empowerment: number; personalization: number; clarity: number; cohesion: number; narrativeDepth: number };
+  judgeSchemaValid: boolean;
+  hardGatesPassed: boolean;
+}
+
+const ARTIFACT_KEYS = ['version','candidateHash','attemptCount','failedSections','issues','hardGates','scores','judgeSchemaValid','hardGatesPassed'].sort();
+const GATE_KEYS = ['factual','banned','specific','dup','tone','structure','length','ageConsent'].sort();
+const SCORE_KEYS = ['precision','insightDensity','voiceFit','empowerment','personalization','clarity','cohesion','narrativeDepth'].sort();
+const ISSUE_KEYS = ['section','category','repairable','problem','requiredFix','factIds'].sort();
+const ISSUE_CATEGORIES = new Set<QualityIssueCategory>(['factual','structure','specificity','narrative','tone','duplication','length','safety']);
+const SHA256_RE = /^[a-f0-9]{64}$/;
+
+function exactKeys(value: Record<string, unknown>, expected: string[]): boolean {
+  return Object.keys(value).sort().join('|') === expected.join('|');
+}
+function boundedString(value: unknown, min: number, max: number): value is string {
+  return typeof value === 'string' && value.length >= min && value.length <= max;
+}
+function uniqueBoundedStrings(value: unknown, maxLength: number): value is string[] {
+  return Array.isArray(value) && value.every((v) => boundedString(v, 1, maxLength)) && new Set(value).size === value.length;
+}
+
+/** Validate the locked quality-recovery-artifact.v1 schema without permissive coercion. */
+export function validateQualityRecoveryArtifact(value: unknown): QualityRecoveryArtifactV1 | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const a = value as Record<string, any>;
+  if (!exactKeys(a, ARTIFACT_KEYS) || a.version !== 1 || !SHA256_RE.test(a.candidateHash)) return null;
+  if (!Number.isInteger(a.attemptCount) || a.attemptCount < 0 || a.attemptCount > 2) return null;
+  if (!uniqueBoundedStrings(a.failedSections, 120)) return null;
+  if (typeof a.judgeSchemaValid !== 'boolean' || typeof a.hardGatesPassed !== 'boolean') return null;
+  if (!a.hardGates || typeof a.hardGates !== 'object' || Array.isArray(a.hardGates) || !exactKeys(a.hardGates, GATE_KEYS)) return null;
+  if (!GATE_KEYS.every((k) => typeof a.hardGates[k] === 'boolean')) return null;
+  if (!a.scores || typeof a.scores !== 'object' || Array.isArray(a.scores) || !exactKeys(a.scores, SCORE_KEYS)) return null;
+  if (!SCORE_KEYS.every((k) => Number.isInteger(a.scores[k]) && a.scores[k] >= 1 && a.scores[k] <= 5)) return null;
+  if (!Array.isArray(a.issues)) return null;
+  for (const raw of a.issues) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || !exactKeys(raw, ISSUE_KEYS)) return null;
+    if (!boundedString(raw.section, 1, 120) || !ISSUE_CATEGORIES.has(raw.category) || typeof raw.repairable !== 'boolean') return null;
+    if (!boundedString(raw.problem, 1, 500) || !boundedString(raw.requiredFix, 1, 500) || !uniqueBoundedStrings(raw.factIds, 180)) return null;
+  }
+  return a as QualityRecoveryArtifactV1;
+}
+
+export function normalizeSafeReportSections(sections: unknown): SafeReportSection[] | null {
+  if (!Array.isArray(sections) || sections.length === 0 || sections.length > 100) return null;
+  const out: SafeReportSection[] = [];
+  const ids = new Set<string>();
+  for (const raw of sections) {
+    if (!raw || typeof raw !== 'object') return null;
+    const s = raw as Record<string, unknown>;
+    if (!boundedString(s.id, 1, 120) || !boundedString(s.prose, 1, 20_000) || ids.has(s.id)) return null;
+    const facts = s.factsCited === undefined ? [] : s.factsCited;
+    if (!uniqueBoundedStrings(facts, 180) || facts.length > 100) return null;
+    ids.add(s.id);
+    out.push({ id: s.id, prose: s.prose, factsCited: facts });
+  }
+  return out;
+}
+
+/** Hash only the exact judged candidate section contract, preserving section order. */
+export function hashReportSections(sections: unknown): string {
+  const safe = normalizeSafeReportSections(sections);
+  if (!safe) return '';
+  return crypto.createHash('sha256').update(JSON.stringify(safe)).digest('hex');
+}
+
+export function qualityArtifactProvesPass(value: unknown, tier: PipelineTier, sections: unknown): boolean {
+  const a = validateQualityRecoveryArtifact(value);
+  if (!a || !a.judgeSchemaValid || !a.hardGatesPassed || a.failedSections.length !== 0) return false;
+  if (!Object.values(a.hardGates).every((v) => v === true)) return false;
+  const threshold = tier === 'paid' ? 4 : 3;
+  if (!Object.values(a.scores).every((v) => v >= threshold)) return false;
+  const candidateHash = hashReportSections(sections);
+  return candidateHash.length === 64 && crypto.timingSafeEqual(Buffer.from(candidateHash), Buffer.from(a.candidateHash));
+}
+
+export interface EditorActionInput {
   reportId: string;
-  decision: 'approved' | 'rejected';
-  editorNote?: string;
+  reportType: 'natal' | 'loveblueprint';
+  tier: PipelineTier;
+  action: EditorAction;
   reviewer: string;
+  editorNote?: string;
+  currentSections: SafeReportSection[];
+  correctedSections?: SafeReportSection[];
+  regenerateSectionIds?: string[];
+  qualityArtifact: QualityRecoveryArtifactV1;
+  verifiedFacts: Record<string, unknown>;
   callbackUrl?: string;
 }
 
-export async function sendEditorDecision(
-  input: EditorDecisionInput,
-): Promise<{ ok: boolean; status: number }> {
+export function editorActionIdempotencyKey(input: EditorActionInput): string {
+  return crypto.createHash('sha256').update(JSON.stringify({
+    reportId: input.reportId, reportType: input.reportType, tier: input.tier, action: input.action,
+    reviewer: input.reviewer, editorNote: input.editorNote ?? '', currentSections: input.currentSections,
+    correctedSections: input.correctedSections ?? [], regenerateSectionIds: input.regenerateSectionIds ?? [],
+    qualityArtifact: input.qualityArtifact,
+  })).digest('hex');
+}
+
+export async function sendEditorAction(input: EditorActionInput): Promise<{ ok: boolean; status: number }> {
   const webhookUrl = requireEnv('N8N_EDITOR_WEBHOOK_URL');
   const token = requireEnv('REPORT_PIPELINE_TOKEN');
   const callbackUrl = input.callbackUrl ?? requireEnv('CSG_REPORT_CALLBACK_URL');
-
   const payload = {
-    reportId: input.reportId,
-    decision: input.decision,
-    editorNote: input.editorNote ?? '',
-    reviewer: input.reviewer,
-    callbackUrl,
+    reportId: input.reportId, reportType: input.reportType, tier: input.tier, action: input.action,
+    reviewer: input.reviewer, editorNote: input.editorNote ?? '', currentSections: input.currentSections,
+    correctedSections: input.correctedSections ?? [], regenerateSectionIds: input.regenerateSectionIds ?? [],
+    qualityArtifact: input.qualityArtifact, verifiedFacts: input.verifiedFacts, callbackUrl,
+    idempotencyKey: editorActionIdempotencyKey(input),
   };
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetchImpl(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload), signal: controller.signal,
     });
     return { ok: res.ok, status: res.status };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Compatibility shim for the pre-R6.5 paid-only caller/tests.
+export interface EditorDecisionInput { reportId: string; decision: 'approved' | 'rejected'; editorNote?: string; reviewer: string; callbackUrl?: string }
+export async function sendEditorDecision(input: EditorDecisionInput): Promise<{ ok: boolean; status: number }> {
+  const webhookUrl = requireEnv('N8N_EDITOR_WEBHOOK_URL');
+  const token = requireEnv('REPORT_PIPELINE_TOKEN');
+  const callbackUrl = input.callbackUrl ?? requireEnv('CSG_REPORT_CALLBACK_URL');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetchImpl(webhookUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...input, callbackUrl }), signal: controller.signal,
+    });
+    return { ok: res.ok, status: res.status };
+  } finally { clearTimeout(timeout); }
 }
 
 // --- Status helpers (shared state machine) ------------------------------------
