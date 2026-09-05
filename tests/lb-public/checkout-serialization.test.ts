@@ -18,6 +18,7 @@ describe('report checkout claim serialization', () => {
       sql.push(text);
       if (text === 'BEGIN' || text === 'COMMIT' || text === 'ROLLBACK') return { rows: [], rowCount: null };
       if (text.includes('pg_advisory_xact_lock')) return { rows: [], rowCount: 1 };
+      if (text.startsWith("UPDATE report_orders SET status = 'failed'")) return { rows: [], rowCount: 0 };
       if (text.includes('FROM report_orders') && text.includes("status IN ('pending', 'paid', 'consumed')")) {
         return { rows: active ? [active] : [], rowCount: active ? 1 : 0 };
       }
@@ -40,6 +41,7 @@ describe('report checkout claim serialization', () => {
       .rejects.toBeInstanceOf(ReportCheckoutConflictError);
 
     expect(sql.filter((text) => text.includes('pg_advisory_xact_lock'))).toHaveLength(2);
+    expect(sql.some((text) => text.includes("status = 'failed'") && text.includes("INTERVAL '25 hours'"))).toBe(true);
     expect(sql.filter((text) => text.startsWith('INSERT INTO report_orders'))).toHaveLength(1);
   });
 });

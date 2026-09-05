@@ -100,7 +100,7 @@ export default function Reports() {
         return;
       }
       const hasApprovedContent = typeof data.title === 'string' && data.title.trim().length > 0 &&
-        Array.isArray(data.overview) && data.overview.length > 0 &&
+        Array.isArray(data.overview) &&
         Array.isArray(data.sections) && data.sections.length > 0;
       if (!hasApprovedContent) {
         setResumeState('failed');

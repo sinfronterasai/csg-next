@@ -61,4 +61,13 @@ describe('ReportsView paid-report delivery gate', () => {
     expect(screen.getByText(/your celestial dossier/i)).toBeTruthy();
     expect(screen.getByText(/download pdf/i)).toBeTruthy();
   });
+
+  it('renders approved sections even when the optional overview is empty', async () => {
+    await resumeOwnedReport({
+      success: true, mode: 'repeat', status: 'approved', title: 'Love Blueprint', overview: [],
+      sections: [{ heading: 'How You Love', body: 'You connect through empathy.' }],
+    });
+    expect(screen.getByText(/your celestial dossier/i)).toBeTruthy();
+    expect(screen.getByText(/how you love/i)).toBeTruthy();
+  });
 });

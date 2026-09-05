@@ -419,7 +419,7 @@ async function findCorrelatedReport(purchaseId: string, userId: number) {
     ? result.pipeline as { status?: string; sections?: any[] }
     : null;
   const sections = pipeline?.status === 'approved' ? mapAsyncSectionsToPdf(pipeline.sections) : [];
-  if (typeof title !== 'string' || !title.trim() || overview.length === 0 || sections.length === 0) return fallback;
+  if (typeof title !== 'string' || !title.trim() || sections.length === 0) return fallback;
   return NextResponse.json({
     mode: 'repeat', success: true, status: 'approved', pending: false, retryAvailable: false,
     readingId: Number(row.reading_id), reportId: row.report_id,

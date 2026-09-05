@@ -25,6 +25,13 @@ describe('public report sharing', () => {
     const token = await mintShareToken(42, 7);
     expect(token).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     expect(mockQuery.mock.calls[0][1]).toEqual([42, 7]);
+    const sql = String(mockQuery.mock.calls[0][0]);
+    expect(sql).toContain("type = 'report'");
+    expect(sql).toContain("pipeline_status = 'approved'");
+    expect(sql).toContain("result->'pipeline'->>'status' = 'approved'");
+    expect(sql).toContain('jsonb_array_length');
+    expect(sql).toContain('jsonb_array_elements');
+    expect(sql).toContain("length(trim(COALESCE(section->>'prose', ''))) > 0");
   });
 
   it('mintShareToken returns null when the row is not owned by the user', async () => {

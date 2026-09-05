@@ -91,6 +91,15 @@ export async function createReportPurchase(input: {
     try {
       const lockKey = `${Number(input.userId)}:${input.reportType}`;
       await tx('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [lockKey]);
+      // Stripe Checkout sessions expire after 24 hours by default. Retire only
+      // older pending rows so an interrupted request can safely claim a new order
+      // without leaving a still-payable session competing with it.
+      await tx(
+        `UPDATE report_orders SET status = 'failed', updated_at = now()
+         WHERE user_id = $1 AND report_type = $2 AND status = 'pending'
+           AND updated_at < now() - INTERVAL '25 hours'`,
+        [Number(input.userId), input.reportType],
+      );
       const existing = await tx(
         `SELECT * FROM report_orders
          WHERE user_id = $1 AND report_type = $2 AND status IN ('pending', 'paid', 'consumed')

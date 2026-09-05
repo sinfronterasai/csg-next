@@ -35,6 +35,24 @@ describe('Love Blueprint resume request hardening', () => {
     expect(verifyPaid).not.toHaveBeenCalled();
   });
 
+  it('cancels a streaming body as soon as the byte cap is crossed', async () => {
+    const cancel = jest.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('x'.repeat(30_000)));
+        controller.enqueue(new TextEncoder().encode('x'.repeat(30_001)));
+      },
+      cancel,
+    });
+    const request = new NextRequest('http://localhost/api/billing/checkout/resume', {
+      method: 'POST', body: stream as any, duplex: 'half',
+    } as any);
+    const res = await post(request);
+    expect(res.status).toBe(413);
+    expect(cancel).toHaveBeenCalled();
+    expect(getBySession).not.toHaveBeenCalled();
+  });
+
   it('requires the exact Love Blueprint SKU as well as report type', async () => {
     getBySession.mockResolvedValue({ ...validPurchase, sku: 'report-transit' });
     const res = await call(JSON.stringify({ sessionId: 'si_1' }));

@@ -67,7 +67,7 @@ export async function createReportCheckoutSession(opts: {
   const sku = reportSku(opts.reportType);
   const origin = resolveReportCheckoutOrigin();
 
-  let purchaseId: string;
+  let purchaseId!: string;
   try {
     ({ purchaseId } = await createReportPurchase({
       userId: opts.userId,
@@ -77,7 +77,13 @@ export async function createReportCheckoutSession(opts: {
       currency: 'usd',
     }));
   } catch (error) {
-    if (error instanceof ReportCheckoutConflictError) {
+    if (!(error instanceof ReportCheckoutConflictError)) throw error;
+    if (error.purchase.status === 'pending') {
+      // Resume an interrupted/in-flight checkout using the same purchase id.
+      // Stripe's idempotency key guarantees concurrent callers receive the
+      // same Checkout Session rather than creating multiple payable sessions.
+      purchaseId = error.purchase.purchaseId;
+    } else {
       return {
         url: null,
         purchaseId: error.purchase.purchaseId,
@@ -85,7 +91,6 @@ export async function createReportCheckoutSession(opts: {
         existingStatus: error.purchase.status,
       };
     }
-    throw error;
   }
 
   const session = await stripe.checkout.sessions.create({
@@ -116,7 +121,7 @@ export async function createReportCheckoutSession(opts: {
     success_url: `${origin}/reports?purchase=success&sessionId={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/reports?purchase=canceled`,
     allow_promotion_codes: false,
-  });
+  }, { idempotencyKey: `report-checkout-${purchaseId}` });
 
   const url = session.url ?? null;
 

@@ -195,6 +195,15 @@ export async function mintShareToken(
     `UPDATE readings
         SET share_token = COALESCE(share_token, gen_random_uuid())
       WHERE id = $1 AND user_id = $2
+        AND type = 'report'
+        AND pipeline_status = 'approved'
+        AND result->'pipeline'->>'status' = 'approved'
+        AND jsonb_typeof(result->'pipeline'->'sections') = 'array'
+        AND jsonb_array_length(result->'pipeline'->'sections') > 0
+        AND EXISTS (
+          SELECT 1 FROM jsonb_array_elements(result->'pipeline'->'sections') AS section
+          WHERE length(trim(COALESCE(section->>'prose', ''))) > 0
+        )
      RETURNING share_token`,
     [id, userId],
   );

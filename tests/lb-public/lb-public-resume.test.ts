@@ -572,7 +572,6 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
           title: 'Love Blueprint', created_at: new Date().toISOString(),
           result: {
             title: 'Love Blueprint', reportType: 'loveblueprint',
-            overview: [{ label: 'Venus', value: 'Pisces' }],
             pipeline: { status: 'approved', sections: [{ id: 'howYouLove', prose: 'You connect through empathy.' }] },
           },
         }] };
@@ -597,7 +596,7 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
     expect(body.pending).toBe(false);
     expect(body.retryAvailable).toBe(false);
     expect(body.title).toBe('Love Blueprint');
-    expect(body.overview).toEqual([{ label: 'Venus', value: 'Pisces' }]);
+    expect(body.overview).toEqual([]);
     expect(body.sections).toEqual([{ heading: 'How You Love', body: 'You connect through empathy.' }]);
     // No second consumption — the store is never called because we hit the correlated fast path.
     expect(storeMod.consumeReportPurchase).not.toHaveBeenCalled();
