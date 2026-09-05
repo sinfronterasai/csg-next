@@ -68,7 +68,14 @@ export function isValidSkuPair(reportType: string, sku: string): boolean {
   return sku === `report-${reportType}`;
 }
 
-/** Create a pending purchase row. Returns the app-generated purchaseId. */
+export class ReportCheckoutConflictError extends Error {
+  constructor(public readonly purchase: ReportPurchaseRow) {
+    super('An active checkout or entitlement already exists for this report.');
+    this.name = 'ReportCheckoutConflictError';
+  }
+}
+
+/** Create one active pending purchase per user/product under a database lock. */
 export async function createReportPurchase(input: {
   userId: number | string;
   reportType: string;
@@ -79,13 +86,43 @@ export async function createReportPurchase(input: {
   if (!isValidSkuPair(input.reportType, input.sku)) {
     throw new Error(`Invalid report_type/sku pairing: ${input.reportType}/${input.sku}`);
   }
-  const { rows } = await query(
-    `INSERT INTO report_orders (user_id, report_type, sku, amount, currency, status)
-     VALUES ($1, $2, $3, $4, $5, 'pending')
-     RETURNING purchase_id`,
-    [Number(input.userId), input.reportType, input.sku, input.amount, input.currency ?? 'usd'],
-  );
-  return { purchaseId: rows[0].purchase_id };
+  const result = await transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const lockKey = `${Number(input.userId)}:${input.reportType}`;
+      await tx('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [lockKey]);
+      // Stripe Checkout sessions expire after 24 hours by default. Retire only
+      // older pending rows so an interrupted request can safely claim a new order
+      // without leaving a still-payable session competing with it.
+      await tx(
+        `UPDATE report_orders SET status = 'failed', updated_at = now()
+         WHERE user_id = $1 AND report_type = $2 AND status = 'pending'
+           AND updated_at < now() - INTERVAL '25 hours'`,
+        [Number(input.userId), input.reportType],
+      );
+      const existing = await tx(
+        `SELECT * FROM report_orders
+         WHERE user_id = $1 AND report_type = $2 AND status IN ('pending', 'paid', 'consumed')
+         ORDER BY updated_at DESC LIMIT 1`,
+        [Number(input.userId), input.reportType],
+      );
+      if (existing.rows.length > 0) {
+        return finalize(tx, { existing: hydrate(existing.rows[0]) });
+      }
+      const inserted = await tx(
+        `INSERT INTO report_orders (user_id, report_type, sku, amount, currency, status)
+         VALUES ($1, $2, $3, $4, $5, 'pending')
+         RETURNING *`,
+        [Number(input.userId), input.reportType, input.sku, input.amount, input.currency ?? 'usd'],
+      );
+      return finalize(tx, { purchaseId: inserted.rows[0].purchase_id });
+    } catch (err) {
+      await tx('ROLLBACK');
+      throw err;
+    }
+  });
+  if (result.existing) throw new ReportCheckoutConflictError(result.existing);
+  return { purchaseId: result.purchaseId };
 }
 
 /**
@@ -198,6 +235,20 @@ export async function getReportPurchaseByReadingId(readingId: number | string): 
   const { rows } = await query(
     `SELECT * FROM report_orders WHERE reading_id = $1`,
     [Number(readingId)],
+  );
+  return rows.length ? hydrate(rows[0]) : null;
+}
+
+/**
+ * Return a paid/consumed purchase for a given user + report type, if one exists.
+ * Used by checkout to detect "already purchased" and by resume to validate ownership.
+ */
+export async function getReportPurchaseByUserIdAndType(userId: number | string, reportType: string): Promise<ReportPurchaseRow | null> {
+  const { rows } = await query(
+    `SELECT * FROM report_orders
+     WHERE user_id = $1 AND report_type = $2 AND status IN ('paid', 'consumed')
+     ORDER BY updated_at DESC LIMIT 1`,
+    [Number(userId), reportType],
   );
   return rows.length ? hydrate(rows[0]) : null;
 }

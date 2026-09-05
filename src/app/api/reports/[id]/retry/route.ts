@@ -67,9 +67,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const type = r.result?.reportType as ReportType;
     const launchGate = gateGeneration(type, decoded.userId);
     if (!launchGate.allowed) {
-      if (launchGate.code === 'beta_not_allowlisted') {
-        return NextResponse.json({ error: 'Report beta access required' }, { status: 403 });
-      }
       return NextResponse.json({ error: 'Report type not available' }, { status: 404 });
     }
 

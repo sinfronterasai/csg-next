@@ -45,7 +45,7 @@ function setupRepeat() {
   dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
   consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
-  getPurchase.mockResolvedValue({ id: 'p-1', status: 'paid', userId: 7, reportType: 'loveblueprint', price: '4.99', created_at: '2026-01-01' });
+  getPurchase.mockResolvedValue({ id: 'p-1', status: 'paid', userId: 7, reportType: 'loveblueprint', sku: 'report-loveblueprint', price: '4.99', created_at: '2026-01-01' });
   consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
   query = require('@/lib/db').query;
   // The correlation SELECT returns an existing reading => repeat fast path.
@@ -78,7 +78,7 @@ describe('R2-B8 — repeat fast path (no build/consume/dispatch)', () => {
     dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
     getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
     consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
-    getPurchase.mockResolvedValue({ id: 'p-2', status: 'paid', userId: 7, reportType: 'loveblueprint', price: '4.99', created_at: '2026-01-01' });
+    getPurchase.mockResolvedValue({ id: 'p-2', status: 'paid', userId: 7, reportType: 'loveblueprint', sku: 'report-loveblueprint', price: '4.99', created_at: '2026-01-01' });
     consume.mockResolvedValue({ outcome: 'consumed', readingId: 99, reportId: 'rid-2', readingStatus: 'queued' });
     query = require('@/lib/db').query;
     query.mockImplementation(async (text: string) => {

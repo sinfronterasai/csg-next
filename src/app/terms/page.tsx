@@ -63,7 +63,7 @@ export default function TermsPage() {
         <h2 className="text-xl font-medium">4. Products and purchases</h2>
         <p className="mt-2">
           The <strong>free Natal chart</strong> is available to every visitor. The{" "}
-          <strong>Love Blueprint</strong> is offered during beta by invite. Other premium reports are
+          <strong>Love Blueprint</strong> is a one-time $39 purchase. Other premium reports are
           introduced over time and shown on the site; the catalog may change.
         </p>
         <p className="mt-2">
