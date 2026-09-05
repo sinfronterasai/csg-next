@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
     title: "Reports & Products | Cosmic Spirit Guide",
     description:
-      "Explore Cosmic Spirit Guide reports: your free Birth Chart, invite-only Love Blueprint, and premium Tarot and transit insights. Available products only.",
+      "Explore Cosmic Spirit Guide reports: your free Birth Chart, the Love Blueprint — your Venus, Mars and Moon signature, and other premium insights as they launch. Available products only.",
     path: "/reports",
     type: "website",
     jsonLd: mergeJsonLd(
