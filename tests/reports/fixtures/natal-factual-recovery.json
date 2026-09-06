@@ -1,0 +1,17 @@
+{
+  "firstJudge": {
+    "sectionCards": [
+      {
+        "section": "cover.thesis",
+        "hardGates": { "factual": false },
+        "notes": "Sun sign does not match authoritative fact"
+      }
+    ]
+  },
+  "authoritativeFacts": {
+    "natal.sun.position": { "display": "Sun 12.34 Aries", "sign": "Aries", "degree": 12.34 }
+  },
+  "repair": { "attempt": 2, "usesExactJudgeFeedback": true, "usesAuthoritativeFacts": true },
+  "rejudge": { "pass": { "status": "approved" }, "fail": { "status": "rejected" } },
+  "expected": { "revisionCount": 1, "rejudgeCount": 1, "loops": 0 }
+}
