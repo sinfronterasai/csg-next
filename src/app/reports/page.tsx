@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import ReportResult from '@/components/reports/ReportResult';
+import ReportProgress from '@/components/reports/ReportProgress';
 
 // Layer-1 "what's inside" bullets are presentation copy that mirrors what the
 // deterministic engine actually computes (no fabricated data claims). Prices
@@ -120,6 +121,7 @@ export default function Reports() {
     overview?: { glyph?: string; label: string; value: string; note?: string }[];
     sections?: { heading: string; body: string }[];
     readingId?: number;
+    status?: string;
     shareUrl?: string | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,7 @@ export default function Reports() {
         overview: (data as any).overview,
         sections: (data as any).sections,
         readingId: data.readingId,
+        status: data.status,
         shareUrl: data.shareUrl ?? null,
       });
     } catch (e: any) {
@@ -414,7 +417,9 @@ export default function Reports() {
         )}
 
         {result && (
-          result.overview && result.sections ? (
+          result.status === 'queued' && result.readingId ? (
+            <ReportProgress readingId={result.readingId} type={result.type} />
+          ) : result.overview && result.sections ? (
             <ReportResult
               type={result.type as any}
               title={result.title}
