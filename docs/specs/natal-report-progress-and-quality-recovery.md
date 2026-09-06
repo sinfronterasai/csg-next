@@ -24,21 +24,20 @@ States:
 1. `queued` - "Your chart is in the constellation room. Preparing your verified facts."
 2. `generating` - "Writing your personalized interpretation." Show a determinate-looking staged progress bar (not fake percentage claims) and a current-step label.
 3. `checking` - "Checking every claim against your chart." 
-4. `needs_editor` - "Your report passed automated checks and is in final review."
-5. `approved` - replace the progress card in place with the complete readable report and PDF action.
-6. `rejected` - do not call it a completed report. Show the existing quality-protection message plus a retry action. This state must preserve the record and stay auditable.
+4. `approved` - replace the progress card in place with the complete readable report and PDF action.
+5. `rejected` - do not call it a completed report. Show the existing quality-protection message plus a retry action. This state must preserve the record and stay auditable.
 
-Poll the existing authenticated report endpoint while the page is open. Stop polling only for terminal states (`approved`, `needs_editor`, `rejected`) or an unrecoverable fetch error. On `approved`, refetch/render the canonical callback-saved sections in the same page without requiring a manual refresh.
+Poll the existing authenticated report endpoint while the page is open. Stop polling only for terminal states (`approved`, `rejected`) or an unrecoverable fetch error. On `approved`, refetch/render the canonical callback-saved sections in the same page without requiring a manual refresh.
 
 ### 2. Retry must be bounded and recoverable
 
 `Retry Report` must create a new, correlated attempt (or explicitly reset the existing row only if idempotency and audit history are preserved), then return the customer to the same report card in `queued` state.
 
-A quality rejection should trigger at most one automated repair attempt before terminal rejection/appropriate human-editor escalation. Never loop indefinitely and never deliver a report that failed factual fidelity.
+A quality rejection should trigger at most one automated repair attempt before terminal rejection. Never loop indefinitely and never deliver a report that failed factual fidelity. Human investigation is reserved for a demonstrated one-off edge case, not a normal delivery gate.
 
 ### 3. Close the factual-revision gap in n8n
 
-The existing natal child only revises after deterministic lint failure. Execution 87 proves the judge can find a factual error after deterministic lint passes. Route judge verdict `reject` caused by factual-fidelity failure to ONE bounded revision pass using the exact judge feedback, then judge it again. If it still fails, callback `rejected`; for paid reports use the required editor escalation path.
+The existing natal child only revises after deterministic lint failure. Execution 87 proves the judge can find a factual error after deterministic lint passes. Route judge verdict `reject` caused by factual-fidelity failure to ONE bounded revision pass using the exact judge feedback, then judge it again. If it still fails, callback `rejected` for every tier.
 
 The revision prompt must require that every prose claim correspond to a `factsCited` ID in the provided ledger and must not permit a placement/aspect merely because it sounds plausible.
 
@@ -48,7 +47,7 @@ Automated regression tests (test-first):
 
 1. A callback with `approved` stores sections and changes a currently visible `/reports` card from progress state to rendered report without reload.
 2. A report dispatched from `/reports` displays an accessible progress indicator and staged status text while polling a queued/generating record.
-3. Polling stops on each terminal status; it does not continue after `approved`, `needs_editor`, or `rejected`.
+3. Polling stops on each terminal status; it does not continue after `approved` or `rejected`.
 4. A rejected callback never renders report prose and offers retry.
 5. Retry creates/retains auditable correlation and returns the same UI card to queued progress state.
 6. Natal n8n test fixture: first judge factual reject -> exactly one revision -> re-judge; a second factual reject remains rejected. Assert no `approved` callback for either failed factual case.
