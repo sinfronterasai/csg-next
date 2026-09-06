@@ -6,7 +6,6 @@
 // legacy result.text field. Rendering is gated by pipeline status:
 //   approved      -> every non-empty section in order, plus a Download PDF action
 //   queued/pending-> "being prepared" placeholder, no prose/PDF
-//   needs_editor  -> editor-review placeholder, not customer-deliverable, no PDF
 //   rejected      -> non-sensitive failure/retry message (no judge data / reasons)
 // factsCited, judge internals, callback tokens, and reject reasons are never shown.
 
@@ -35,15 +34,18 @@ function StatusBody({ report }: { report: PublicReport }) {
     );
   }
 
-  if (status === 'needs_editor') {
+  // queued / pending / processing; unknown legacy states fail closed.
+  if (status !== 'queued' && status !== 'pending' && status !== 'processing') {
     return (
-      <p className="text-cosmic-200 leading-relaxed">
-        Your report finished its automated checks and is in final review. We’ll notify you the moment it’s ready.
-      </p>
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          We couldn’t finish this report to our quality bar. You can retry from the reports page, or contact support and we’ll make it right.
+        </p>
+        <Link href="/reports" className="mt-4 inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-6 py-2.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:opacity-90 transition">Retry Report</Link>
+      </div>
     );
   }
 
-  // queued / pending / unknown
   return (
     <p className="text-cosmic-200 leading-relaxed">
       Your report is being prepared. We’ll notify you when it’s ready.

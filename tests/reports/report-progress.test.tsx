@@ -82,8 +82,6 @@ describe("ReportProgress", () => {
     await advancePoll();
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
-});
-
 
   it("fails closed for a legacy needs_editor payload without human-review UX or report prose", async () => {
     jest.useFakeTimers();
@@ -99,3 +97,4 @@ describe("ReportProgress", () => {
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+});

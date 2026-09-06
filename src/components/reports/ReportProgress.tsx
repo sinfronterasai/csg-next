@@ -6,7 +6,7 @@ import { mapAsyncSectionsToPdf, type AsyncSection } from "@/lib/reportPdfAdapter
 import type { ReportType } from "@/lib/reportEngine";
 
 type InFlightStatus = "queued" | "processing" | "checking";
-type TerminalStatus = "approved" | "needs_editor" | "rejected" | "dispatch_failed";
+type TerminalStatus = "approved" | "rejected";
 type ReportStatus = InFlightStatus | TerminalStatus;
 
 interface OverviewRow {
@@ -20,7 +20,7 @@ interface PublicReport {
   id: number;
   title?: string | null;
   type?: string | null;
-  status: ReportStatus;
+  status: string;
   overview?: OverviewRow[];
   sections?: AsyncSection[];
   pending?: boolean;
@@ -32,7 +32,14 @@ interface Props {
 }
 
 const POLL_INTERVAL_MS = 3_000;
-const TERMINAL = new Set<TerminalStatus>(["approved", "needs_editor", "rejected", "dispatch_failed"]);
+const TERMINAL = new Set<TerminalStatus>(["approved", "rejected"]);
+
+function normalizeStatus(status: string): ReportStatus {
+  if (status === "approved" || status === "rejected") return status;
+  if (status === "queued" || status === "processing" || status === "checking") return status;
+  // Legacy/unknown states are never customer-visible; fail closed.
+  return "rejected";
+}
 
 const STATUS_LABEL: Record<InFlightStatus, { label: string; eyebrow: string; step: number }> = {
   queued: {
@@ -54,27 +61,12 @@ const STATUS_LABEL: Record<InFlightStatus, { label: string; eyebrow: string; ste
 
 const STEPS = ["Verified facts", "Writer", "Fact-check"];
 
-function terminalMessage(status: Exclude<TerminalStatus, "approved">): { eyebrow: string; title: string; body: string } {
-  switch (status) {
-    case "needs_editor":
-      return {
-        eyebrow: "Final Review",
-        title: "Your report is in final review.",
-        body: "A human editor will give it a final look before it reaches you.",
-      };
-    case "rejected":
-      return {
-        eyebrow: "Quality Protection",
-        title: "This report did not pass our quality checks.",
-        body: "We did not publish a version that was not fully backed by your verified chart facts.",
-      };
-    case "dispatch_failed":
-      return {
-        eyebrow: "Report Unavailable",
-        title: "Report generation did not complete.",
-        body: "Please return to your reports page later or contact support if the problem continues.",
-      };
-  }
+function terminalMessage(): { eyebrow: string; title: string; body: string } {
+  return {
+    eyebrow: "Quality Protection",
+    title: "This report did not pass our quality checks.",
+    body: "We did not publish a version that was not fully backed by your verified chart facts.",
+  };
 }
 
 export default function ReportProgress({ readingId, type }: Props) {
@@ -109,8 +101,9 @@ export default function ReportProgress({ readingId, type }: Props) {
         if (cancelled) return;
 
         setFetchError(null);
-        setReport(nextReport);
-        if (!TERMINAL.has(nextReport.status as TerminalStatus)) {
+        const normalizedStatus = normalizeStatus(nextReport.status);
+        setReport({ ...nextReport, status: normalizedStatus });
+        if (!TERMINAL.has(normalizedStatus as TerminalStatus)) {
           scheduleNext();
         }
       } catch (error) {
@@ -140,7 +133,7 @@ export default function ReportProgress({ readingId, type }: Props) {
   }
 
   if (report && TERMINAL.has(report.status as TerminalStatus)) {
-    const message = terminalMessage(report.status as Exclude<TerminalStatus, "approved">);
+    const message = terminalMessage();
     return (
       <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 text-center" role="status" aria-live="polite">
         <p className="text-xs uppercase tracking-[0.4em] text-gold block mb-2">{message.eyebrow}</p>
