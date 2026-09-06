@@ -207,8 +207,10 @@ export const TERMINAL_STATES = new Set(['approved', 'rejected']);
 
 /** Whether a report in `current` may legally transition to `next`. */
 export function canTransition(current: string | null, next: string): boolean {
-  // Initial dispatch states (queued/processing/null) can move to any pipeline status.
-  if (current === null || current === 'queued' || current === 'processing') {
+  // Automated quality gates finish directly as approved or rejected.
+  if (next === 'needs_editor') return false;
+  // Initial dispatch states (queued/processing/null) can move through the normal path.
+  if (current === null || current === 'queued' || current === 'processing' || current === 'checking') {
     return true;
   }
   // Terminal states never regress.

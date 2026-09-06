@@ -319,22 +319,40 @@ export async function consumeReportPurchase(input: {
   });
 }
 
-// (3) Atomic, stateful retry claim. Transitions a terminal dispatch-failed /
-// rejected reading back to 'queued' ONLY if it is currently in a retryable state,
-// using a single conditional UPDATE ... RETURNING. Two concurrent retries race here:
-// exactly one wins the row, the other gets 0 rows and must return 409.
-export async function claimRetry(readingId: number | string, userId: number | string): Promise<{ claimed: boolean }> {
+// (3) Atomic, stateful retry claim. A retry keeps the same readings row (the
+// user's report card) but creates one new correlation attempt in result.retryAttempts.
+// Two concurrent retries race here: exactly one wins the conditional UPDATE.
+export async function claimRetry(
+  readingId: number | string,
+  userId: number | string,
+  retryReportId = crypto.randomUUID(),
+): Promise<{ claimed: boolean; reportId: string; attempt?: number }> {
   // Only a terminal DISPATCH failure is customer-retryable. A quality "rejected"
   // (judge decision via callback) is terminal and must NOT let a customer regenerate
   // at no charge; that requires a separate privileged editor/admin rework action.
   const upd = await query(
     `UPDATE readings
-       SET pipeline_status = 'queued'
+       SET pipeline_status = 'queued',
+           result = jsonb_set(
+             jsonb_set(result, '{reportId}', to_jsonb($3::text), true),
+             '{retryAttempts}',
+             COALESCE(result->'retryAttempts', '[]'::jsonb) ||
+               jsonb_build_array(jsonb_build_object(
+                 'attempt', jsonb_array_length(COALESCE(result->'retryAttempts', '[]'::jsonb)) + 2,
+                 'reportId', $3::text,
+                 'previousReportId', result->>'reportId',
+                 'requestedAt', now()
+               )),
+             true
+           )
      WHERE id = $1 AND user_id = $2 AND pipeline_status = 'dispatch_failed'
-     RETURNING id`,
-    [Number(readingId), Number(userId)],
+     RETURNING result`,
+    [Number(readingId), Number(userId), retryReportId],
   );
-  return { claimed: (upd.rowCount ?? 0) > 0 };
+  if ((upd.rowCount ?? 0) === 0) return { claimed: false, reportId: retryReportId };
+  const result = upd.rows[0]?.result as Record<string, unknown> | undefined;
+  const attempts = Array.isArray(result?.retryAttempts) ? result.retryAttempts : [];
+  return { claimed: true, reportId: retryReportId, attempt: attempts.length + 1 };
 }
 
 // Restore a failed dispatch to the terminal dispatch_failed state (distinct from a
