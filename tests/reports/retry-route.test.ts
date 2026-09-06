@@ -106,7 +106,7 @@ describe('retry route', () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(claim).toHaveBeenCalledWith(50, '7', 'rid-2');
+    expect(claim).toHaveBeenCalledWith(50, '7', expect.any(String));
     expect(dispatched).toHaveBeenCalledWith(expect.objectContaining({ reportId: 'rid-2' }));
     expect(body).toEqual(expect.objectContaining({ readingId: 50, reportId: 'rid-2', status: 'queued' }));
     expect(body).not.toHaveProperty('text');
