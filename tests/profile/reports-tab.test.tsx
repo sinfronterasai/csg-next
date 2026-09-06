@@ -58,7 +58,7 @@ describe('ReportsTab (async public contract)', () => {
     ['queued', /being prepared/i],
     ['pending', /being prepared/i],
     ['processing', /being prepared|preparing|progress|working/i],
-    ['needs_editor', /final review|in review|editor/i],
+    ['needs_editor', /quality bar/i],
     ['rejected', /quality bar/i],
   ])('gates non-approved status=%s: NO prose render and NO PDF control, even with secret non-empty sections', async (status, re) => {
     // Server would normally already strip sections for non-approved, but the
@@ -79,7 +79,7 @@ describe('ReportsTab (async public contract)', () => {
     expect(screen.queryByText(/secret-fact-id/)).not.toBeInTheDocument();
     // no PDF action for non-approved
     expect(screen.queryByRole('button', { name: /download pdf|save as pdf/i })).not.toBeInTheDocument();
-    if (status === 'rejected') {
+    if (status === 'rejected' || status === 'needs_editor') {
       expect(screen.getByRole('link', { name: /retry report/i })).toBeInTheDocument();
     }
   });

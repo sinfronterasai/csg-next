@@ -122,12 +122,15 @@ describe('state machine', () => {
   it('allows processing/queued -> approved', () => {
     expect(canTransition(null, 'approved')).toBe(true);
     expect(canTransition('queued', 'processing')).toBe(true);
-    expect(canTransition('processing', 'needs_editor')).toBe(true);
+    expect(canTransition('processing', 'checking')).toBe(true);
+    expect(canTransition('checking', 'approved')).toBe(true);
+    expect(canTransition('checking', 'rejected')).toBe(true);
+    expect(canTransition('processing', 'needs_editor')).toBe(false);
   });
-  it('paid needs_editor -> approved or rejected (no regress to needs_editor)', () => {
-    expect(canTransition('needs_editor', 'approved')).toBe(true);
-    expect(canTransition('needs_editor', 'rejected')).toBe(true);
-    expect(canTransition('needs_editor', 'needs_editor')).toBe(false);
+  it('does not expose needs_editor in the normal customer transition contract', () => {
+    for (const current of [null, 'queued', 'processing', 'checking', 'approved', 'rejected']) {
+      expect(canTransition(current, 'needs_editor')).toBe(false);
+    }
   });
   it('terminal states never regress', () => {
     expect(canTransition('approved', 'rejected')).toBe(false);
