@@ -21,6 +21,7 @@ interface PublicReport {
   title?: string | null;
   type?: string | null;
   status: string;
+  paid?: boolean;
   overview?: OverviewRow[];
   sections?: AsyncSection[];
   pending?: boolean;
@@ -128,6 +129,7 @@ export default function ReportProgress({ readingId, type }: Props) {
         overview={report.overview ?? []}
         sections={mapAsyncSectionsToPdf(report.sections)}
         readingId={report.id}
+        paid={report.paid}
       />
     );
   }

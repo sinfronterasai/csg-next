@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ReportType, ReportRow, ReportSection } from '@/lib/reportEngine';
-import { exportReportPdf } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf } from '@/lib/reportPdf';
 import { renderMarkdown } from '@/lib/markdown';
 
 export default function ReportResult({
@@ -19,6 +19,7 @@ export default function ReportResult({
   shareUrl,
   readingId,
   onShare,
+  paid = false,
 }: {
   type: ReportType;
   title?: string;
@@ -27,6 +28,7 @@ export default function ReportResult({
   shareUrl?: string;
   readingId?: number;
   onShare?: () => void;
+  paid?: boolean;
 }) {
   const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
 
@@ -115,7 +117,13 @@ export default function ReportResult({
       <div className="mt-6 pt-6 border-t border-gold/10 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => exportReportPdf({ type, title: heading, overview, sections })}
+          onClick={() => {
+            if (paid && type === 'natal' && readingId) {
+              void downloadPaidNatalPdf(readingId);
+            } else {
+              exportReportPdf({ type, title: heading, overview, sections });
+            }
+          }}
           className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)]"
         >
           Download PDF

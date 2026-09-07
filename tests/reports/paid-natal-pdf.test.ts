@@ -1,3 +1,5 @@
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { buildPaidNatalPdf, resolveFactAnchors, type PaidNatalPdfInput } from '@/lib/paidNatalPdf';
 
 const input: PaidNatalPdfInput = {
@@ -28,6 +30,7 @@ describe('paid natal PDF vertical slice', () => {
 
   it('generates a controlled PDF with premium hierarchy and blueprint visuals', () => {
     const pdf = buildPaidNatalPdf(input);
+    writeFileSync(join(process.cwd(), 'tests/reports/fixtures/generated-paid-natal.pdf'), pdf);
     const text = new TextDecoder().decode(pdf);
     expect(text.startsWith('%PDF-1.4')).toBe(true);
     expect(text).toContain('Cosmic Spirit Guide');

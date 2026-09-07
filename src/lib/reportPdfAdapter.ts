@@ -25,6 +25,7 @@ export interface AsyncPublicReport {
   title?: string | null;
   type?: string | null;
   status?: string | null;
+  paid?: boolean;
   overview?: { glyph?: string; label: string; value: string; note?: string }[];
   sections?: AsyncSection[];
   createdAt?: string;

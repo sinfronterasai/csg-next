@@ -462,6 +462,7 @@ export function toPublicReport(rec: UniversalReadingRecord) {
       title: (rec.result as any)?.title ?? rec.title,
       type: (rec.result as any)?.reportType ?? null,
       status,
+      paid: (rec.pricePaid ?? 0) > 0,
       overview: toPublicOverview((rec.result as any)?.overview),
       sections: toPublicSections(pipeline?.sections),
       createdAt: rec.createdAt,

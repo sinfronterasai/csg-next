@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { exportReportPdf } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf } from '@/lib/reportPdf';
 import {
   asyncReportToPdfInput,
   mapAsyncSectionsToPdf,
@@ -70,7 +70,13 @@ function ApprovedBody({ report }: { report: PublicReport }) {
         <div className="mt-6 pt-4 border-t border-gold/10">
           <button
             type="button"
-            onClick={() => exportReportPdf(pdfInput)}
+            onClick={() => {
+              if (report.paid && report.type === 'natal') {
+                void downloadPaidNatalPdf(report.id);
+              } else {
+                exportReportPdf(pdfInput);
+              }
+            }}
             className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)]"
           >
             Download PDF
