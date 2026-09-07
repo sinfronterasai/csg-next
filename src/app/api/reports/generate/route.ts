@@ -13,7 +13,7 @@ import crypto from 'crypto';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
-  'natal', 'relationship', 'transit', 'loveblueprint', 'lovetiming',
+  'natal', 'natalpremium', 'relationship', 'transit', 'loveblueprint', 'lovetiming',
   'vocation', 'karmicshadow', 'fullcosmic',
 ];
 

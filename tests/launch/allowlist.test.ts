@@ -30,8 +30,9 @@ describe('launch allowlist (pure)', () => {
   beforeEach(() => { delete process.env.LOVEBLUEPRINT_BETA_USER_IDS; });
   afterAll(() => { if (REAL) process.env.LOVEBLUEPRINT_BETA_USER_IDS = REAL; });
 
-  it('only natal + loveblueprint are launch types', () => {
+  it('only free Natal plus Premium Natal and Love Blueprint are launch types', () => {
     expect(isLaunchType('natal')).toBe(true);
+    expect(isLaunchType('natalpremium')).toBe(true);
     expect(isLaunchType('loveblueprint')).toBe(true);
     for (const t of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       expect(isLaunchType(t)).toBe(false);

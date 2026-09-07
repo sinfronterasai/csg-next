@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ReportResult from '@/components/reports/ReportResult';
 import ReportProgress from '@/components/reports/ReportProgress';
@@ -14,7 +14,7 @@ import ReportProgress from '@/components/reports/ReportProgress';
 // is defense-in-depth, not the enforcement boundary.
 
 type Accent = 'teal' | 'gold';
-type Kind = 'free' | 'invite';
+type Kind = 'free' | 'invite' | 'paid';
 
 const ALLOWED: {
   id: string; name: string; blurb: string; icon: string; accent: Accent; cta: string; kind: Kind;
@@ -22,6 +22,10 @@ const ALLOWED: {
   {
     id: 'natal', name: 'Birth Chart Report', blurb: 'Your complete natal map — the foundation every other report builds on. Start here.',
     icon: 'fa-sun', accent: 'teal', cta: 'START FREE', kind: 'free',
+  },
+  {
+    id: 'natalpremium', name: 'Premium Natal Report', blurb: 'Your complete, quality-gated natal story with verified placements, practical integration, and a downloadable PDF to keep.',
+    icon: 'fa-star', accent: 'gold', cta: 'REQUEST · $39', kind: 'paid',
   },
   {
     id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. Available by invite during the private beta.',
@@ -45,7 +49,7 @@ export default function Reports() {
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
 
-  async function generate(id: string) {
+  async function generate(id: string, purchaseId?: string) {
     setLoading(id);
     setError(null);
     setResult(null);
@@ -53,7 +57,7 @@ export default function Reports() {
       const res = await fetch('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: id, partner: (id === 'synastry' || id === 'composite' || id === 'couples') ? partner : undefined }),
+        body: JSON.stringify({ type: id, purchaseId, partner: (id === 'synastry' || id === 'composite' || id === 'couples') ? partner : undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -82,6 +86,39 @@ export default function Reports() {
       setLoading(null);
     }
   }
+
+  async function startCheckout(reportType: 'natalpremium') {
+    setLoading(reportType);
+    setError(null);
+    try {
+      const res = await fetch('/api/billing/checkout-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error || 'Could not start secure checkout.');
+        return;
+      }
+      window.location.assign(data.url);
+    } catch (e: any) {
+      setError(e?.message || 'Could not start secure checkout.');
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('purchase') !== 'success' || query.get('type') !== 'natalpremium') return;
+    const purchaseId = query.get('purchaseId');
+    if (!purchaseId || !/^[0-9a-f-]{36}$/i.test(purchaseId)) {
+      setError('Your purchase could not be verified. Please contact support.');
+      return;
+    }
+    void generate('natalpremium', purchaseId);
+  }, []);
 
   async function shareReport(readingId: number) {
     try {
@@ -156,7 +193,7 @@ export default function Reports() {
                     <i className={`fa-solid ${p.icon}`} />
                   </div>
                   <span className={`text-[10px] uppercase tracking-widest rounded-full px-2.5 py-1 ${p.kind === 'free' ? 'text-[#2DD4BF] border border-[#2DD4BF]/40' : 'text-gold border border-gold/40'}`}>
-                    {p.kind === 'free' ? 'Free' : 'Invite only'}
+                    {p.kind === 'free' ? 'Free' : p.kind === 'paid' ? '$39 · PDF included' : 'Invite only'}
                   </span>
                 </div>
                 <h3 className="font-serif text-2xl text-white mb-2">{p.name}</h3>
@@ -164,7 +201,7 @@ export default function Reports() {
               </div>
               <div className="pt-5 border-t border-white/5">
                 <button
-                  onClick={() => generate(p.id)}
+                  onClick={() => p.kind === 'paid' ? void startCheckout('natalpremium') : generate(p.id)}
                   disabled={loading === p.id}
                   className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
                 >

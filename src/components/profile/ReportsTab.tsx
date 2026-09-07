@@ -71,7 +71,7 @@ function ApprovedBody({ report }: { report: PublicReport }) {
           <button
             type="button"
             onClick={() => {
-              if (report.paid && report.type === 'natal') {
+              if (report.paid && (report.type === 'natal' || report.type === 'natalpremium')) {
                 void downloadPaidNatalPdf(report.id);
               } else {
                 exportReportPdf(pdfInput);

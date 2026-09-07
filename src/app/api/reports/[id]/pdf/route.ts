@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const record = await getReadingById(id, Number(decoded.userId));
     const result = record?.result as any;
     const status = result?.pipeline?.status ?? record?.pipelineStatus;
-    if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || result?.reportType !== 'natal' || status !== 'approved') {
+    if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || !['natal', 'natalpremium'].includes(result?.reportType) || status !== 'approved') {
       return NextResponse.json({ error: 'Paid natal report is not available' }, { status: 404 });
     }
     const metadata = result.metadata;

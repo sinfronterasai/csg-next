@@ -59,7 +59,7 @@ export default function ReportResult({
   };
 
   const TITLE_BY_TYPE: Record<ReportType, string> = {
-    natal: 'Natal Birth Chart Report', transit: 'Yearly Transit Forecast', synastry: 'Synastry Love Report',
+    natal: 'Natal Birth Chart Report', natalpremium: 'Premium Natal Report', transit: 'Yearly Transit Forecast', synastry: 'Synastry Love Report',
     vocation: 'Vocation and Wealth Map', relationship: 'Relationship Matrix', loveblueprint: 'Love Blueprint',
     lovetiming: 'Love Timing Forecast', composite: 'Composite Chart Report', couples: 'Couples Cosmic Profile',
     karmicshadow: 'Karmic & Shadow Work', fullcosmic: 'Full Cosmic Profile',
@@ -118,7 +118,7 @@ export default function ReportResult({
         <button
           type="button"
           onClick={() => {
-            if (paid && type === 'natal' && readingId) {
+            if (paid && (type === 'natal' || type === 'natalpremium') && readingId) {
               void downloadPaidNatalPdf(readingId);
             } else {
               exportReportPdf({ type, title: heading, overview, sections });

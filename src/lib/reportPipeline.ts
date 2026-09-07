@@ -61,6 +61,9 @@ export interface DispatchResult {
 /** App internal type -> n8n contract type (the only remap is transit -> yearlytransit). */
 export function mapReportType(appType: string): N8nReportType | null {
   if (appType === 'transit') return 'yearlytransit';
+  // Free Natal and Premium Natal deliberately share the same verified-facts
+  // pipeline child; entitlement determines the tier, not the chart facts.
+  if (appType === 'natalpremium') return 'natal';
   const allowed: N8nReportType[] = [
     'natal', 'relationship', 'loveblueprint', 'lovetiming',
     'yearlytransit', 'vocation', 'karmicshadow', 'fullcosmic',

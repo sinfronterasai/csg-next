@@ -36,6 +36,9 @@ describe('R1 type + prompt mapping', () => {
       expect(PROMPT_SLUG[t]).toBeTruthy();
     }
   });
+  it('maps Premium Natal to the verified natal n8n contract', () => {
+    expect(mapReportType('natalpremium')).toBe('natal');
+  });
   it('maps internal transit -> yearlytransit', () => {
     expect(mapReportType('transit')).toBe('yearlytransit');
   });

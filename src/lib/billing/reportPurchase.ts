@@ -69,7 +69,7 @@ export async function createReportCheckoutSession(opts: {
       },
     ],
     metadata: { kind: 'report', userId: String(opts.userId), reportType: opts.reportType, sku },
-    success_url: `${opts.origin}/reports?purchase=success&type=${opts.reportType}`,
+    success_url: `${opts.origin}/reports?purchase=success&type=${opts.reportType}&purchaseId=${purchaseId}`,
     cancel_url: `${opts.origin}/reports?purchase=canceled`,
     allow_promotion_codes: false,
   });

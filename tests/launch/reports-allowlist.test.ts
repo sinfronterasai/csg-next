@@ -9,9 +9,9 @@ describe("reports launch allowlist (C7 server gate)", () => {
     "synastry", "composite", "fullcosmic", "couples",
   ];
 
-  it("only Natal (free) and Love Blueprint (paid) are launch types", () => {
+  it("only free Natal plus Premium Natal and Love Blueprint are launch types", () => {
     expect(Array.from(LAUNCH_FREE_TYPES)).toEqual(["natal"]);
-    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["loveblueprint"]);
+    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["natalpremium", "loveblueprint"]);
     for (const t of BANNED) expect(isLaunchType(t)).toBe(false);
   });
 
@@ -56,7 +56,7 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
     "Vocation & Wealth Map", "Karmic & Shadow Work", "Synastry Love Report",
     "Composite Chart Report", "Couples Cosmic Profile", "Full Cosmic Profile",
   ];
-  const BANNED_PRICES = ["$39", "$29", "$19", "$49", "$89", "$4.99", "$120"];
+  const BANNED_PRICES = ["$29", "$19", "$49", "$89", "$4.99", "$120"];
 
   for (const name of BANNED_NAMES) {
     it(`does not render banned SKU "${name}"`, () => {
