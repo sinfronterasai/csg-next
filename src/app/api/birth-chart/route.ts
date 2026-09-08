@@ -76,16 +76,14 @@ export async function POST(request: Request) {
     if (!unknownTime && !time) {
       return NextResponse.json({ error: 'Missing required fields', details: 'time is required unless unknownTime is set' }, { status: 400 });
     }
-    // Geocode the location into lat/long when the caller didn't supply them.
-    // Refuse to persist a silently-wrong fallback: if geocode returns the Paris
-    // default for an unknown location, require the caller to pass real coords.
+    // Resolve the IANA timezone from the human location even when the client sends
+    // coordinates. Client timezone data is display input, not authoritative chart data.
+    const resolvedLocation = await geocodeLocation(location);
     let geo: { lat: number; lon: number; timezone: string } | null = null;
     if (latitude !== undefined && longitude !== undefined) {
-      geo = { lat: latitude, lon: longitude, timezone: timezone || 'UTC' };
+      geo = { lat: Number(latitude), lon: Number(longitude), timezone: resolvedLocation?.timezone || timezone || 'UTC' };
     } else {
-      // geocodeLocation() resolves via Open-Meteo (keyless) and returns a
-      // timezone too; null only on empty/unresolvable input.
-      geo = await geocodeLocation(location);
+      geo = resolvedLocation;
     }
     if (!geo) {
       return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
@@ -105,7 +103,7 @@ export async function POST(request: Request) {
           WHERE id=$14 AND user_id=$1
          RETURNING id`,
         [
-          decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
+          decoded.userId, date, unknown ? null : (time || null), geo.timezone, location, geo.lat, geo.lon,
           JSON.stringify({ planets: chart.planets }),
           JSON.stringify(chart.houses),
           JSON.stringify(chart.ascendant),
@@ -125,7 +123,7 @@ export async function POST(request: Request) {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, $13)
          RETURNING id`,
         [
-          decoded.userId, date, unknown ? null : (time || null), timezone || 'UTC', location, geo.lat, geo.lon,
+          decoded.userId, date, unknown ? null : (time || null), geo.timezone, location, geo.lat, geo.lon,
           JSON.stringify({ planets: chart.planets }),
           JSON.stringify(chart.houses),
           JSON.stringify(chart.ascendant),
