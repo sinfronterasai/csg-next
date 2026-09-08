@@ -8,6 +8,7 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
+import { geocodeLocation } from '@/lib/chartEngine';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 
@@ -280,12 +281,19 @@ async function readBounded(request: Request, maxBytes: number): Promise<string> 
 async function buildBirthInfo(c: any, user: any) {
   const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
   const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
+  // UTC is a stale fallback for a named place, not an authoritative chart anchor.
+  // Recover the IANA zone before generating immutable verified facts.
+  let timezone = c.timezone || undefined;
+  if (!timezone || timezone === 'UTC') {
+    const resolved = await geocodeLocation(c.location_name);
+    if (resolved?.timezone) timezone = resolved.timezone;
+  }
   return {
     name: user.first_name || undefined,
     date: toDateStr(c.birth_date),
     time: toTimeStr(c.birth_time),
     location: c.location_name,
-    timezone: c.timezone || undefined,
+    timezone,
     unknownTime: c.unknown_time,
   };
 }

@@ -158,6 +158,10 @@ describe('checkout route: L3 gates', () => {
 // ---------------------------------------------------------------------------
 
 jest.mock('@/lib/db', () => ({ query: jest.fn() }));
+let mockGeocodeLocation: jest.Mock;
+jest.mock('@/lib/chartEngine', () => ({
+  geocodeLocation: ((...args: any[]) => mockGeocodeLocation(...args)) as any,
+}));
 let mockBuildFacts: jest.Mock;
 jest.mock('@/lib/reportFacts/integrate', () => ({
   buildVerifiedFactsForReport: ((...args: any[]) => mockBuildFacts(...args)) as any,
@@ -181,6 +185,7 @@ let consume: jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockGeocodeLocation = jest.fn(async () => null);
   mockBuildFacts = jest.fn(async () => ({ ok: true, ledger: {} as any }));
   dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
@@ -242,6 +247,17 @@ describe('generate route: L3 gates', () => {
     expect(mockBuildFacts).toHaveBeenCalledWith('natal', expect.objectContaining({
       location: 'Santa Cruz Ca', timezone: 'America/Los_Angeles',
     }));
+  });
+
+  it('re-resolves a stale UTC chart timezone before generating facts', async () => {
+    mockGeocodeLocation.mockResolvedValue({ lat: 36.9741275, lon: -122.028807, timezone: 'America/Los_Angeles' });
+    query.mockImplementation(async (text: string) => {
+      if (text.includes('FROM natal_charts')) return { rows: [{ birth_date: '1980-03-09', birth_time: '16:21', location_name: 'Santa Cruz Ca', unknown_time: false, latitude: 36.9741275, longitude: -122.028807, timezone: 'UTC' }] };
+      if (text.startsWith('INSERT INTO readings')) return { rows: [{ id: 99 }] };
+      return { rows: [] };
+    });
+    await genCall({ type: 'natal' });
+    expect(mockBuildFacts).toHaveBeenCalledWith('natal', expect.objectContaining({ timezone: 'America/Los_Angeles' }));
   });
 
   it('#5 a client `tier` cannot upgrade natal to paid (still free, 200)', async () => {
