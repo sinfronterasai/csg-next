@@ -804,7 +804,7 @@ function assertUniqueIds(...collections: VerifiedFact[][]): void {
   }
 }
 
-export async function computeVerifiedCommon(birth: { date: string; time?: string; location: string; unknownTime?: boolean; name?: string }): Promise<CommonDerived> {
-  const chart = await computeChart({ name: birth.name, date: birth.date, time: birth.time, location: birth.location, unknownTime: !!birth.unknownTime });
+export async function computeVerifiedCommon(birth: { date: string; time?: string; location: string; timezone?: string; unknownTime?: boolean; name?: string }): Promise<CommonDerived> {
+  const chart = await computeChart({ name: birth.name, date: birth.date, time: birth.time, location: birth.location, timezone: birth.timezone, unknownTime: !!birth.unknownTime });
   return buildCommonDerived(chart, !!birth.unknownTime);
 }

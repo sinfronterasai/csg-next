@@ -158,8 +158,9 @@ describe('checkout route: L3 gates', () => {
 // ---------------------------------------------------------------------------
 
 jest.mock('@/lib/db', () => ({ query: jest.fn() }));
+let mockBuildFacts: jest.Mock;
 jest.mock('@/lib/reportFacts/integrate', () => ({
-  buildVerifiedFactsForReport: async () => ({ ok: true, ledger: {} as any }),
+  buildVerifiedFactsForReport: ((...args: any[]) => mockBuildFacts(...args)) as any,
 }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
   getReportPurchase: jest.fn(),
@@ -180,6 +181,7 @@ let consume: jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockBuildFacts = jest.fn(async () => ({ ok: true, ledger: {} as any }));
   dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
   consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
@@ -228,6 +230,18 @@ describe('generate route: L3 gates', () => {
     const res = await genCall({ type: 'natal' });
     expect(res.status).toBe(200);
     expect(getPurchase).not.toHaveBeenCalled(); // free path never looks up a purchase
+  });
+
+  it('passes the saved IANA timezone into verified-facts generation', async () => {
+    query.mockImplementation(async (text: string) => {
+      if (text.includes('FROM natal_charts')) return { rows: [{ birth_date: '1980-03-09', birth_time: '16:21', location_name: 'Santa Cruz Ca', unknown_time: false, latitude: 36.9741275, longitude: -122.028807, timezone: 'America/Los_Angeles' }] };
+      if (text.startsWith('INSERT INTO readings')) return { rows: [{ id: 99 }] };
+      return { rows: [] };
+    });
+    await genCall({ type: 'natal' });
+    expect(mockBuildFacts).toHaveBeenCalledWith('natal', expect.objectContaining({
+      location: 'Santa Cruz Ca', timezone: 'America/Los_Angeles',
+    }));
   });
 
   it('#5 a client `tier` cannot upgrade natal to paid (still free, 200)', async () => {

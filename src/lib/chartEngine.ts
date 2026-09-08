@@ -212,12 +212,21 @@ export async function computeChart(input: {
   date: string;       // yyyy-mm-dd
   time?: string;      // HH:mm
   location: string;
+  // Saved IANA timezone/coordinates are authoritative for an immutable chart.
+  // A fresh geocode is only a fallback for unsaved/manual input.
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
   unknownTime?: boolean;
 }): Promise<ChartData> {
   const eph = await getEph();
   const resolved = await geocodeLocation(input.location);
-  if (!resolved) throw new Error(`geocode: could not resolve location "${input.location}"`);
-  const { lat, lon, timezone } = resolved;
+  if (!resolved && (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude) || !input.timezone)) {
+    throw new Error(`geocode: could not resolve location "${input.location}"`);
+  }
+  const lat = Number.isFinite(input.latitude) ? Number(input.latitude) : resolved!.lat;
+  const lon = Number.isFinite(input.longitude) ? Number(input.longitude) : resolved!.lon;
+  const timezone = input.timezone || resolved?.timezone || 'UTC';
   const [year, month, day] = input.date.split('-').map(Number);
   const unknownTime = Boolean(input.unknownTime);
   const hour = unknownTime ? 12 : parseInt((input.time || '12:00').split(':')[0], 10);

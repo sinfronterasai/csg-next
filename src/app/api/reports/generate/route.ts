@@ -285,6 +285,7 @@ async function buildBirthInfo(c: any, user: any) {
     date: toDateStr(c.birth_date),
     time: toTimeStr(c.birth_time),
     location: c.location_name,
+    timezone: c.timezone || undefined,
     unknownTime: c.unknown_time,
   };
 }
