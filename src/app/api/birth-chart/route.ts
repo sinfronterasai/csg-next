@@ -89,7 +89,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
     }
     const unknown = Boolean(unknownTime);
-    const chart = await computeChart({ name: name || '', date, time: unknown ? undefined : (time || '12:00'), location, unknownTime: unknown });
+    // Compute from the verified server-side geocode, never by re-resolving the
+    // raw place string. This makes the saved chart and its report eligibility use
+    // exactly the validated coordinates and IANA timezone.
+    const chart = await computeChart({
+      name: name || '', date, time: unknown ? undefined : (time || '12:00'), location,
+      latitude: geo.lat, longitude: geo.lon, timezone: geo.timezone, unknownTime: unknown,
+    });
 
     // Update an existing owned chart when chartId is supplied (the "Update"
     // action); otherwise insert a new one ("Create Another"). This keeps a
