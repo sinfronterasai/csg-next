@@ -138,6 +138,11 @@ const CITY_TABLE: Record<string, GeoResult> = {
   'london, uk': { lat: 51.5074, lon: -0.1278, timezone: 'Europe/London' },
   'london': { lat: 51.5074, lon: -0.1278, timezone: 'Europe/London' },
   'los angeles, ca': { lat: 34.0522, lon: -118.2437, timezone: 'America/Los_Angeles' },
+  // "Santa Cruz Ca" is otherwise resolved by Open-Meteo as Santa Cruz, Bahia,
+  // Brazil. Treat the common California shorthand as the US city.
+  'santa cruz ca': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
+  'santa cruz, ca': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
+  'santa cruz, california': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
   'berlin, germany': { lat: 52.52, lon: 13.405, timezone: 'Europe/Berlin' },
   'tokyo, japan': { lat: 35.6762, lon: 139.6503, timezone: 'Asia/Tokyo' },
   'mumbai, india': { lat: 19.076, lon: 72.8777, timezone: 'Asia/Kolkata' },
