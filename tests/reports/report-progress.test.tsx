@@ -83,7 +83,7 @@ describe("ReportProgress", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it("fails closed for a legacy needs_editor payload without human-review UX or report prose", async () => {
+  it("shows a neutral final-review state for needs_editor without report prose", async () => {
     jest.useFakeTimers();
     const fetchMock = jest.fn().mockResolvedValueOnce(responseFor("needs_editor"));
     global.fetch = fetchMock as unknown as typeof fetch;
@@ -91,8 +91,8 @@ describe("ReportProgress", () => {
     render(<ReportProgress readingId={READING_ID} type="natal" />);
     await act(async () => { await Promise.resolve(); });
 
-    expect(screen.getByText(/did not pass our quality checks/i)).toBeInTheDocument();
-    expect(screen.queryByText(/final review|in review|human editor|editor/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/your report is receiving a final quality review/i)).toBeInTheDocument();
+    expect(screen.queryByText(/human editor|editor/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Approved section prose/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);

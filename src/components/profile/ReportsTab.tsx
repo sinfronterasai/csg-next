@@ -34,6 +34,16 @@ function StatusBody({ report }: { report: PublicReport }) {
     );
   }
 
+  if (status === 'needs_editor') {
+    return (
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          Your report is receiving a final quality review. We’ll notify you when it’s ready.
+        </p>
+      </div>
+    );
+  }
+
   // queued / pending / processing; unknown legacy states fail closed.
   if (status !== 'queued' && status !== 'pending' && status !== 'processing') {
     return (

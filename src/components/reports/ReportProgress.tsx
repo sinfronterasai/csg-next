@@ -6,7 +6,7 @@ import { mapAsyncSectionsToPdf, type AsyncSection } from "@/lib/reportPdfAdapter
 import type { ReportType } from "@/lib/reportEngine";
 
 type InFlightStatus = "queued" | "processing" | "checking";
-type TerminalStatus = "approved" | "rejected";
+type TerminalStatus = "approved" | "rejected" | "needs_editor";
 type ReportStatus = InFlightStatus | TerminalStatus;
 
 interface OverviewRow {
@@ -33,10 +33,10 @@ interface Props {
 }
 
 const POLL_INTERVAL_MS = 3_000;
-const TERMINAL = new Set<TerminalStatus>(["approved", "rejected"]);
+const TERMINAL = new Set<TerminalStatus>(["approved", "rejected", "needs_editor"]);
 
 function normalizeStatus(status: string): ReportStatus {
-  if (status === "approved" || status === "rejected") return status;
+  if (status === "approved" || status === "rejected" || status === "needs_editor") return status;
   if (status === "queued" || status === "processing" || status === "checking") return status;
   // Legacy/unknown states are never customer-visible; fail closed.
   return "rejected";
@@ -62,7 +62,14 @@ const STATUS_LABEL: Record<InFlightStatus, { label: string; eyebrow: string; ste
 
 const STEPS = ["Verified facts", "Writer", "Fact-check"];
 
-function terminalMessage(): { eyebrow: string; title: string; body: string } {
+function terminalMessage(status: TerminalStatus): { eyebrow: string; title: string; body: string } {
+  if (status === "needs_editor") {
+    return {
+      eyebrow: "Final Quality Review",
+      title: "Your report is receiving a final quality review.",
+      body: "We’ll notify you when it is ready. We never publish a version that is not fully backed by your verified chart facts.",
+    };
+  }
   return {
     eyebrow: "Quality Protection",
     title: "This report did not pass our quality checks.",
@@ -135,7 +142,7 @@ export default function ReportProgress({ readingId, type }: Props) {
   }
 
   if (report && TERMINAL.has(report.status as TerminalStatus)) {
-    const message = terminalMessage();
+    const message = terminalMessage(report.status as TerminalStatus);
     return (
       <div className="glass-panel p-8 md:p-12 rounded-[40px] border border-gold/20 text-center" role="status" aria-live="polite">
         <p className="text-xs uppercase tracking-[0.4em] text-gold block mb-2">{message.eyebrow}</p>
