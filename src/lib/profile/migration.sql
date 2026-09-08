@@ -59,6 +59,12 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_readings_pipeline_report_id
 ALTER TABLE readings
   ADD COLUMN IF NOT EXISTS pipeline_callback_hash text;
 
+-- R6.5 private editor action concurrency/idempotency. These values contain only
+-- SHA-256 hashes/keys, never prose, facts, prompts, or staff notes.
+ALTER TABLE readings
+  ADD COLUMN IF NOT EXISTS pipeline_editor_action_hash text,
+  ADD COLUMN IF NOT EXISTS pipeline_editor_idempotency_key text;
+
 -- NOTE ON INDEX CREATION (deployment correctness).
 -- CREATE INDEX CONCURRENTLY cannot run inside an explicit transaction block.
 -- Postgres requires it to be the only statement in its transaction. Apply this
