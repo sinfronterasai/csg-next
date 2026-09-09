@@ -2,9 +2,9 @@
 > csg-next@0.1.0 test
 > jest --runInBand tests/reports/paid-natal-pdf.test.ts tests/reports/paid-natal-pdf-route.test.ts
 
-ts-jest[config] (WARN) 
+ts-jest[config] (WARN)
     The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in C:/Users/Ethan/csg-next-pdf-builder/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
-  
+
 FAIL node tests/reports/paid-natal-pdf.test.ts (12.287 s)
   ● Premium Natal PDF engine › rejects any blueprint missing the ten planets, four angles, twelve houses, or verified aspects
 
