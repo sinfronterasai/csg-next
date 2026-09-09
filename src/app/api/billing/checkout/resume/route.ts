@@ -5,6 +5,10 @@ import { getReportPurchaseBySession } from '@/lib/billing/reportPurchaseStore';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 
 const MAX_BODY_BYTES = 50_000;
+const RESUMABLE_PAID_SKUS: Record<string, string> = {
+  loveblueprint: 'report-loveblueprint',
+  natalpremium: 'report-natalpremium',
+};
 
 /**
  * POST /api/billing/checkout/resume
@@ -19,7 +23,7 @@ const MAX_BODY_BYTES = 50_000;
  *   - authenticated user (auth_token cookie)
  *   - sessionId maps to a real purchase in our DB
  *   - the authenticated user OWNS that purchase (userId match)
- *   - the purchase is for a loveblueprint SKU (report-loveblueprint)
+ *   - the purchase is for an approved paid report SKU (Love Blueprint or Premium Natal)
  *   - Stripe confirms payment (payment_status paid / payment_intent succeeded)
  *
  * Returns: { purchaseId, reportType } on success.
@@ -62,9 +66,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This purchase does not belong to your account.' }, { status: 403 });
   }
 
-  // Step 3: exact product gate. Both type and SKU must identify Love Blueprint.
-  if (purchase.reportType !== 'loveblueprint' || purchase.sku !== 'report-loveblueprint') {
-    return NextResponse.json({ error: 'This session is not for a Love Blueprint purchase.' }, { status: 403 });
+  // Step 3: exact product gate. Both type and SKU must form an allowlisted pair.
+  const expectedSku = RESUMABLE_PAID_SKUS[purchase.reportType];
+  if (!expectedSku || purchase.sku !== expectedSku) {
+    return NextResponse.json({ error: 'This session is not for a resumable paid report purchase.' }, { status: 403 });
   }
 
   // Step 4: paid-status gate. Re-verify via Stripe, never trust stored flags alone.
@@ -72,8 +77,8 @@ export async function POST(request: NextRequest) {
   if (!verified) {
     return NextResponse.json({ error: 'Purchase has not been paid yet.' }, { status: 402 });
   }
-  if (verified.reportType !== 'loveblueprint' || verified.sku !== 'report-loveblueprint') {
-    return NextResponse.json({ error: 'Verified purchase is not a Love Blueprint entitlement.' }, { status: 403 });
+  if (verified.reportType !== purchase.reportType || verified.sku !== expectedSku) {
+    return NextResponse.json({ error: 'Verified purchase does not match the expected report entitlement.' }, { status: 403 });
   }
 
   return NextResponse.json({

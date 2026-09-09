@@ -66,4 +66,22 @@ describe('Love Blueprint resume request hardening', () => {
     const res = await call(JSON.stringify({ sessionId: 'si_1' }));
     expect(res.status).toBe(403);
   });
+
+  it('resumes a server-verified Premium Natal purchase with its exact SKU', async () => {
+    const natal = { ...validPurchase, reportType: 'natalpremium', sku: 'report-natalpremium' };
+    getBySession.mockResolvedValue(natal);
+    verifyPaid.mockResolvedValue(natal);
+
+    const res = await call(JSON.stringify({ sessionId: 'cs_test_natal' }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ purchaseId: 'purchase-1', reportType: 'natalpremium' });
+  });
+
+  it('does not accept a cross-product Premium Natal SKU', async () => {
+    getBySession.mockResolvedValue({ ...validPurchase, reportType: 'natalpremium', sku: 'report-loveblueprint' });
+
+    const res = await call(JSON.stringify({ sessionId: 'cs_test_wrong_sku' }));
+    expect(res.status).toBe(403);
+    expect(verifyPaid).not.toHaveBeenCalled();
+  });
 });
