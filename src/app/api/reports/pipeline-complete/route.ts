@@ -28,7 +28,7 @@ interface CallbackBody {
   status?: string;
   sections?: CallbackSection[];
   judge?: Record<string, unknown>;
-  editorNote?: string;
+  editorNote?: string | null;
   rejectReasons?: string[];
 }
 
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   if (judge !== undefined && (typeof judge !== 'object' || judge === null || Array.isArray(judge))) {
     return NextResponse.json({ error: 'Invalid judge' }, { status: 400 });
   }
-  if (editorNote !== undefined && typeof editorNote !== 'string') {
+  if (editorNote !== undefined && editorNote !== null && typeof editorNote !== 'string') {
     return NextResponse.json({ error: 'Invalid editorNote' }, { status: 400 });
   }
   if (rejectReasons !== undefined && (!Array.isArray(rejectReasons) || !rejectReasons.every(isNonBlankString))) {

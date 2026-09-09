@@ -118,6 +118,13 @@ describe('R2.2 validation', () => {
       blocks: VALID_SECTION.blocks,
     }]);
   });
+  it('accepts a null automated editorNote without exposing an editor workflow', async () => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    applyPipelineCallback.mockResolvedValue('applied');
+    const res = await call({ reportId: 'rid-x', status: 'approved', sections: [VALID_SECTION], judge: {}, editorNote: null });
+    expect(res.status).toBe(200);
+  });
+
   it('approved requires sections + judge -> 400', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
     const res = await call({ reportId: 'rid-x', status: 'approved', sections: [], judge: {} });
