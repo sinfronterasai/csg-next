@@ -509,7 +509,20 @@ export function toPublicReport(rec: UniversalReadingRecord) {
       createdAt: rec.createdAt,
     };
   }
-  // Non-approved: never surface stored sections/overview, even if they hold
+  if (status === 'rejected') {
+    return {
+      id: rec.id,
+      reportId: (rec.result as any)?.reportId ?? null,
+      title: (rec.result as any)?.title ?? rec.title,
+      type: (rec.result as any)?.reportType ?? null,
+      status,
+      overview: [],
+      sections: [],
+      note: 'Your report did not pass final quality review. We did not publish it.',
+      createdAt: rec.createdAt,
+    };
+  }
+  // Non-approved in-flight: never surface stored sections/overview, even if they hold
   // prose or secrets. Exact empty arrays.
   return {
     id: rec.id,

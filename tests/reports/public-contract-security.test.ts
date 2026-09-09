@@ -91,6 +91,17 @@ describe('toPublicReport — public contract sanitization', () => {
     },
   );
 
+  it('rejected reports are terminal, never look pending, and expose no internal reason', () => {
+    const pub = toPublicReport(makeRec({
+      pipelineStatus: 'rejected',
+      pipeline: { status: 'rejected', sections: [], rejectReasons: ['INTERNAL DUPLICATION DETAIL'] },
+    }));
+    expect(pub.status).toBe('rejected');
+    expect(pub.pending).toBeUndefined();
+    expect(pub.note).toBe('Your report did not pass final quality review. We did not publish it.');
+    expect(JSON.stringify(pub)).not.toContain('INTERNAL DUPLICATION DETAIL');
+  });
+
   it('approved: drops malformed section entries but keeps valid {id, prose}', () => {
     const rec = makeRec({
       pipelineStatus: 'approved',
