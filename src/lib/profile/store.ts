@@ -383,9 +383,41 @@ function canTransitionStore(current: string | null, next: string): boolean {
 
 export function isReportDeliverable(rec: UniversalReadingRecord | null): boolean {
   if (!rec || rec.type !== 'report') return false;
-  const pipeline = (rec.result?.pipeline as { status?: string } | undefined);
-  const status = pipeline?.status ?? rec.pipelineStatus ?? null;
-  return status === 'approved';
+  const pipeline = (rec.result?.pipeline as { status?: string; sections?: unknown } | undefined);
+  const status = rec.pipelineStatus ?? pipeline?.status ?? null;
+  if (status !== 'approved') return false;
+  if (pipeline?.status !== undefined && pipeline.status !== 'approved') return false;
+  // Paid delivery uses the production truth contract. An approved flag alone is
+  // insufficient: every stored section must be the normalized form of exact,
+  // structured writer blocks. Free Natal keeps its established legacy behavior.
+  if ((rec.pricePaid ?? 0) > 0) {
+    return rec.pipelineStatus === 'approved' && pipeline?.status === 'approved' &&
+      hasValidStructuredSections(pipeline.sections);
+  }
+  return true;
+}
+
+const PUBLIC_BLOCK_ROLES = new Set(['evidence', 'meaning', 'synthesis', 'agency']);
+
+function hasValidStructuredSections(sections: unknown): boolean {
+  if (!Array.isArray(sections) || sections.length === 0) return false;
+  const ids = new Set<string>();
+  for (const raw of sections) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const section = raw as Record<string, unknown>;
+    if (typeof section.id !== 'string' || section.id.trim().length === 0 || ids.has(section.id)) return false;
+    ids.add(section.id);
+    if (typeof section.prose !== 'string' || section.prose.trim().length === 0) return false;
+    if (!Array.isArray(section.blocks) || section.blocks.length === 0) return false;
+    for (const rawBlock of section.blocks) {
+      if (!rawBlock || typeof rawBlock !== 'object' || Array.isArray(rawBlock)) return false;
+      const block = rawBlock as Record<string, unknown>;
+      if (!PUBLIC_BLOCK_ROLES.has(String(block.role))) return false;
+      if (typeof block.prose !== 'string' || block.prose.trim().length === 0) return false;
+      if (!Array.isArray(block.factIds) || block.factIds.length === 0 || !block.factIds.every((id) => typeof id === 'string' && id.trim().length > 0)) return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -454,7 +486,7 @@ export function toPublicReport(rec: UniversalReadingRecord) {
   const pipeline = (rec.result?.pipeline as {
     status?: string; sections?: unknown[]; editorNote?: string | null;
   } | undefined);
-  const status = pipeline?.status ?? rec.pipelineStatus ?? null;
+  const status = rec.pipelineStatus ?? pipeline?.status ?? null;
   if (isReportDeliverable(rec)) {
     return {
       id: rec.id,

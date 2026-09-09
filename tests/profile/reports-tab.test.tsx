@@ -86,6 +86,17 @@ describe('ReportsTab (async public contract)', () => {
     }
   });
 
+  it('offers a working no-charge retry for a dispatch_failed report', async () => {
+    mockFetch([{ ...approvedReport, status: 'dispatch_failed', sections: [] }]);
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ reports: [{ ...approvedReport, status: 'dispatch_failed', sections: [] }] }) });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ status: 'queued' }) });
+    render(<ReportsTab />);
+    fireEvent.click(await screen.findByText('Natal Birth Chart Report'));
+    fireEvent.click(await screen.findByRole('button', { name: /retry report/i }));
+    await waitFor(() => expect(global.fetch).toHaveBeenLastCalledWith('/api/reports/11/retry', { method: 'POST' }));
+    expect(await screen.findByText(/being prepared/i)).toBeInTheDocument();
+  });
+
   it('does not require result.text for an approved async report', async () => {
     const noLegacy: Record<string, unknown> = { ...approvedReport };
     delete noLegacy.result;

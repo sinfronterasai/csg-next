@@ -9,6 +9,7 @@ import {
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
 import { geocodeLocation } from '@/lib/chartEngine';
+import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      const purchase = await getReportPurchase(purchaseId);
+      let purchase = await getReportPurchase(purchaseId);
       if (!purchase || purchase.userId !== Number(decoded.userId)) {
         return NextResponse.json(
           { error: 'Purchase not found or not owned by this account', requiresPurchase: true },
@@ -101,6 +102,14 @@ export async function POST(request: Request) {
           { error: 'Purchase does not match the requested report type', requiresPurchase: true },
           { status: 409 },
         );
+      }
+      // Checkout redirects can reach us before Stripe's asynchronous webhook.
+      // The existing order is owner/type checked above; then retrieve its exact
+      // session server-side to reconcile a completed payment without trusting the
+      // browser or waiting for a second click.
+      if (purchase.status === 'pending') {
+        const recovered = await verifyPurchasePaidViaStripe(purchaseId);
+        if (recovered) purchase = recovered;
       }
       if (purchase.status !== 'paid') {
         return NextResponse.json(
@@ -234,7 +243,7 @@ export async function POST(request: Request) {
         place: chart.location,
         lat: Number(c.latitude),
         lon: Number(c.longitude),
-        tz: c.timezone || 'UTC',
+        tz: chart.timezone || 'UTC',
         solarFallback: chart.unknownTime,
       },
       verifiedFacts,
@@ -286,7 +295,15 @@ async function buildBirthInfo(c: any, user: any) {
   let timezone = c.timezone || undefined;
   if (!timezone || timezone === 'UTC') {
     const resolved = await geocodeLocation(c.location_name);
-    if (resolved?.timezone) timezone = resolved.timezone;
+    if (resolved?.timezone) {
+      timezone = resolved.timezone;
+      // Repair the stale chart anchor once, so later generation/retries do not
+      // silently fall back to UTC after we have recovered the IANA timezone.
+      await query(
+        `UPDATE natal_charts SET timezone = $1 WHERE id = $2 AND (timezone IS NULL OR timezone = 'UTC')`,
+        [timezone, c.id],
+      );
+    }
   }
   return {
     name: user.first_name || undefined,
@@ -322,7 +339,7 @@ async function buildReadingInput(opts: {
       place: chart.location,
       lat: Number(c.latitude),
       lon: Number(c.longitude),
-      tz: c.timezone || 'UTC',
+      tz: chart.timezone || 'UTC',
       solarFallback: chart.unknownTime,
     },
     verifiedFacts,

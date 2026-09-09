@@ -20,8 +20,26 @@ import {
 
 type PublicReport = AsyncPublicReport;
 
-function StatusBody({ report }: { report: PublicReport }) {
+function StatusBody({ report, onRetry, retrying }: { report: PublicReport; onRetry: () => void; retrying: boolean }) {
   const status = report.status ?? 'queued';
+
+  if (status === 'dispatch_failed') {
+    return (
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          We couldn’t connect to the report service. Your purchase is safe; retrying will not charge you again.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="mt-4 inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-6 py-2.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:opacity-90 transition disabled:opacity-50"
+        >
+          {retrying ? 'Retrying…' : 'Retry Report'}
+        </button>
+      </div>
+    );
+  }
 
   if (status === 'rejected') {
     return (
@@ -100,8 +118,27 @@ function ApprovedBody({ report }: { report: PublicReport }) {
 export default function ReportsTab() {
   const [reports, setReports] = useState<PublicReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<'load' | 'auth' | null>(null);
+  const [error, setError] = useState<'load' | 'auth' | 'retry' | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+
+  async function retryReport(report: PublicReport) {
+    setRetryingId(report.id);
+    try {
+      const res = await fetch(`/api/reports/${report.id}/retry`, { method: 'POST' });
+      if (!res.ok) {
+        setError('retry');
+        return;
+      }
+      setReports((current) => current.map((entry) => entry.id === report.id
+        ? { ...entry, status: 'queued', sections: [], overview: [], pending: true }
+        : entry));
+    } catch {
+      setError('retry');
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   async function loadReports() {
     setError(null);
@@ -163,7 +200,7 @@ export default function ReportsTab() {
             </button>
             {expanded === report.id && (
               <div className="px-6 pb-6 border-t border-gold/20 pt-4">
-                {isApproved ? <ApprovedBody report={report} /> : <StatusBody report={report} />}
+                {isApproved ? <ApprovedBody report={report} /> : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
               </div>
             )}
           </div>

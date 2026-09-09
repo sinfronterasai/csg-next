@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   getReadingByReportId, applyPipelineCallback, canonicalCallbackHash,
-  type UniversalReadingRecord, type PipelineStatus,
+  type PipelineStatus,
 } from '@/lib/profile/store';
 import { verifyCallbackToken } from '@/lib/reportPipeline';
 
@@ -13,10 +13,16 @@ import { verifyCallbackToken } from '@/lib/reportPipeline';
 // Privacy: no birth data, verifiedFacts, bearer values, or full report prose is
 // logged here. We only log coarse status transitions.
 
-const VALID_STATUSES = new Set(['approved', 'needs_editor', 'rejected']);
+// Pipeline callbacks are automated outcomes. `needs_editor` remains an internal
+// legacy state for privileged tools, but a writer callback must never create a
+// standing human-review queue.
+const VALID_STATUSES = new Set(['approved', 'rejected']);
 const MAX_BODY_BYTES = 1_000_000; // 1 MB hard cap on callback payloads.
 
-interface CallbackSection { id?: string; prose?: string; factsCited?: string[] }
+type CallbackBlockRole = 'evidence' | 'meaning' | 'synthesis' | 'agency';
+interface CallbackBlock { role: CallbackBlockRole; prose: string; factIds: string[] }
+interface CallbackSection { id: string; blocks: CallbackBlock[] }
+interface StoredCallbackSection extends CallbackSection { prose: string }
 interface CallbackBody {
   reportId?: string;
   status?: string;
@@ -26,22 +32,40 @@ interface CallbackBody {
   rejectReasons?: string[];
 }
 
-function currentStatus(rec: UniversalReadingRecord | null): string | null {
-  if (!rec) return null;
-  const pipeline = (rec.result?.pipeline as { status?: string } | undefined);
-  return pipeline?.status ?? rec.pipelineStatus ?? null;
+const BODY_KEYS = new Set(['reportId', 'status', 'sections', 'judge', 'editorNote', 'rejectReasons']);
+const SECTION_KEYS = new Set(['id', 'blocks']);
+const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
+const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
+
+function hasExactKeys(value: Record<string, unknown>, allowed: Set<string>): boolean {
+  return Object.keys(value).every((key) => allowed.has(key));
 }
 
-function isValidSection(s: unknown): s is CallbackSection {
-  if (typeof s !== 'object' || s === null) return false;
-  const o = s as Record<string, unknown>;
-  if (o.id !== undefined && typeof o.id !== 'string') return false;
-  if (o.prose !== undefined && typeof o.prose !== 'string') return false;
-  if (o.factsCited !== undefined) {
-    if (!Array.isArray(o.factsCited)) return false;
-    if (!o.factsCited.every((f) => typeof f === 'string')) return false;
-  }
-  return true;
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isValidBlock(value: unknown): value is CallbackBlock {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const block = value as Record<string, unknown>;
+  if (!hasExactKeys(block, BLOCK_KEYS)) return false;
+  if (!BLOCK_ROLES.has(block.role as CallbackBlockRole) || !isNonBlankString(block.prose)) return false;
+  return Array.isArray(block.factIds) && block.factIds.length > 0 && block.factIds.every(isNonBlankString);
+}
+
+function isValidSection(value: unknown): value is CallbackSection {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const section = value as Record<string, unknown>;
+  if (!hasExactKeys(section, SECTION_KEYS) || !isNonBlankString(section.id)) return false;
+  return Array.isArray(section.blocks) && section.blocks.length > 0 && section.blocks.every(isValidBlock);
+}
+
+function normalizeSections(sections: CallbackSection[]): StoredCallbackSection[] {
+  return sections.map((section) => ({
+    id: section.id,
+    prose: section.blocks.map((block) => block.prose).join('\n\n'),
+    blocks: section.blocks,
+  }));
 }
 
 export async function POST(request: Request) {
@@ -71,10 +95,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
   }
 
+  if (typeof body !== 'object' || body === null || Array.isArray(body) || !hasExactKeys(body as Record<string, unknown>, BODY_KEYS)) {
+    return NextResponse.json({ error: 'Invalid callback body' }, { status: 400 });
+  }
+
   const { reportId, status, sections, judge, editorNote, rejectReasons } = body;
 
   // R2.2 — validate body and known reportId before mutation.
-  if (!reportId || typeof reportId !== 'string') {
+  if (!isNonBlankString(reportId)) {
     return NextResponse.json({ error: 'Missing reportId' }, { status: 400 });
   }
   if (!status || !VALID_STATUSES.has(status)) {
@@ -83,14 +111,23 @@ export async function POST(request: Request) {
   if (!Array.isArray(sections) || !sections.every(isValidSection)) {
     return NextResponse.json({ error: 'Invalid sections' }, { status: 400 });
   }
-  if (rejectReasons !== undefined && (!Array.isArray(rejectReasons) || !rejectReasons.every((r) => typeof r === 'string'))) {
+  if (new Set(sections.map((section) => section.id)).size !== sections.length) {
+    return NextResponse.json({ error: 'Duplicate section id' }, { status: 400 });
+  }
+  if (judge !== undefined && (typeof judge !== 'object' || judge === null || Array.isArray(judge))) {
+    return NextResponse.json({ error: 'Invalid judge' }, { status: 400 });
+  }
+  if (editorNote !== undefined && typeof editorNote !== 'string') {
+    return NextResponse.json({ error: 'Invalid editorNote' }, { status: 400 });
+  }
+  if (rejectReasons !== undefined && (!Array.isArray(rejectReasons) || !rejectReasons.every(isNonBlankString))) {
     return NextResponse.json({ error: 'Invalid rejectReasons' }, { status: 400 });
   }
 
   // R7 — contract-required content per status.
-  if (status === 'approved' || status === 'needs_editor') {
+  if (status === 'approved') {
     if (sections.length === 0 || !judge || typeof judge !== 'object') {
-      return NextResponse.json({ error: 'Approved/needs_editor callbacks require sections and judge' }, { status: 400 });
+      return NextResponse.json({ error: 'Approved callbacks require sections and judge' }, { status: 400 });
     }
   }
   if (status === 'rejected') {
@@ -106,9 +143,10 @@ export async function POST(request: Request) {
   }
 
   // R2.4/R4 — atomic, hash-aware duplicate/conflict handling.
+  const normalizedSections = normalizeSections(sections);
   const callbackHash = canonicalCallbackHash({
     status,
-    sections,
+    sections: normalizedSections,
     judge: judge ?? null,
     editorNote: editorNote ?? null,
     rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
@@ -118,7 +156,7 @@ export async function POST(request: Request) {
   // writes this directly at result.pipeline.
   const pipelineValue: Record<string, unknown> = {
     status,
-    sections,
+    sections: normalizedSections,
     judge: judge ?? null,
     editorNote: editorNote ?? null,
     rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],

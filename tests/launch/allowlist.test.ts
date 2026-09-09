@@ -258,6 +258,10 @@ describe('generate route: L3 gates', () => {
     });
     await genCall({ type: 'natal' });
     expect(mockBuildFacts).toHaveBeenCalledWith('natal', expect.objectContaining({ timezone: 'America/Los_Angeles' }));
+    expect(dispatched).toHaveBeenCalledWith(expect.objectContaining({
+      birthData: expect.objectContaining({ tz: 'America/Los_Angeles' }),
+    }));
+    expect(query.mock.calls.some(([sql]: [string]) => sql.includes('UPDATE natal_charts SET timezone'))).toBe(true);
   });
 
   it('#5 a client `tier` cannot upgrade natal to paid (still free, 200)', async () => {

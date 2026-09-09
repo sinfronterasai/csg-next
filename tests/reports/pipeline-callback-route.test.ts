@@ -8,6 +8,14 @@ const VALID_REPORT = {
   pipelineStatus: 'queued', pipelineCallbackHash: null,
 };
 
+const VALID_SECTION = {
+  id: 'core.identity',
+  blocks: [
+    { role: 'evidence', prose: 'Your Sun is in Aries.', factIds: ['common.sun.sign'] },
+    { role: 'agency', prose: 'Choose where to direct that vitality.', factIds: ['common.sun.sign'] },
+  ],
+};
+
 jest.mock('@/lib/reportPipeline', () => ({
   verifyCallbackToken: (t: string | null) => t === 'good-token',
 }));
@@ -38,11 +46,11 @@ beforeEach(() => {
 
 describe('R2.1 auth', () => {
   it('rejects missing token with 401', async () => {
-    const res = await call({ reportId: 'r', status: 'approved', sections: [{ id: 's' }], judge: {} }, null);
+    const res = await call({ reportId: 'r', status: 'approved', sections: [VALID_SECTION], judge: {} }, null);
     expect(res.status).toBe(401);
   });
   it('rejects wrong token with 401', async () => {
-    const res = await call({ reportId: 'r', status: 'approved', sections: [{ id: 's' }], judge: {} }, 'bad');
+    const res = await call({ reportId: 'r', status: 'approved', sections: [VALID_SECTION], judge: {} }, 'bad');
     expect(res.status).toBe(401);
   });
 });
@@ -50,7 +58,7 @@ describe('R2.1 auth', () => {
 describe('R2.2 validation', () => {
   it('unknown reportId -> 404', async () => {
     getReadingByReportId.mockResolvedValue(null);
-    const res = await call({ reportId: 'r', status: 'approved', sections: [{ id: 's' }], judge: {} });
+    const res = await call({ reportId: 'r', status: 'approved', sections: [VALID_SECTION], judge: {} });
     expect(res.status).toBe(404);
   });
   it('malformed JSON -> 400', async () => {
@@ -61,13 +69,54 @@ describe('R2.2 validation', () => {
   });
   it('missing status -> 400', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
-    const res = await call({ reportId: 'rid-x', sections: [{ id: 's' }], judge: {} });
+    const res = await call({ reportId: 'rid-x', sections: [VALID_SECTION], judge: {} });
     expect(res.status).toBe(400);
+  });
+  it('does not create a standing human-review gate from pipeline callbacks', async () => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    const res = await call({ reportId: 'rid-x', status: 'needs_editor', sections: [VALID_SECTION], judge: {} });
+    expect(res.status).toBe(400);
+    expect(applyPipelineCallback).not.toHaveBeenCalled();
   });
   it('invalid section shape -> 400', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
     const res = await call({ reportId: 'rid-x', status: 'approved', sections: [{ prose: 123 }], judge: {} });
     expect(res.status).toBe(400);
+  });
+
+  it.each([
+    [{ ...VALID_SECTION, id: '   ' }],
+    [{ ...VALID_SECTION, extra: 'not-in-contract' }],
+    [{ id: 'core.identity', blocks: [{ role: 'evidence', prose: '   ', factIds: ['common.sun.sign'] }] }],
+    [{ id: 'core.identity', blocks: [{ role: 'unknown', prose: 'Text', factIds: ['common.sun.sign'] }] }],
+    [{ id: 'core.identity', blocks: [{ role: 'evidence', prose: 'Text', factIds: [''] }] }],
+    [{ id: 'core.identity', blocks: [{ role: 'evidence', prose: 'Text', factIds: [] }] }],
+    [{ id: 'core.identity', blocks: [{ role: 'evidence', prose: 'Text', factIds: [], extra: true }] }],
+  ].map((sections) => [sections]))('rejects malformed exact block schema %#', async (sections) => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    const res = await call({ reportId: 'rid-x', status: 'approved', sections, judge: {} });
+    expect(res.status).toBe(400);
+    expect(applyPipelineCallback).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate section ids', async () => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    const res = await call({ reportId: 'rid-x', status: 'approved', sections: [VALID_SECTION, VALID_SECTION], judge: {} });
+    expect(res.status).toBe(400);
+    expect(applyPipelineCallback).not.toHaveBeenCalled();
+  });
+
+  it('normalizes structured blocks to stored prose while retaining exact blocks', async () => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    applyPipelineCallback.mockResolvedValue('applied');
+    const res = await call({ reportId: 'rid-x', status: 'approved', sections: [VALID_SECTION], judge: { pass: true } });
+    expect(res.status).toBe(200);
+    const input = applyPipelineCallback.mock.calls[0][0];
+    expect(input.pipelineValue.sections).toEqual([{
+      id: 'core.identity',
+      prose: 'Your Sun is in Aries.\n\nChoose where to direct that vitality.',
+      blocks: VALID_SECTION.blocks,
+    }]);
   });
   it('approved requires sections + judge -> 400', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
@@ -82,7 +131,7 @@ describe('R2.2 validation', () => {
 });
 
 describe('R2.4/R4 outcome mapping', () => {
-  const body = { reportId: 'rid-x', status: 'approved', sections: [{ id: 's' }], judge: { ok: true } };
+  const body = { reportId: 'rid-x', status: 'approved', sections: [VALID_SECTION], judge: { ok: true } };
 
   it('applied -> 200', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
