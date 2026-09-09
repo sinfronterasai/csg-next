@@ -22,6 +22,9 @@ export interface BirthInput {
   date: string;
   time?: string;
   location: string;
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
   unknownTime?: boolean;
 }
 

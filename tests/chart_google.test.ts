@@ -37,6 +37,17 @@ describe('geocodeLocation: Google Maps integration', () => {
     expect(mockFetch.mock.calls[1][0]).toContain('geocoding-api.open-meteo.com');
   });
 
+  it('does not substitute UTC when Google Time Zone fails', async () => {
+    mockFetch.mockResolvedValueOnce(googleGeocodeJson(36.97412, -122.0308)).mockResolvedValueOnce({ ok: false });
+    expect((await geocodeLocation('Uncached California town'))?.timezone).toBe('America/Los_Angeles');
+  });
+
+  it('resolves missing Open-Meteo timezone from coordinates, not UTC', async () => {
+    delete process.env.GOOGLE_MAPS_API_KEY;
+    mockFetch.mockResolvedValueOnce(openMeteoJson(36.97412, -122.0308, ''));
+    expect((await geocodeLocation('Uncached California town'))?.timezone).toBe('America/Los_Angeles');
+  });
+
   it('without a key, goes straight to Open-Meteo (no Google calls)', async () => {
     delete process.env.GOOGLE_MAPS_API_KEY;
     mockFetch.mockResolvedValueOnce(openMeteoJson(35.68, 139.76, 'Asia/Tokyo'));

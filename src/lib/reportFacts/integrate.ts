@@ -7,6 +7,7 @@
 // unknown type) throws instead of silently building under the wrong contract.
 
 import { buildVerifiedFactsV2, LedgerResolutionError } from './build';
+import { EphemerisUnavailableError } from '@/lib/chartEngine';
 import { preflightReport } from './schemas';
 import { validateReportType, type ReportType, type VerifiedFactsV2, type PreflightResult } from './types';
 
@@ -36,6 +37,8 @@ export interface BirthLike {
   // IANA timezone persisted with the birth chart. This must take precedence over
   // a fresh location lookup when building facts for an immutable report snapshot.
   timezone?: string;
+  latitude?: number;
+  longitude?: number;
   unknownTime?: boolean;
 }
 
@@ -55,6 +58,10 @@ export async function buildVerifiedFactsForReport(
   try {
     ledger = await buildVerifiedFactsV2(reportType, birth, asOfDate);
   } catch (e) {
+    if (e instanceof EphemerisUnavailableError) return {
+      ok: false,
+      preflight: { status: 'input_incomplete', mode: 'preflight_failed', missing: e.bodies.map(key => `natal.${key}.position: ephemeris unavailable`) },
+    };
     if (e instanceof LedgerResolutionError) throw new V2BuildError(e.message);
     throw e;
   }

@@ -8,7 +8,7 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
-import { geocodeLocation } from '@/lib/chartEngine';
+import { geocodeLocation, geocodeCoordinates } from '@/lib/chartEngine';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
@@ -240,9 +240,9 @@ export async function POST(request: Request) {
         dob: chart.date,
         birthTime: chart.time || null,
         place: chart.location,
-        lat: Number(c.latitude),
-        lon: Number(c.longitude),
-        tz: chart.timezone || 'UTC',
+        lat: chart.latitude,
+        lon: chart.longitude,
+        tz: chart.timezone,
         solarFallback: chart.unknownTime,
       },
       verifiedFacts,
@@ -289,25 +289,21 @@ async function readBounded(request: Request, maxBytes: number): Promise<string> 
 async function buildBirthInfo(c: any, user: any) {
   const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
   const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
-  // UTC is a stale fallback for a named place, not an authoritative chart anchor.
-  // Recover an IANA zone before immutable verified facts are generated.
-  let timezone = c.timezone || undefined;
-  if (!timezone || timezone === 'UTC') {
-    const resolved = await geocodeLocation(c.location_name);
-    if (resolved?.timezone) {
-      timezone = resolved.timezone;
-      await query(
-        `UPDATE natal_charts SET timezone = $1 WHERE id = $2 AND (timezone IS NULL OR timezone = 'UTC')`,
-        [timezone, c.id],
-      );
-    }
-  }
+  // Recover the calculation anchor, not just its label. Never mutate an older
+  // chart's timezone while leaving its already-computed positions unchanged.
+  const hasCoordinates = c.latitude != null && c.longitude != null && c.latitude !== '' && c.longitude !== '';
+  const resolved = hasCoordinates
+    ? geocodeCoordinates(Number(c.latitude), Number(c.longitude))
+    : await geocodeLocation(c.location_name);
+  if (!resolved) throw new V2BuildError('Birth location could not be verified; please save the birth chart again');
   return {
     name: user.first_name || undefined,
     date: toDateStr(c.birth_date),
     time: toTimeStr(c.birth_time),
     location: c.location_name,
-    timezone,
+    timezone: resolved.timezone,
+    latitude: resolved.lat,
+    longitude: resolved.lon,
     unknownTime: c.unknown_time,
   };
 }
@@ -334,9 +330,9 @@ async function buildReadingInput(opts: {
       dob: chart.date,
       birthTime: chart.time || null,
       place: chart.location,
-      lat: Number(c.latitude),
-      lon: Number(c.longitude),
-      tz: chart.timezone || 'UTC',
+      lat: chart.latitude,
+      lon: chart.longitude,
+      tz: chart.timezone,
       solarFallback: chart.unknownTime,
     },
     verifiedFacts,

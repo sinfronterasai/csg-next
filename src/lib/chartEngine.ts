@@ -59,6 +59,14 @@ export interface ChartData {
   midheaven: AnglePlacement;
   sun: PlanetPlacement;
   moon: PlanetPlacement;
+  unavailableBodies?: string[];
+}
+
+export class EphemerisUnavailableError extends Error {
+  constructor(public bodies: string[]) {
+    super(`Ephemeris unavailable for: ${bodies.join(', ')}`);
+    this.name = 'EphemerisUnavailableError';
+  }
 }
 
 // planet key -> Swiss Ephemeris body constant + our astrology.ts key
@@ -128,8 +136,20 @@ export function houseForLongitude(longitude: number, cusps: number[]): number | 
 // Resolves a location to coordinates + IANA timezone. Uses Google Maps
 // Geocoding (plus the Time Zone API, since Geocoding does not return a tz)
 // when GOOGLE_MAPS_API_KEY is set; otherwise falls back to Open-Meteo (keyless).
-// No longer depends on tz-lookup for the chart path.
+// Coordinate-only input and missing provider zones use offline tz-lookup.
 export interface GeoResult { lat: number; lon: number; timezone: string; }
+
+// Coordinate lookup is offline and cannot silently degrade to UTC.
+export function geocodeCoordinates(lat: number, lon: number): GeoResult | null {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  try {
+    const timezone: string = require('tz-lookup')(lat, lon);
+    new Intl.DateTimeFormat('en', { timeZone: timezone });
+    return { lat, lon, timezone };
+  } catch {
+    return null;
+  }
+}
 
 const CITY_TABLE: Record<string, GeoResult> = {
   'paris, france': { lat: 48.8566, lon: 2.3522, timezone: 'Europe/Paris' },
@@ -152,7 +172,7 @@ const CITY_TABLE: Record<string, GeoResult> = {
 };
 
 // Resolve a location to coordinates + timezone.
-// - exact "lat,lon" string -> parsed directly (timezone defaults to UTC)
+// - exact "lat,lon" string -> validated coordinates + offline IANA lookup
 // - known city in CITY_TABLE -> instant cache hit
 // - GOOGLE_MAPS_API_KEY set -> Google Maps Geocoding + Time Zone API
 // - otherwise -> Open-Meteo forward geocoding (keyless fallback)
@@ -163,7 +183,7 @@ export async function geocodeLocation(location: string): Promise<GeoResult | nul
   const key = raw.toLowerCase();
   if (CITY_TABLE[key]) return CITY_TABLE[key];
   const m = key.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-  if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]), timezone: 'UTC' };
+  if (m) return geocodeCoordinates(parseFloat(m[1]), parseFloat(m[2]));
 
   const gkey = process.env.GOOGLE_MAPS_API_KEY;
   if (gkey) {
@@ -186,11 +206,13 @@ async function googleGeocode(location: string, apiKey: string): Promise<GeoResul
     const { lat, lng } = res0.geometry.location;
     // Time Zone API needs a timestamp; use now.
     const t = await fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${Math.floor(Date.now() / 1000)}&key=${apiKey}`);
-    let tz = 'UTC';
+    let tz = geocodeCoordinates(lat, lng)?.timezone;
     if (t.ok) {
       const tj = await t.json();
       if (tj?.timeZoneId) tz = tj.timeZoneId;
     }
+    if (!tz) return null;
+    new Intl.DateTimeFormat('en', { timeZone: tz });
     return { lat, lon: lng, timezone: tz };
   } catch {
     return null;
@@ -206,7 +228,11 @@ async function openMeteoGeocode(location: string): Promise<GeoResult | null> {
     const data = await res.json();
     const r = data?.results?.[0];
     if (!r || typeof r.latitude !== 'number' || typeof r.longitude !== 'number') return null;
-    return { lat: r.latitude, lon: r.longitude, timezone: r.timezone || 'UTC' };
+    const anchor = geocodeCoordinates(r.latitude, r.longitude);
+    if (!anchor) return null;
+    const timezone = r.timezone || anchor.timezone;
+    new Intl.DateTimeFormat('en', { timeZone: timezone });
+    return { lat: r.latitude, lon: r.longitude, timezone };
   } catch {
     return null;
   }
@@ -223,9 +249,11 @@ export async function computeChart(input: {
   latitude?: number;
   longitude?: number;
   unknownTime?: boolean;
+  requireAllBodies?: boolean;
 }): Promise<ChartData> {
   const eph = await getEph();
-  const resolved = await geocodeLocation(input.location);
+  const anchored = Number.isFinite(input.latitude) && Number.isFinite(input.longitude) && !!input.timezone;
+  const resolved = anchored ? null : await geocodeLocation(input.location);
   if (!resolved && (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude) || !input.timezone)) {
     throw new Error(`geocode: could not resolve location "${input.location}"`);
   }
@@ -243,13 +271,19 @@ export async function computeChart(input: {
 
   const FLAGS = Constants.SEFLG_SWIEPH | Constants.SEFLG_TROPICAL | Constants.SEFLG_SPEED;
 
-  const planets: PlanetPlacement[] = PLANET_BODIES.map(({ key, se }) => {
+  const unavailableBodies: string[] = [];
+  const planets: PlanetPlacement[] = PLANET_BODIES.flatMap(({ key, se }) => {
     const res = eph.swe_calc_ut(jd, se, FLAGS);
+    // Failed calls return zero-filled buffers. Zero longitude itself is valid.
+    if (res.returnCode < 0 || !Array.from(res.xx).every(Number.isFinite)) {
+      unavailableBodies.push(key);
+      return [];
+    }
     const long = normDeg(res.xx[0]);
     const speed = res.xx[3];
     const { sign, degreeInSign } = signFromLongitude(long);
     const info = getPlanet(key) || { key, label: key, glyph: '•', description: '' };
-    return {
+    return [{
       key,
       label: info.label,
       glyph: info.glyph,
@@ -262,8 +296,11 @@ export async function computeChart(input: {
       retrograde: speed < 0,
       dignity: dignityFor(key, sign.key),
       description: info.description,
-    };
+    }];
   });
+  if (unavailableBodies.some(key => !['chiron', 'juno'].includes(key)) || (input.requireAllBodies && unavailableBodies.length)) {
+    throw new EphemerisUnavailableError(unavailableBodies);
+  }
 
   // Houses via Swiss Ephemeris Placidus (or whole-sign when time unknown).
   // Swiss Ephemeris house-system code: 'P'=Placidus, 'W'=Whole Sign (char code).
@@ -314,6 +351,7 @@ export async function computeChart(input: {
       unknownTime,
     },
     planets,
+    unavailableBodies,
     angles,
     houses,
     ascendant,

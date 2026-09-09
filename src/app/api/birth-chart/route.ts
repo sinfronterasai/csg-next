@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { computeChart, geocodeLocation } from '@/lib/chartEngine';
+import { computeChart, geocodeLocation, geocodeCoordinates } from '@/lib/chartEngine';
 
 export async function GET() {
   try {
@@ -69,21 +69,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     const body = await request.json();
-    const { name, date, time, location, latitude, longitude, timezone, unknownTime, chartId } = body;
+    const { name, date, time, location, latitude, longitude, unknownTime, chartId } = body;
     if (!date || !location) {
       return NextResponse.json({ error: 'Missing required fields', details: 'date and location are required' }, { status: 400 });
     }
     if (!unknownTime && !time) {
       return NextResponse.json({ error: 'Missing required fields', details: 'time is required unless unknownTime is set' }, { status: 400 });
     }
-    // Resolve the IANA timezone from the human location even when the client sends
-    // coordinates. Client timezone data is display input, not authoritative chart data.
-    const resolvedLocation = await geocodeLocation(location);
+    // Resolve the zone at the exact coordinates used for calculation. A timezone
+    // from a different forward-geocoded city must never be combined with them.
     let geo: { lat: number; lon: number; timezone: string } | null = null;
-    if (latitude !== undefined && longitude !== undefined) {
-      geo = { lat: Number(latitude), lon: Number(longitude), timezone: resolvedLocation?.timezone || timezone || 'UTC' };
+    if (latitude !== undefined || longitude !== undefined) {
+      if (typeof latitude === 'number' && typeof longitude === 'number') geo = geocodeCoordinates(latitude, longitude);
     } else {
-      geo = resolvedLocation;
+      geo = await geocodeLocation(location);
     }
     if (!geo) {
       return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
