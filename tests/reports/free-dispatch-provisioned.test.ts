@@ -20,7 +20,7 @@ provisioned('Free Natal route with a real complete ledger', () => {
     const query = require('@/lib/db').query as jest.Mock;
     let stored: any;
     query.mockImplementation(async (sql: string, args: any[]) => {
-      if (sql.includes('FROM natal_charts')) return { rows: [{ birth_date: new Date('1980-03-09'), birth_time: new Date('1980-03-09T16:21:00Z'), location_name: 'Santa Cruz, CA', latitude: 36.97412, longitude: -122.0308, timezone: 'America/Los_Angeles', unknown_time: false }] };
+      if (sql.includes('FROM natal_charts')) return { rows: [{ birth_date: new Date('1980-03-09'), birth_time: '16:21:00', location_name: 'Santa Cruz, CA', latitude: 36.97412, longitude: -122.0308, timezone: 'America/Los_Angeles', unknown_time: false }] };
       if (sql.startsWith('INSERT INTO readings')) {
         stored = JSON.parse(args[4]);
         return { rows: [{ id: 123, result: args[4] }], rowCount: 1 };
@@ -34,7 +34,7 @@ provisioned('Free Natal route with a real complete ledger', () => {
       expect(dispatch).toHaveBeenCalledTimes(1);
       const payload = dispatch.mock.calls[0][0];
       expect(preflightReport('natal', payload.verifiedFacts).status).toBe('complete');
-      expect(payload.birthData).toMatchObject({ dob: '1980-03-09', birthTime: '16:21', tz: 'America/Los_Angeles' });
+      expect(payload.birthData).toMatchObject({ dob: '1980-03-09', birthTime: '16:21:00', tz: 'America/Los_Angeles' });
       expect(stored.metadata.verifiedFacts).toEqual(payload.verifiedFacts);
       expect(payload.verifiedFacts.facts['natal.chiron.position'].value.longitude).toBeGreaterThan(40);
       expect(payload.verifiedFacts.facts['natal.juno.position'].value.longitude).toBeGreaterThan(107);
