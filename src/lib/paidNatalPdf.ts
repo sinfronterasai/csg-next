@@ -242,30 +242,31 @@ function pageModules(out: Draw, page: number, ledger: NatalLedger): number {
 
 function bodyStreams(input: PaidNatalPdfInput, ledger: NatalLedger): string[] {
   const content = narrativeLines(input);
-  const starts = [515, 520, 687, 455, 455, 500, 540, 564];
-  const capacities = starts.map((start) => Math.floor((start - 55) / 10.2));
-  const totalCapacity = capacities.reduce((sum, value) => sum + value, 0);
-  if (content.length > totalCapacity) throw new Error(`premium narrative exceeds ten-page capacity (${content.length}/${totalCapacity} lines)`);
-
   const streams: string[] = [];
   let cursor = 0;
+  const footerBoundary = 55;
   for (let index = 0; index < 8; index++) {
     const page = index + 3;
     const out: Draw = [];
     bodyChrome(out, page);
     let y = pageModules(out, page, ledger);
-    const remainingPages = 8 - index;
-    const remainingLines = content.length - cursor;
-    const take = Math.min(capacities[index], Math.ceil(remainingLines / remainingPages));
-    for (const line of content.slice(cursor, cursor + take)) {
-      if (line.heading) { text(out, 42, y, line.text, 8.2, '0.35 0.1 0.43', true); y -= 13; }
-      else { text(out, 42, y, line.text, 7.25, '0.16 0.13 0.2'); y -= 10.2; }
+    while (cursor < content.length) {
+      const line = content[cursor];
+      const height = line.heading ? 13 : 10.2;
+      if (y - height < footerBoundary) break;
+      if (line.heading) text(out, 42, y, line.text, 8.2, '0.35 0.1 0.43', true);
+      else text(out, 42, y, line.text, 7.25, '0.16 0.13 0.2');
+      y -= height;
+      cursor += 1;
     }
-    cursor += take;
-    if (take === 0) text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
+    if (cursor === 0 && content.length === 0) {
+      text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
+    } else if (cursor === content.length && y >= footerBoundary) {
+      text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
+    }
     streams.push(out.join('\n'));
   }
-  if (cursor !== content.length) throw new Error('premium narrative pagination failed');
+  if (cursor !== content.length) throw new Error(`premium narrative exceeds ten-page capacity (${content.length - cursor} lines remain)`);
   return streams;
 }
 

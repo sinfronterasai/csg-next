@@ -12,7 +12,11 @@ jest.mock('@/lib/auth', () => ({
   verifyToken: (token: string) => token === 'token' ? { userId: '7' } : null,
   getUserById: async (id: string) => id === '7' ? { id: 7 } : null,
 }));
-jest.mock('@/lib/profile/store', () => ({ getReadingById: jest.fn(async () => reading) }));
+let isReportDeliverable: jest.Mock;
+jest.mock('@/lib/profile/store', () => ({
+  getReadingById: jest.fn(async () => reading),
+  isReportDeliverable: (...args: unknown[]) => isReportDeliverable(...args),
+}));
 
 const approvedReading = () => ({
   id: 42,
@@ -42,7 +46,11 @@ const approvedReading = () => ({
 const call = () => GET(new Request('http://localhost/api/reports/42/pdf'), { params: Promise.resolve({ id: '42' }) });
 
 describe('paid natal PDF delivery endpoint', () => {
-  beforeEach(() => { authToken = 'token'; reading = approvedReading(); });
+  beforeEach(() => {
+    authToken = 'token';
+    reading = approvedReading();
+    isReportDeliverable = jest.fn(() => true);
+  });
 
   it('requires an authenticated owner', async () => {
     authToken = undefined;
@@ -56,7 +64,18 @@ describe('paid natal PDF delivery endpoint', () => {
     expect((await call()).status).toBe(404);
     reading = approvedReading();
     reading.result.pipeline.status = 'needs_editor';
+    isReportDeliverable.mockReturnValue(false);
     expect((await call()).status).toBe(404);
+  });
+
+  it('uses the central deliverability gate instead of trusting stale pipeline JSON', async () => {
+    reading = approvedReading();
+    reading.pipelineStatus = 'needs_editor';
+    reading.result.pipeline.status = 'approved';
+    isReportDeliverable.mockReturnValue(false);
+
+    expect((await call()).status).toBe(404);
+    expect(isReportDeliverable).toHaveBeenCalledWith(reading);
   });
 
   it('returns the exact ten-page PDF with private download headers', async () => {

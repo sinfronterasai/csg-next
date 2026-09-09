@@ -65,6 +65,15 @@ describe('Premium Natal PDF engine', () => {
     expect(text).not.toMatch(/\b(?:NaN|undefined|null)\b/);
   });
 
+  it('fails closed rather than drawing headings into the footer when actual line heights exceed capacity', () => {
+    const headingHeavy = {
+      ...referenceInput,
+      sections: Array.from({ length: 368 }, (_, index) => ({ heading: `HEADING_${index + 1}`, body: '' })),
+    };
+
+    expect(() => buildPaidNatalPdf(headingHeavy)).toThrow(/premium narrative exceeds ten-page capacity/);
+  });
+
   it('renders the deliberate ten-page editorial architecture', () => {
     const text = raw(buildPaidNatalPdf(referenceInput));
     for (const heading of [

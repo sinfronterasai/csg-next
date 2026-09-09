@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
-import { getReadingById } from '@/lib/profile/store';
+import { getReadingById, isReportDeliverable } from '@/lib/profile/store';
 import { buildPaidNatalPdf, type PaidNatalPdfInput, type PaidFact } from '@/lib/paidNatalPdf';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -13,8 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: 'Invalid report id' }, { status: 400 });
     const record = await getReadingById(id, Number(decoded.userId));
     const result = record?.result as any;
-    const status = result?.pipeline?.status ?? record?.pipelineStatus;
-    if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || !['natal', 'natalpremium'].includes(result?.reportType) || status !== 'approved') {
+    if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || !['natal', 'natalpremium'].includes(result?.reportType) || !isReportDeliverable(record)) {
       return NextResponse.json({ error: 'Paid natal report is not available' }, { status: 404 });
     }
     const metadata = result.metadata;
