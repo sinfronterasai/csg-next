@@ -16,6 +16,7 @@
 //     A repeat request for an already-consumed purchase returns the existing
 //     correlation (with the reading's ACTUAL status) WITHOUT creating a new reading.
 import { query, transaction } from '@/lib/db';
+import { LAUNCH_PAID_TYPES, gateGeneration } from '@/lib/launch/allowlist';
 import crypto from 'crypto';
 
 export type ReportPurchaseStatus = 'pending' | 'paid' | 'consumed' | 'failed';
@@ -413,6 +414,119 @@ export async function markReadingDispatchFailed(readingId: number | string): Pro
     `UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1`,
     [Number(readingId)],
   );
+}
+
+export interface PipelineFailureEvidence {
+  reportId: string;
+  executionId: string;
+  failedNode: string;
+  failedAt: string;
+  status: 'failed';
+}
+
+/** Only trusted server callbacks may submit this evidence. Time alone is NEVER
+ * evidence of failure. No stack, prompt, birth data, or arbitrary URLs are stored.
+ */
+export function isPipelineFailureEvidence(value: unknown): value is PipelineFailureEvidence {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return Object.keys(v).every((key) => ['reportId', 'executionId', 'failedNode', 'failedAt', 'status'].includes(key)) &&
+    isValidPurchaseId(v.reportId) && typeof v.executionId === 'string' && /^[1-9][0-9]{0,19}$/.test(v.executionId) &&
+    typeof v.failedNode === 'string' && v.failedNode.trim().length > 0 && v.failedNode.length <= 120 &&
+    v.status === 'failed' && typeof v.failedAt === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v.failedAt) && Number.isFinite(Date.parse(v.failedAt));
+}
+
+export async function recordPipelineFailure(input: unknown): Promise<'applied' | 'duplicate' | 'conflict' | 'not_found' | 'invalid'> {
+  if (!isPipelineFailureEvidence(input)) return 'invalid';
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const lock = await tx(`SELECT *, now() AS observed_at FROM readings WHERE type = 'report' AND result->>'reportId' = $1 FOR UPDATE`, [input.reportId]);
+      const r = lock.rows[0];
+      if (!r) return finalize(tx, 'not_found');
+      const lastRetry = r.result.retryAttempts?.at(-1)?.requestedAt;
+      const start = Date.parse(r.result.attemptStartedAt ?? lastRetry ?? r.created_at);
+      const failedAt = Date.parse(input.failedAt);
+      const now = new Date(r.observed_at).getTime();
+      if (!['queued', 'processing'].includes(r.pipeline_status) || !Number.isFinite(start) ||
+          failedAt < start || failedAt > now || failedAt < now - 7 * 24 * 60 * 60 * 1000) return finalize(tx, 'conflict');
+      const prior = r.result.failureEvidence;
+      if (prior) return finalize(tx, Object.keys(input).every((key) => prior[key] === input[key as keyof PipelineFailureEvidence]) ? 'duplicate' : 'conflict');
+      await tx(`UPDATE readings SET result = jsonb_set(result, '{failureEvidence}', $2::jsonb) WHERE id = $1`,
+        [r.id, JSON.stringify({ ...input, receivedAt: new Date(now).toISOString(), source: 'authenticated_pipeline' })]);
+      return finalize(tx, 'applied');
+    } catch (error) {
+      await tx('ROLLBACK');
+      throw error;
+    }
+  });
+}
+
+/** Privileged callers only: authorization is enforced by the rework route.
+ * Lock the order before the reading, matching consumeReportPurchase's lock order.
+ * The existing paid entitlement is never reopened and no billing API is called.
+ */
+export async function claimPaidRework(input: {
+  readingId: number;
+  expectedReportId: string;
+  reportId: string;
+  actorId: number;
+  reason: string;
+}): Promise<
+  | { outcome: 'claimed'; reportId: string; reportType: string; ownerId: number; snapshot: any }
+  | { outcome: 'conflict' | 'not_entitled' | 'missing_snapshot' | 'invalid_snapshot' }
+> {
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const orders = await tx('SELECT * FROM report_orders WHERE reading_id = $1 FOR UPDATE', [input.readingId]);
+      const readings = await tx('SELECT * FROM readings WHERE id = $1 FOR UPDATE', [input.readingId]);
+      const o = orders.rows[0];
+      const r = readings.rows[0];
+      if (!r || orders.rows.length !== 1 || !o || o.status !== 'consumed' || r.type !== 'report' ||
+          Number(o.user_id) !== Number(r.user_id) || o.report_type !== r.result?.reportType ||
+          !LAUNCH_PAID_TYPES.includes(o.report_type) || !gateGeneration(o.report_type, r.user_id).allowed ||
+          !isValidSkuPair(o.report_type, o.sku) || Number(o.amount) <= 0 ||
+          !o.stripe_session_id || !o.stripe_payment_id) {
+        return finalize(tx, { outcome: 'not_entitled' });
+      }
+      const evidence = r.result.failureEvidence;
+      const evidencedFailure = ['queued', 'processing'].includes(r.pipeline_status) &&
+        evidence?.source === 'authenticated_pipeline' && evidence.reportId === input.expectedReportId && evidence.status === 'failed';
+      if (r.result.reportId !== input.expectedReportId || o.report_id !== input.expectedReportId ||
+          !isValidPurchaseId(input.reportId) || input.reportId === input.expectedReportId ||
+          (!['rejected', 'dispatch_failed'].includes(r.pipeline_status) && !evidencedFailure)) {
+        return finalize(tx, { outcome: 'conflict' });
+      }
+      // Incident quarantine: reading 1160's immutable facts have a known wrong
+      // UTC conversion. A prose retry cannot repair them. Key by correlation,
+      // not environment-specific row ID; keep blocked pending an audited rebuild.
+      if (r.result.reportId === '6deeb156-4f6d-40e2-988d-a714ff966c39') {
+        return finalize(tx, { outcome: 'invalid_snapshot' });
+      }
+      const snapshot = r.result.metadata;
+      if (!snapshot?.birthData || !snapshot?.verifiedFacts) return finalize(tx, { outcome: 'missing_snapshot' });
+      const { reworkHistory = [], ...previousResult } = r.result;
+      const now = new Date().toISOString();
+      const result = {
+        reportId: input.reportId, reportType: o.report_type, metadata: snapshot,
+        pipeline: { status: 'queued' }, attemptStartedAt: now,
+        reworkHistory: [...reworkHistory, {
+          reportId: input.expectedReportId, status: r.pipeline_status,
+          callbackHash: r.pipeline_callback_hash, result: previousResult,
+          actorId: input.actorId, reason: input.reason, requestedAt: now,
+        }],
+      };
+      await tx(`UPDATE readings SET result = $2::jsonb, pipeline_status = 'queued', pipeline_callback_hash = NULL WHERE id = $1`,
+        [input.readingId, JSON.stringify(result)]);
+      await tx('UPDATE report_orders SET report_id = $2, updated_at = now() WHERE id = $1', [o.id, input.reportId]);
+      return finalize(tx, { outcome: 'claimed', reportId: input.reportId, reportType: o.report_type, ownerId: Number(r.user_id), snapshot });
+    } catch (error) {
+      await tx('ROLLBACK');
+      throw error;
+    }
+  });
 }
 
 async function finalize(

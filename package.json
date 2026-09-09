@@ -8,8 +8,8 @@
     "start": "next start -p 10000",
     "db:migrate": "node scripts/migrate.mjs",
     "verify": "bash scripts/verify-local-build.sh",
-    "test": "jest",
-    "test:cov": "jest --coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",
