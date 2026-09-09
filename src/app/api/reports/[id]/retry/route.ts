@@ -6,10 +6,11 @@ import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import { mapReportType, dispatchReport, isUnsupportedForPipeline } from '@/lib/reportPipeline';
 import { getReportPurchaseByReadingId, claimRetry, markReadingDispatchFailed } from '@/lib/billing/reportPurchaseStore';
 import { gateGeneration } from '@/lib/launch/allowlist';
+import crypto from 'crypto';
 
 // POST /api/reports/[id]/retry
-// Safe retry for a FAILED dispatch (dispatch_failed / rejected). Re-dispatches to n8n
-// using the SAME report correlation and the IMMUTABLE original request snapshot.
+// Safe retry for a FAILED dispatch (dispatch_failed only). Re-dispatches to n8n
+// using a NEW attempt correlation and the IMMUTABLE original request snapshot.
 // It is only allowed when the associated purchase is already 'consumed' (paid), so a
 // retry NEVER charges again. Owner-checked.
 //
@@ -76,13 +77,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'No paid purchase associated with this report' }, { status: 402 });
     }
 
-    // #3 — atomic, stateful claim. Loser gets 409.
-    const { claimed } = await claimRetry(readingId, decoded.userId);
-    if (!claimed) {
+    // #3 — atomic, stateful claim. The row remains the same report card, while
+    // the conditional update records exactly one new attempt and correlation id.
+    const retryReportId = crypto.randomUUID();
+    const retry = await claimRetry(readingId, decoded.userId, retryReportId);
+    if (!retry.claimed) {
       return NextResponse.json({ error: 'Retry already in progress or no longer retryable' }, { status: 409 });
     }
 
-    const reportId: string = r.result?.reportId;
+    const reportId: string = retry.reportId;
     if (isUnsupportedForPipeline(type)) {
       await markReadingDispatchFailed(readingId);
       return NextResponse.json({ error: 'Report type not retryable via the pipeline' }, { status: 400 });

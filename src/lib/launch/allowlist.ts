@@ -16,7 +16,7 @@ import type { ReportType } from '@/lib/reportEngine';
 
 /** Report types available to generate at launch (free + paid). */
 export const LAUNCH_FREE_TYPES: ReadonlyArray<ReportType> = ['natal'];
-export const LAUNCH_PAID_TYPES: ReadonlyArray<ReportType> = ['loveblueprint'];
+export const LAUNCH_PAID_TYPES: ReadonlyArray<ReportType> = ['natalpremium', 'loveblueprint'];
 
 const LAUNCH_TYPES: ReadonlySet<string> = new Set<string>([
   ...LAUNCH_FREE_TYPES,

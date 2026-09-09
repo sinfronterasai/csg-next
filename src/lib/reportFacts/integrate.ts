@@ -33,6 +33,9 @@ export interface BirthLike {
   date: string;
   time?: string;
   location: string;
+  // IANA timezone persisted with the birth chart. This must take precedence over
+  // a fresh location lookup when building facts for an immutable report snapshot.
+  timezone?: string;
   unknownTime?: boolean;
 }
 

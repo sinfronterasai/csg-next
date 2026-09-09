@@ -25,6 +25,9 @@ jest.mock('@/lib/reportFacts/integrate', () => ({
 jest.mock('@/lib/profile/store', () => ({
   setReadingDispatchFailed: jest.fn(async () => {}),
 }));
+jest.mock('@/lib/billing/reportPurchase', () => ({
+  verifyPurchasePaidViaStripe: jest.fn(),
+}));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),
@@ -119,6 +122,15 @@ describe('purchase verification gates dispatch', () => {
     const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
+  });
+  it('recovers a paid Checkout session before its webhook arrives', async () => {
+    setup({ purchase: { ...paidPurchase, status: 'pending' } });
+    const verifyPaid = require('@/lib/billing/reportPurchase').verifyPurchasePaidViaStripe as jest.Mock;
+    verifyPaid.mockResolvedValue({ ...paidPurchase, status: 'paid' });
+    const res = await call({ type: 'loveblueprint', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    expect(res.status).toBe(200);
+    expect(verifyPaid).toHaveBeenCalledWith('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+    expect(dispatched).toHaveBeenCalledTimes(1);
   });
   it('free report (natal) dispatches without any purchase', async () => {
     setup();

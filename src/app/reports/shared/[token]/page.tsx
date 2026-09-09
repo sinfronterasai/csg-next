@@ -1,9 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { ReportType } from '@/lib/reportEngine';
 import ReportResult from '@/components/reports/ReportResult';
-import { getReadingByShareToken } from '@/lib/profile/store';
-import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
+import { getReadingByShareToken, toPublicReport } from '@/lib/profile/store';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,17 +16,15 @@ export default async function SharedReportPage({
   const rec = await getReadingByShareToken(token);
   if (!rec || rec.type !== 'report') notFound();
 
-  const result = (rec.result ?? {}) as {
-    title?: string; overview?: { glyph?: string; label: string; value: string; note?: string }[];
-    reportType?: ReportType;
-    pipeline?: { status?: string; sections?: any[] };
-  };
-  const sections = result.pipeline?.status === 'approved'
-    ? mapAsyncSectionsToPdf(result.pipeline.sections)
-    : [];
-  // Defense in depth for tokens minted before the current share gate: never
-  // render a rejected, pending, or empty report even if it has a valid token.
-  if (rec.pipelineStatus !== 'approved' || sections.length === 0) notFound();
+  // A valid share token authorizes the URL, not unfinished pipeline content.
+  // Reuse the exact sanitized owner/public contract before server rendering so
+  // raw callbacks, evidence ids, and queued prose cannot enter the HTML.
+  const report = toPublicReport(rec);
+  if (report.pending || report.status !== 'approved') notFound();
+  const sections = report.sections.map((section) => ({
+    heading: section.id.replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    body: section.prose,
+  }));
 
   return (
     <section className="py-24 relative z-10">
@@ -38,9 +34,9 @@ export default async function SharedReportPage({
           <p className="text-xs uppercase tracking-[0.3em] text-gold/60">Cosmic Spirit Guide</p>
         </div>
         <ReportResult
-          type={result.reportType ?? 'natal'}
-          title={result.title ?? rec.title ?? undefined}
-          overview={result.overview ?? []}
+          type={(report.type ?? 'natal') as any}
+          title={report.title ?? undefined}
+          overview={report.overview}
           sections={sections}
         />
         <div className="text-center mt-10">

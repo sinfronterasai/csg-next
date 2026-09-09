@@ -6,13 +6,12 @@
 // legacy result.text field. Rendering is gated by pipeline status:
 //   approved      -> every non-empty section in order, plus a Download PDF action
 //   queued/pending-> "being prepared" placeholder, no prose/PDF
-//   needs_editor  -> editor-review placeholder, not customer-deliverable, no PDF
 //   rejected      -> non-sensitive failure/retry message (no judge data / reasons)
 // factsCited, judge internals, callback tokens, and reject reasons are never shown.
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { exportReportPdf } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf } from '@/lib/reportPdf';
 import {
   asyncReportToPdfInput,
   mapAsyncSectionsToPdf,
@@ -21,8 +20,26 @@ import {
 
 type PublicReport = AsyncPublicReport;
 
-function StatusBody({ report }: { report: PublicReport }) {
+function StatusBody({ report, onRetry, retrying }: { report: PublicReport; onRetry: () => void; retrying: boolean }) {
   const status = report.status ?? 'queued';
+
+  if (status === 'dispatch_failed') {
+    return (
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          We couldn’t connect to the report service. Your purchase is safe; retrying will not charge you again.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="mt-4 inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-6 py-2.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:opacity-90 transition disabled:opacity-50"
+        >
+          {retrying ? 'Retrying…' : 'Retry Report'}
+        </button>
+      </div>
+    );
+  }
 
   if (status === 'rejected') {
     return (
@@ -37,13 +54,26 @@ function StatusBody({ report }: { report: PublicReport }) {
 
   if (status === 'needs_editor') {
     return (
-      <p className="text-cosmic-200 leading-relaxed">
-        Your report finished its automated checks and is in final review. We’ll notify you the moment it’s ready.
-      </p>
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          Your report is receiving a final quality review. We’ll notify you when it’s ready.
+        </p>
+      </div>
     );
   }
 
-  // queued / pending / unknown
+  // queued / pending / processing; unknown legacy states fail closed.
+  if (status !== 'queued' && status !== 'pending' && status !== 'processing') {
+    return (
+      <div>
+        <p className="text-cosmic-200 leading-relaxed">
+          We couldn’t finish this report to our quality bar. You can retry from the reports page, or contact support and we’ll make it right.
+        </p>
+        <Link href="/reports" className="mt-4 inline-block bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white px-6 py-2.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:opacity-90 transition">Retry Report</Link>
+      </div>
+    );
+  }
+
   return (
     <p className="text-cosmic-200 leading-relaxed">
       Your report is being prepared. We’ll notify you when it’s ready.
@@ -68,7 +98,13 @@ function ApprovedBody({ report }: { report: PublicReport }) {
         <div className="mt-6 pt-4 border-t border-gold/10">
           <button
             type="button"
-            onClick={() => exportReportPdf(pdfInput)}
+            onClick={() => {
+              if (report.paid && (report.type === 'natal' || report.type === 'natalpremium')) {
+                void downloadPaidNatalPdf(report.id);
+              } else {
+                exportReportPdf(pdfInput);
+              }
+            }}
             className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)]"
           >
             Download PDF
@@ -82,8 +118,27 @@ function ApprovedBody({ report }: { report: PublicReport }) {
 export default function ReportsTab() {
   const [reports, setReports] = useState<PublicReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<'load' | 'auth' | null>(null);
+  const [error, setError] = useState<'load' | 'auth' | 'retry' | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+
+  async function retryReport(report: PublicReport) {
+    setRetryingId(report.id);
+    try {
+      const res = await fetch(`/api/reports/${report.id}/retry`, { method: 'POST' });
+      if (!res.ok) {
+        setError('retry');
+        return;
+      }
+      setReports((current) => current.map((entry) => entry.id === report.id
+        ? { ...entry, status: 'queued', sections: [], overview: [], pending: true }
+        : entry));
+    } catch {
+      setError('retry');
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   async function loadReports() {
     setError(null);
@@ -145,7 +200,7 @@ export default function ReportsTab() {
             </button>
             {expanded === report.id && (
               <div className="px-6 pb-6 border-t border-gold/20 pt-4">
-                {isApproved ? <ApprovedBody report={report} /> : <StatusBody report={report} />}
+                {isApproved ? <ApprovedBody report={report} /> : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
               </div>
             )}
           </div>

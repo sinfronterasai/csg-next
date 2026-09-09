@@ -8,13 +8,15 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
+import { geocodeLocation } from '@/lib/chartEngine';
+import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
-  'natal', 'relationship', 'transit', 'loveblueprint', 'lovetiming',
+  'natal', 'natalpremium', 'relationship', 'transit', 'loveblueprint', 'lovetiming',
   'vocation', 'karmicshadow', 'fullcosmic',
 ];
 
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      const purchase = await getReportPurchase(purchaseId);
+      let purchase = await getReportPurchase(purchaseId);
       if (!purchase || purchase.userId !== Number(decoded.userId)) {
         return NextResponse.json(
           { error: 'Purchase not found or not owned by this account', requiresPurchase: true },
@@ -100,6 +102,13 @@ export async function POST(request: Request) {
           { error: 'Purchase does not match the requested report type and SKU', requiresPurchase: true },
           { status: 409 },
         );
+      }
+
+      // Checkout redirects can arrive before the asynchronous webhook. Reconcile
+      // only this owner- and SKU-validated order with Stripe server-side.
+      if (purchase.status === 'pending') {
+        const recovered = await verifyPurchasePaidViaStripe(purchaseId);
+        if (recovered) purchase = recovered;
       }
 
       // Correlated-reading fast path: if the purchase is already consumed AND
@@ -233,7 +242,7 @@ export async function POST(request: Request) {
         place: chart.location,
         lat: Number(c.latitude),
         lon: Number(c.longitude),
-        tz: c.timezone || 'UTC',
+        tz: chart.timezone || 'UTC',
         solarFallback: chart.unknownTime,
       },
       verifiedFacts,
@@ -280,11 +289,25 @@ async function readBounded(request: Request, maxBytes: number): Promise<string> 
 async function buildBirthInfo(c: any, user: any) {
   const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
   const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
+  // UTC is a stale fallback for a named place, not an authoritative chart anchor.
+  // Recover an IANA zone before immutable verified facts are generated.
+  let timezone = c.timezone || undefined;
+  if (!timezone || timezone === 'UTC') {
+    const resolved = await geocodeLocation(c.location_name);
+    if (resolved?.timezone) {
+      timezone = resolved.timezone;
+      await query(
+        `UPDATE natal_charts SET timezone = $1 WHERE id = $2 AND (timezone IS NULL OR timezone = 'UTC')`,
+        [timezone, c.id],
+      );
+    }
+  }
   return {
     name: user.first_name || undefined,
     date: toDateStr(c.birth_date),
     time: toTimeStr(c.birth_time),
     location: c.location_name,
+    timezone,
     unknownTime: c.unknown_time,
   };
 }
@@ -313,7 +336,7 @@ async function buildReadingInput(opts: {
       place: chart.location,
       lat: Number(c.latitude),
       lon: Number(c.longitude),
-      tz: c.timezone || 'UTC',
+      tz: chart.timezone || 'UTC',
       solarFallback: chart.unknownTime,
     },
     verifiedFacts,

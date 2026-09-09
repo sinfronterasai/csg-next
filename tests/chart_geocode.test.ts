@@ -20,6 +20,18 @@ describe('geocodeLocation (real forward geocoder)', () => {
     expect(g!.lon).toBeCloseTo(2.3522, 4);
   });
 
+  it('uses the canonical Pacific IANA timezone for Santa Cruz, California', async () => {
+    await expect(geocodeLocation('Santa Cruz, California')).resolves.toEqual({
+      lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles',
+    });
+  });
+
+  it('uses the canonical Pacific IANA timezone for Santa Cruz, CA alias', async () => {
+    await expect(geocodeLocation('Santa Cruz Ca')).resolves.toEqual({
+      lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles',
+    });
+  });
+
   it('returns null for empty input (caller must reject)', async () => {
     const g = await geocodeLocation('');
     expect(g).toBeNull();

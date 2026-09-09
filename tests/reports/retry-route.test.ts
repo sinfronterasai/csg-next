@@ -26,10 +26,10 @@ const READING = (status: string, snapshot: any, reportType = 'loveblueprint') =>
   pipeline_status: status,
 });
 
-function setup(opts: { status?: string; snapshot?: any; claimResult?: boolean; dispatchResult?: any; purchase?: any; reportType?: string } = {}) {
+function setup(opts: { status?: string; snapshot?: any; claimResult?: boolean; dispatchResult?: any; purchase?: any; reportType?: string; newReportId?: string } = {}) {
   dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
   claim = require('@/lib/billing/reportPurchaseStore').claimRetry;
-  claim.mockResolvedValue({ claimed: opts.claimResult ?? true });
+  claim.mockResolvedValue({ claimed: opts.claimResult ?? true, reportId: opts.newReportId ?? 'rid-2', attempt: 2 });
   query = require('@/lib/db').query;
   query.mockImplementation(async (text: string) => {
     if (text.includes('FROM readings WHERE id')) return { rows: [READING(opts.status ?? 'dispatch_failed', opts.snapshot ?? { birthData: { dob: '1990-01-01' }, verifiedFacts: { x: 1 } }, opts.reportType)] };
@@ -99,6 +99,17 @@ describe('retry route', () => {
     const res = await call();
     expect(res.status).toBe(409);
     expect(dispatched).not.toHaveBeenCalled();
+  });
+  it('creates one new auditable attempt while keeping the same report card queued', async () => {
+    setup({ status: 'dispatch_failed', claimResult: true, newReportId: 'rid-2' });
+    const res = await call();
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(claim).toHaveBeenCalledWith(50, '7', expect.any(String));
+    expect(dispatched).toHaveBeenCalledWith(expect.objectContaining({ reportId: 'rid-2' }));
+    expect(body).toEqual(expect.objectContaining({ readingId: 50, reportId: 'rid-2', status: 'queued' }));
+    expect(body).not.toHaveProperty('text');
   });
   it('r3 — restores dispatch_failed when retry dispatch itself fails', async () => {
     setup({ status: 'dispatch_failed', claimResult: true, dispatchResult: { ok: false, status: 502 } });

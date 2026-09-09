@@ -13,6 +13,7 @@ function makeRec(opts: {
   pipelineStatus?: string | null;
   pipeline?: any;
   result?: any;
+  pricePaid?: number;
 }): any {
   return {
     id: 42,
@@ -20,6 +21,7 @@ function makeRec(opts: {
     title: 'Natal Birth Chart Report',
     createdAt: '2026-08-01T00:00:00Z',
     pipelineStatus: opts.pipelineStatus ?? null,
+    pricePaid: opts.pricePaid ?? 0,
     result: {
       reportId: 'rid-sec',
       title: 'Natal Birth Chart Report',
@@ -156,5 +158,37 @@ describe('toPublicReport — public contract sanitization', () => {
   it('does not throw on missing pipeline / missing result (defensive)', () => {
     expect(() => toPublicReport(makeRec({ pipelineStatus: 'queued' }))).not.toThrow();
     expect(() => toPublicReport(makeRec({ pipelineStatus: null }))).not.toThrow();
+  });
+
+  it('paid approved report fails closed unless DB status and structured callback contract are both approved', () => {
+    const structured = {
+      id: 'coreIdentity',
+      prose: 'You are grounded and steady.',
+      blocks: [{ role: 'evidence', prose: 'You are grounded and steady.', factIds: ['common.sun.sign'] }],
+    };
+
+    const staleDb = toPublicReport(makeRec({
+      pricePaid: 39,
+      pipelineStatus: 'needs_editor',
+      pipeline: { status: 'approved', sections: [structured] },
+    }));
+    expect(staleDb.sections).toEqual([]);
+    expect(staleDb.pending).toBe(true);
+
+    const legacyShape = toPublicReport(makeRec({
+      pricePaid: 39,
+      pipelineStatus: 'approved',
+      pipeline: { status: 'approved', sections: [{ id: 'coreIdentity', prose: 'Legacy prose only.' }] },
+    }));
+    expect(legacyShape.sections).toEqual([]);
+    expect(legacyShape.pending).toBe(true);
+
+    const valid = toPublicReport(makeRec({
+      pricePaid: 39,
+      pipelineStatus: 'approved',
+      pipeline: { status: 'approved', sections: [structured] },
+    }));
+    expect(valid.sections).toEqual([{ id: 'coreIdentity', prose: 'You are grounded and steady.' }]);
+    expect(valid.pending).toBeUndefined();
   });
 });

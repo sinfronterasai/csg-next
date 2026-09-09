@@ -26,6 +26,10 @@ const ALLOWED: {
     icon: 'fa-sun', accent: 'teal', cta: 'START FREE', kind: 'free',
   },
   {
+    id: 'natalpremium', name: 'Premium Natal Report', blurb: 'Your complete, quality-gated natal story with verified placements, practical integration, and a downloadable PDF to keep.',
+    icon: 'fa-star', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid',
+  },
+  {
     id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. $39 — one-time purchase, yours forever.',
     icon: 'fa-heart', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid',
   },
@@ -155,7 +159,7 @@ export default function Reports() {
         // Buyer already owns this report: do NOT start a second checkout. Resume
         // the owned entitlement directly so they can generate without a new charge.
         setResumeState('checking');
-        setResumeMessage('Continuing your owned Love Blueprint…');
+        setResumeMessage('Continuing your owned report…');
         await generate(id, data.purchaseId);
       } else {
         setError('Could not start checkout. Please try again.');
@@ -208,7 +212,7 @@ export default function Reports() {
             return;
           }
           // Entitlement verified: generate the report with the server-verified purchase id.
-          await generate('loveblueprint', data.purchaseId);
+          await generate(data.reportType, data.purchaseId);
         } catch (e: any) {
           setResumeState('failed');
           setResumeMessage(e?.message || 'Verification failed. Please try again.');

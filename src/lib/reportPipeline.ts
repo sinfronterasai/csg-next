@@ -61,6 +61,9 @@ export interface DispatchResult {
 /** App internal type -> n8n contract type (the only remap is transit -> yearlytransit). */
 export function mapReportType(appType: string): N8nReportType | null {
   if (appType === 'transit') return 'yearlytransit';
+  // Free Natal and Premium Natal deliberately share the same verified-facts
+  // pipeline child; entitlement determines the tier, not the chart facts.
+  if (appType === 'natalpremium') return 'natal';
   const allowed: N8nReportType[] = [
     'natal', 'relationship', 'loveblueprint', 'lovetiming',
     'yearlytransit', 'vocation', 'karmicshadow', 'fullcosmic',
@@ -207,8 +210,10 @@ export const TERMINAL_STATES = new Set(['approved', 'rejected']);
 
 /** Whether a report in `current` may legally transition to `next`. */
 export function canTransition(current: string | null, next: string): boolean {
-  // Initial dispatch states (queued/processing/null) can move to any pipeline status.
-  if (current === null || current === 'queued' || current === 'processing') {
+  // Automated quality gates finish directly as approved or rejected.
+  if (next === 'needs_editor') return false;
+  // Initial dispatch states (queued/processing/null) can move through the normal path.
+  if (current === null || current === 'queued' || current === 'processing' || current === 'checking') {
     return true;
   }
   // Terminal states never regress.

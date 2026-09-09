@@ -29,7 +29,7 @@ import { makeSeed, seededScore, seededUnit } from '@/lib/random';
 // ---- Shared types ---------------------------------------------------------
 
 export type ReportType =
-  | 'natal' | 'relationship' | 'transit' | 'loveblueprint' | 'lovetiming'
+  | 'natal' | 'natalpremium' | 'relationship' | 'transit' | 'loveblueprint' | 'lovetiming'
   | 'synastry' | 'composite' | 'couples' | 'vocation' | 'karmicshadow' | 'fullcosmic';
 
 // Two-person reports require a partner's birth data to compute.
@@ -62,6 +62,7 @@ export interface ReportRow {
 
 export const REPORT_META: Record<ReportType, { title: string; price: number }> = {
   natal: { title: 'Natal Birth Chart Report', price: 0 },
+  natalpremium: { title: 'Premium Natal Report', price: 39 },
   relationship: { title: 'Relationship Matrix', price: 0 },
   transit: { title: 'Yearly Transit Forecast', price: 39 },
   loveblueprint: { title: 'Love Blueprint', price: 39 },

@@ -60,8 +60,17 @@ function fakeDb() {
         if (text.includes("SET pipeline_status = 'queued'")) {
           // claimRetry: only a terminal dispatch_failed reading transitions to queued.
           if (r.pipeline_status === 'dispatch_failed') {
+            const previousReportId = r.result.reportId;
             r.pipeline_status = 'queued';
-            return { rows: [{ id: r.id }], rowCount: 1 };
+            if (params[2]) {
+              const retryAttempts = Array.isArray(r.result.retryAttempts) ? r.result.retryAttempts : [];
+              r.result = {
+                ...r.result,
+                reportId: params[2],
+                retryAttempts: [...retryAttempts, { attempt: retryAttempts.length + 2, reportId: params[2], previousReportId }],
+              };
+            }
+            return { rows: [{ id: r.id, result: r.result }], rowCount: 1 };
           }
           return { rows: [], rowCount: 0 };
         }
@@ -233,6 +242,19 @@ describe('r2/r3 — retry claim is atomic, terminal-only, loser 409', () => {
     const rid = makeReading('queued');
     const { claimed } = await claimRetry(rid, 7);
     expect(claimed).toBe(false);
+  });
+  it('records one new correlation attempt on the same report card', async () => {
+    installFake();
+    const rid = makeReading('dispatch_failed');
+    const result = await claimRetry(rid, 7, 'r2');
+    expect(result).toEqual({ claimed: true, reportId: 'r2', attempt: 2 });
+    expect(readings.find((r) => r.id === rid)).toEqual(expect.objectContaining({
+      pipeline_status: 'queued',
+      result: expect.objectContaining({
+        reportId: 'r2',
+        retryAttempts: [{ attempt: 2, reportId: 'r2', previousReportId: 'r1' }],
+      }),
+    }));
   });
   it('two concurrent claims: exactly one wins', async () => {
     installFake();

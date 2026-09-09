@@ -24,6 +24,19 @@ function escapeHtml(s: string): string {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
+export async function downloadPaidNatalPdf(readingId: number): Promise<boolean> {
+  const response = await fetch(`/api/reports/${readingId}/pdf`);
+  if (!response.ok) return false;
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `cosmic-spirit-guide-natal-${readingId}.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
 export function exportReportPdf(input: ReportPdfInput) {
   if (typeof window === 'undefined') return;
   const w = window.open('', '_blank', 'width=720,height=900');
