@@ -8,6 +8,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Constants, load, type SwissEph } from '@fusionstrings/swiss-eph';
+import { mountEphemerisData } from './ephemerisData';
 import {
   getSign, getPlanet, getHouse, signFromLongitude, dignityFor, formatDegree, SignKey,
 } from './astrology';
@@ -91,7 +92,10 @@ let ephPromise: Promise<SwissEph> | null = null;
 export function getEph(): Promise<SwissEph> {
   if (!ephPromise) {
     const wasmBytes = readFileSync(join(process.cwd(), 'node_modules/@fusionstrings/swiss-eph/wasm/swiss_eph.wasm'));
-    ephPromise = load(wasmBytes as unknown as Uint8Array);
+    ephPromise = load(wasmBytes as unknown as Uint8Array).then(eph => {
+      mountEphemerisData(eph);
+      return eph;
+    });
   }
   return ephPromise;
 }
