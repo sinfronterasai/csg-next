@@ -4,6 +4,10 @@ import { query } from '@/lib/db';
 import { buildVerifiedFactsForReport } from '@/lib/reportFacts/integrate';
 import { consumeReportPurchase } from '@/lib/billing/reportPurchaseStore';
 import { dispatchReport } from '@/lib/reportPipeline';
+import { getEph } from '@/lib/chartEngine';
+import { load } from '@fusionstrings/swiss-eph';
+import { readFileSync } from 'fs';
+afterEach(() => jest.restoreAllMocks());
 
 jest.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'test' }) }) }));
 jest.mock('@/lib/auth', () => ({ verifyToken: () => ({ userId: '7' }), getUserById: async () => ({ id: 7, first_name: 'Fixture', role: 'customer' }) }));
@@ -48,6 +52,9 @@ it('uses recovered coordinates in both immutable facts and dispatch when old coo
   expect((dispatchReport as jest.Mock).mock.calls[0][0].birthData).toMatchObject({ lat: birth.latitude, lon: birth.longitude, tz: birth.timezone });
 });
 it('does not consume a paid purchase or dispatch when the real ephemeris preflight is incomplete', async () => {
+  // Exercise an actually empty WASM filesystem even on a provisioned workstation.
+  const empty = await load(readFileSync('node_modules/@fusionstrings/swiss-eph/wasm/swiss_eph.wasm'));
+  jest.spyOn(await getEph(), 'swe_calc_ut').mockImplementation(empty.swe_calc_ut.bind(empty));
   (buildVerifiedFactsForReport as jest.Mock).mockImplementationOnce(jest.requireActual('@/lib/reportFacts/integrate').buildVerifiedFactsForReport);
   const response = await generate(request({ type: 'natalpremium', purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' }));
   expect(response.status).toBe(422);
