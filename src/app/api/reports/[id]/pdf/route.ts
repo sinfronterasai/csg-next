@@ -31,7 +31,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       name: String(birth.firstName || 'Seeker'),
       birth: { date: String(birth.dob), time: String(birth.birthTime || ''), location: String(birth.place) },
       facts,
-      ledger: { positions, houses, aspects, elements: ledger.common.elements?.value ?? {} },
+      ledger: {
+        positions,
+        houses,
+        aspects,
+        elements: ledger.common.elements?.value ?? {},
+        modalities: ledger.common.modalities?.value ?? {},
+      },
       sections: sections.map((s: any) => ({ heading: String(s.id || 'Section'), body: String(s.prose || '') })),
     };
     const pdf = buildPaidNatalPdf(input);

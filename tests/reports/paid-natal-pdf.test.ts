@@ -1,17 +1,93 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildPaidNatalPdf, resolveFactAnchors, type PaidNatalPdfInput } from '@/lib/paidNatalPdf';
+import { PDFDocument } from 'pdf-lib';
+import { buildPaidNatalPdf, resolveFactAnchors } from '@/lib/paidNatalPdf';
+import {
+  overflowReferenceInput,
+  referenceAspects,
+  referenceHouses,
+  referenceInput,
+  referencePositions,
+} from './fixtures/premiumNatalReference';
 
-const signs = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-const signFor = (longitude: number) => signs[Math.floor(longitude / 30) % 12];
-const positions = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'juno', 'northnode', 'southnode', 'ascendant', 'descendant', 'midheaven', 'icumcoeli'];
-const positionFacts = Object.fromEntries(positions.map((key, i) => { const longitude = ({ ascendant: 74, descendant: 254, midheaven: 344, icumcoeli: 164 } as Record<string, number>)[key] ?? (i * 19.5) % 360; const house = ({ ascendant: 1, descendant: 7, midheaven: 10, icumcoeli: 4 } as Record<string, number>)[key] ?? (Math.floor((((longitude - 74) + 360) % 360) / 30) + 1); return [`natal.${key}.position`, { id: `natal.${key}.position`, kind: 'position', display: `${key} placement`, value: { key, label: key, longitude, sign: signFor(longitude).toLowerCase(), signLabel: signFor(longitude), degreeInSign: longitude % 30, house } }]; }));
-const houseFacts = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`common.cusp.${i + 1}`, { id: `common.cusp.${i + 1}`, kind: 'point', display: `House ${i + 1} cusp`, value: { num: i + 1, cuspLongitude: (74 + i * 30) % 360, sign: signFor((74 + i * 30) % 360).toLowerCase(), signLabel: signFor((74 + i * 30) % 360) } }]));
-const input: PaidNatalPdfInput = { title: 'Natal Birth Chart Report', name: 'Ethan', birth: { date: '1980-03-09', time: '10:30', location: 'Santa Cruz, CA' }, facts: { ...positionFacts, ...houseFacts, 'natal.sun.position': { id: 'natal.sun.position', display: 'Sun in Pisces 18deg42', value: { key: 'sun', longitude: 348.7, signLabel: 'Pisces', degreeInSign: 18.7 } }, 'natal.moon.position': { id: 'natal.moon.position', display: 'Moon in Cancer 2deg10', value: { key: 'moon', longitude: 92.16, signLabel: 'Cancer', degreeInSign: 2.16 } } }, ledger: { positions: Object.values(positionFacts) as any, houses: Object.values(houseFacts).map((f: any) => f.value), aspects: [], elements: { Fire: 3, Earth: 4, Air: 1, Water: 2 } }, sections: [{ heading: 'Core Identity', body: 'Your signature is [[natal.sun.position]].' }, { heading: 'Emotional Landscape', body: 'Your inner tide is [[natal.moon.position]].' }] };
-describe('paid natal PDF vertical slice', () => {
-  it('resolves every fact anchor using the authoritative display value', () => { const result = resolveFactAnchors(input.sections, input.facts); expect(result.sections[0].body).toContain('Sun in Pisces'); expect(result.unresolved).toEqual([]); });
-  it('fails closed when any anchor is missing', () => { expect(() => resolveFactAnchors([{ heading: 'Bad', body: '[[missing.fact]]' }], input.facts)).toThrow(/unresolved fact anchors/); });
-  it('rejects partial placement input instead of drawing a misleading wheel', () => { const partial = { ...input, ledger: { ...input.ledger!, positions: input.ledger!.positions.slice(0, 3) } }; expect(() => buildPaidNatalPdf(partial)).toThrow(/complete natal placement ledger/); });
-  it('rejects unresolved chart data instead of falling back to scaffold geometry', () => { const unresolved = { ...input, ledger: { ...input.ledger!, houses: input.ledger!.houses.slice(0, 11) } }; expect(() => buildPaidNatalPdf(unresolved)).toThrow(/12 houses/); });
-  it('generates a controlled PDF with a full wheel, ledger data, and blueprint hierarchy', () => { const pdf = buildPaidNatalPdf(input); writeFileSync(join(process.cwd(), 'tests/reports/fixtures/generated-paid-natal.pdf'), pdf); const text = new TextDecoder().decode(pdf); expect(text.startsWith('%PDF-1.4')).toBe(true); expect(text).toContain('COSMIC BLUEPRINT'); expect(text).toContain('12 HOUSES'); expect(text).toContain('House 12'); expect(text).toContain('southnode  Sagittarius'); expect(text).toContain('ELEMENT BALANCE'); expect(text).toContain('ASPECT MODEL: major aspects, 10deg orb'); expect(text).toContain('NO VERIFIED ASPECTS'); expect(text).not.toContain('[[natal.'); expect(text).not.toContain('about:blank'); });
+const raw = (pdf: Uint8Array) => new TextDecoder('latin1').decode(pdf);
+
+describe('Premium Natal PDF engine', () => {
+  it('fails closed on unresolved fact anchors', () => {
+    expect(() => resolveFactAnchors([{ heading: 'Bad', body: '[[missing.fact]]' }], referenceInput.facts)).toThrow(/unresolved fact anchors: missing\.fact/);
+  });
+
+  it('rejects any blueprint missing the ten planets, four angles, twelve houses, or verified aspects', () => {
+    expect(() => buildPaidNatalPdf({ ...referenceInput, ledger: { ...referenceInput.ledger!, positions: referencePositions.slice(0, 9) } })).toThrow(/ten planets and four angles/);
+    expect(() => buildPaidNatalPdf({ ...referenceInput, ledger: { ...referenceInput.ledger!, houses: referenceHouses.slice(0, 11) } })).toThrow(/12 houses/);
+    expect(() => buildPaidNatalPdf({ ...referenceInput, ledger: { ...referenceInput.ledger!, aspects: [] } })).toThrow(/verified aspects/);
+  });
+
+  it('builds a parser-valid, non-repaired, exact ten-page US Letter document with metadata', async () => {
+    const pdf = buildPaidNatalPdf(referenceInput);
+    const parsed = await PDFDocument.load(pdf, { updateMetadata: false, throwOnInvalidObject: true });
+
+    expect(parsed.getPageCount()).toBe(10);
+    expect(parsed.getTitle()).toBe(referenceInput.title);
+    expect(parsed.getAuthor()).toBe('Cosmic Spirit Guide');
+    expect(parsed.getSubject()).toBe('Personal Natal Chart Story');
+    for (const page of parsed.getPages()) {
+      expect(page.getWidth()).toBe(612);
+      expect(page.getHeight()).toBe(792);
+    }
+    expect(raw(pdf)).toMatch(/^%PDF-1\.4/);
+    expect(raw(pdf)).toMatch(/\/Count 10\b/);
+    expect(raw(pdf)).toMatch(/startxref\s+\d+\s+%%EOF$/);
+  });
+
+  it('uses the exact reference ledger consistently in wheel, table, aspect, element, and modality modules', () => {
+    const text = raw(buildPaidNatalPdf(referenceInput));
+    for (const fact of referencePositions) expect(text).toContain(fact.display);
+    for (const aspect of referenceAspects) expect(text).toContain(aspect.display);
+    for (const house of referenceHouses) expect(text).toContain(`House ${house.num}`);
+    expect(text).toContain('Earth 4');
+    expect(text).toContain('Mutable 7');
+    expect(text).toContain('Sun in Pisces 19deg35 - house 7');
+    expect(text).not.toContain('[[');
+  });
+
+  it('preserves all overflow prose through the closing continuation without blank or spill pages', () => {
+    const input = overflowReferenceInput();
+    const text = raw(buildPaidNatalPdf(input));
+
+    for (let index = 1; index <= 260; index++) {
+      const token = `PROSE_${String(index).padStart(4, '0')}`;
+      expect(text.match(new RegExp(token, 'g'))).toHaveLength(1);
+    }
+    expect(text).toContain('FINAL_INPUT_TOKEN');
+    expect(text).toContain('END_OF_CLOSING_SYNTHESIS');
+    for (let page = 1; page <= 10; page++) expect(text).toContain(`PAGE ${page} OF 10`);
+    expect(text).not.toMatch(/\b(?:NaN|undefined|null)\b/);
+  });
+
+  it('renders the deliberate ten-page editorial architecture', () => {
+    const text = raw(buildPaidNatalPdf(referenceInput));
+    for (const heading of [
+      'YOUR COSMIC BLUEPRINT',
+      'ELEMENT + MODALITY',
+      'YOUR VERIFIED CHART AT A GLANCE',
+      'THE MAIN NARRATIVE',
+      'YOUR PLANETARY GUIDES',
+      'YOUR CENTRAL GIFTS',
+      'YOUR RECURRING TENSIONS',
+      'PRACTICAL ALIGNMENT PLAN',
+      'CLOSING SYNTHESIS',
+    ]) expect(text).toContain(heading);
+    expect(text).toContain('DARK EDITORIAL COVER');
+    expect(text).toContain('CREAM BODY');
+  });
+
+  it('writes the deterministic Santa Cruz artifact fixture', () => {
+    const first = buildPaidNatalPdf(referenceInput);
+    const second = buildPaidNatalPdf(referenceInput);
+    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true);
+    const artifact = join(process.cwd(), 'tests/reports/fixtures/generated-paid-natal.pdf');
+    writeFileSync(artifact, first);
+    expect(first.byteLength).toBeGreaterThan(25_000);
+  });
 });

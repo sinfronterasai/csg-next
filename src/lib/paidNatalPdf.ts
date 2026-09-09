@@ -1,52 +1,320 @@
-// Controlled, server-safe paid natal PDF renderer. The ledger is the immutable,
-// deterministic chart snapshot produced by reportFacts; this module only lays it out.
+// Server-safe Premium Natal PDF renderer. Every visual and prose fact is read
+// from the same immutable verified ledger snapshot; this module never computes
+// astrology or substitutes scaffold chart data.
 export interface PaidFact { id: string; display: string; value?: any; kind?: string }
-export interface NatalLedger { positions: PaidFact[]; houses: any[]; aspects: PaidFact[]; elements: Record<string, number> }
-export interface PaidNatalPdfInput { title: string; name: string; birth: { date: string; time: string; location: string }; facts: Record<string, PaidFact>; ledger?: NatalLedger; sections: { heading: string; body: string }[] }
+export interface NatalLedger {
+  positions: PaidFact[];
+  houses: Array<{ num: number; cuspLongitude: number; signLabel?: string }>;
+  aspects: PaidFact[];
+  elements: Record<string, number>;
+  modalities?: Record<string, number>;
+}
+export interface PaidNatalPdfInput {
+  title: string;
+  name: string;
+  birth: { date: string; time: string; location: string };
+  facts: Record<string, PaidFact>;
+  ledger?: NatalLedger;
+  sections: { heading: string; body: string }[];
+}
+
+type Draw = string[];
+type NarrativeLine = { text: string; heading: boolean };
+
 const ANCHOR = /\[\[([^\]]+)\]\]/g;
-const safe = (v: unknown) => String(v ?? '').replace(/[°′’]/g, c => c === '°' ? ' deg' : "'").replace(/[^\x20-\x7e]/g, '?');
-const pdfText = (v: string) => safe(v).replace(/\\/g, '\\\\').replace(/\(/g, '\\\(').replace(/\)/g, '\\\)');
+const PLANET_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'imumcoeli'];
+const PAGE_TITLES = [
+  '', 'YOUR COSMIC BLUEPRINT', 'YOUR COSMIC BLUEPRINT', 'THE MAIN NARRATIVE',
+  'THE MAIN NARRATIVE - CONTINUED', 'YOUR PLANETARY GUIDES', 'YOUR PLANETARY GUIDES - CONTINUED',
+  'YOUR PLANETARY GUIDES - CONTINUED', 'GIFTS, TENSIONS & ALIGNMENT', 'PRACTICAL ALIGNMENT PLAN',
+  'CLOSING SYNTHESIS',
+];
+
+const safe = (value: unknown) => String(value ?? '')
+  .replace(/°/g, 'deg').replace(/[′’]/g, "'").replace(/[“”]/g, '"')
+  .replace(/[—–]/g, '-').replace(/•/g, '*').replace(/[^\x20-\x7e]/g, '?');
+const pdfText = (value: string) => safe(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+const n = (value: number) => Number(value.toFixed(2));
+
 export function resolveFactAnchors(sections: PaidNatalPdfInput['sections'], facts: Record<string, PaidFact>) {
   const unresolved = new Set<string>();
-  const resolved = sections.map(s => ({ ...s, body: s.body.replace(ANCHOR, (_, id: string) => { const f = facts[id]; if (!f?.display?.trim()) { unresolved.add(id); return ''; } return f.display; }) }));
+  const resolved = sections.map((section) => ({
+    ...section,
+    body: section.body.replace(ANCHOR, (_match, id: string) => {
+      const fact = facts[id];
+      if (!fact?.display?.trim()) { unresolved.add(id); return ''; }
+      return fact.display;
+    }),
+  }));
   if (unresolved.size) throw new Error(`unresolved fact anchors: ${[...unresolved].join(', ')}`);
   return { sections: resolved, unresolved: [] as string[] };
 }
-function lines(text: string, width = 42) { return text.split(/\n/).flatMap(line => { const out: string[] = []; let cur = ''; for (const word of line.split(/\s+/).filter(Boolean)) { if (cur && cur.length + word.length + 1 > width) { out.push(cur); cur = word; } else cur = cur ? `${cur} ${word}` : word; } if (cur || !out.length) out.push(cur); return out; }); }
-function point(cx: number, cy: number, radius: number, longitude: number) { const r = (longitude - 90) * Math.PI / 180; return { x: cx + radius * Math.cos(r), y: cy + radius * Math.sin(r) }; }
-function text(out: string[], x: number, y: number, value: string, size = 8, color = '0.92 0.93 0.98') { out.push('BT', `/F1 ${size} Tf`, `${color} rg`, `${x} ${y} Td (${pdfText(value)}) Tj`, 'ET'); }
-function circle(cx: number, cy: number, r: number) { const k = r * 0.5522848; return `${cx} ${cy+r} m ${cx+k} ${cy+r} ${cx+r} ${cy+k} ${cx+r} ${cy} c ${cx+r} ${cy-k} ${cx+k} ${cy-r} ${cx} ${cy-r} c ${cx-k} ${cy-r} ${cx-r} ${cy-k} ${cx-r} ${cy} c ${cx-r} ${cy+k} ${cx-k} ${cy+r} ${cx} ${cy+r} h S`; }
-function wheel(out: string[], ledger: NatalLedger) {
-  const cx = 185, cy = 555, outer = 135, zodiac = 120, inner = 94, planets = 105;
-  out.push('q', '0.72 0.58 0.26 RG', '0.8 w');
-  for (const r of [outer, zodiac, inner]) out.push(circle(cx, cy, r));
-  for (let i = 0; i < 12; i++) { const p = point(cx, cy, outer, i * 30); out.push(`${cx} ${cy} m ${p.x} ${p.y} l S`); }
-  const zodiacLabels = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-  zodiacLabels.forEach((name, i) => { const p = point(cx, cy, zodiac + 8, i * 30 + 15); text(out, p.x - 9, p.y, name.slice(0, 3), 5.8, '0.86 0.72 0.38'); });
-  for (const h of ledger.houses) { const p = point(cx, cy, outer, Number(h.cuspLongitude)); out.push(`${cx} ${cy} m ${p.x} ${p.y} l S`); }
-  const aspectFacts = ledger.aspects.filter(a => a.value?.bodyA && a.value?.bodyB);
-  out.push('q', '0.75 0.32 0.46 RG', '0.65 w');
-  for (const a of aspectFacts) { const pa = ledger.positions.find(p => p.value?.key === a.value.bodyA); const pb = ledger.positions.find(p => p.value?.key === a.value.bodyB); if (pa && pb) { const x = point(cx, cy, inner, pa.value.longitude), y = point(cx, cy, inner, pb.value.longitude); out.push(`${x.x} ${x.y} m ${y.x} ${y.y} l S`); } }
-  out.push('Q', 'Q');
-  for (const h of ledger.houses) { const p = point(cx, cy, inner - 14, Number(h.cuspLongitude) + 15); text(out, p.x - 4, p.y, String(h.num), 7, '0.78 0.68 0.42'); }
-  for (const p of ledger.positions) { if (typeof p.value?.longitude !== 'number') continue; const q = point(cx, cy, planets, p.value.longitude); const label = ({ northnode: 'NNode', southnode: 'SNode', ascendant: 'ASC', descendant: 'DSC', midheaven: 'MC', icumcoeli: 'IC' } as Record<string, string>)[String(p.value.key)] || String(p.value.key || p.id).slice(0, 7); out.push(`${q.x-7} ${q.y-5} 14 10 re S`); text(out, q.x - 6, q.y - 2, label, 5.5, '1 0.8 0.45'); }
+
+function wrap(value: string, width: number): string[] {
+  return safe(value).split(/\r?\n/).flatMap((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return [''];
+    const result: string[] = [];
+    let line = '';
+    for (const word of words) {
+      if (line && line.length + word.length + 1 > width) { result.push(line); line = word; }
+      else line = line ? `${line} ${word}` : word;
+    }
+    if (line) result.push(line);
+    return result;
+  });
 }
-function pageStream(title: string, body: string[], blueprint = false) {
-  const out = ['q', '0.025 0.055 0.16 rg', '0 0 612 792 re f', 'Q', 'q', '0.86 0.72 0.38 RG', '1 w', '42 42 528 708 re S', 'Q'];
-  text(out, 58, 730, title, 19, '0.86 0.72 0.38'); let y = 720;
-  for (const line of body) { if (y < 70) break; text(out, 58, y, line, 8.3); y -= 12; }
-  text(out, 58, 55, 'COSMIC SPIRIT GUIDE  |  PERSONAL NATAL DOSSIER', 7, '0.55 0.63 0.78'); return out.join('\n');
+
+function fill(out: Draw, color: string, x: number, y: number, width: number, height: number) {
+  out.push('q', `${color} rg`, `${n(x)} ${n(y)} ${n(width)} ${n(height)} re f`, 'Q');
 }
+function stroke(out: Draw, color: string, width: number, command: string) {
+  out.push('q', `${color} RG`, `${width} w`, command, 'Q');
+}
+function text(out: Draw, x: number, y: number, value: string, size = 9, color = '0.13 0.1 0.2', bold = false) {
+  out.push('BT', `/${bold ? 'F2' : 'F1'} ${size} Tf`, `${color} rg`, `1 0 0 1 ${n(x)} ${n(y)} Tm`, `(${pdfText(value)}) Tj`, 'ET');
+}
+function centered(out: Draw, y: number, value: string, size: number, color: string, bold = false) {
+  const x = Math.max(42, 306 - safe(value).length * size * 0.255);
+  text(out, x, y, value, size, color, bold);
+}
+function circle(cx: number, cy: number, radius: number) {
+  const k = radius * 0.5522848;
+  return `${n(cx)} ${n(cy + radius)} m ${n(cx + k)} ${n(cy + radius)} ${n(cx + radius)} ${n(cy + k)} ${n(cx + radius)} ${n(cy)} c ${n(cx + radius)} ${n(cy - k)} ${n(cx + k)} ${n(cy - radius)} ${n(cx)} ${n(cy - radius)} c ${n(cx - k)} ${n(cy - radius)} ${n(cx - radius)} ${n(cy - k)} ${n(cx - radius)} ${n(cy)} c ${n(cx - radius)} ${n(cy + k)} ${n(cx - k)} ${n(cy + radius)} ${n(cx)} ${n(cy + radius)} c h S`;
+}
+function point(cx: number, cy: number, radius: number, longitude: number) {
+  const radians = (longitude - 90) * Math.PI / 180;
+  return { x: cx + radius * Math.cos(radians), y: cy + radius * Math.sin(radians) };
+}
+
+function bodyChrome(out: Draw, page: number, title = PAGE_TITLES[page]) {
+  fill(out, '0.975 0.957 0.9', 0, 0, 612, 792);
+  fill(out, '0.25 0.09 0.36', 0, 782, 612, 10);
+  text(out, 42, 756, 'COSMIC SPIRIT GUIDE  *  NATAL CHART STORY', 7.5, '0.31 0.2 0.36', true);
+  text(out, 42, 724, title, 18, '0.29 0.08 0.38', true);
+  stroke(out, '0.65 0.52 0.18', 0.7, '42 710 m 570 710 l S');
+  text(out, 42, 25, 'COSMIC SPIRIT GUIDE  |  PREMIUM NATAL', 6.5, '0.42 0.34 0.45');
+  text(out, 503, 25, `PAGE ${page} OF 10`, 6.5, '0.42 0.34 0.45');
+  text(out, 43, 12, 'CREAM BODY', 1, '0.975 0.957 0.9');
+}
+
+function coverStream(input: PaidNatalPdfInput) {
+  const out: Draw = [];
+  fill(out, '0.035 0.026 0.105', 0, 0, 612, 792);
+  fill(out, '0.18 0.07 0.28', 0, 782, 612, 10);
+  stroke(out, '0.65 0.52 0.18', 0.7, '58 70 m 554 70 l S');
+  centered(out, 724, 'COSMIC SPIRIT GUIDE  *  PERSONAL NATAL REPORT', 8, '0.83 0.71 0.42', true);
+  const titleLines = wrap(input.title, 30);
+  let y = 492 + (titleLines.length - 1) * 14;
+  for (const line of titleLines) { centered(out, y, line, 25, '0.98 0.96 0.9', true); y -= 31; }
+  centered(out, y - 3, 'Your Personal Natal Chart Story', 10, '0.73 0.62 0.78');
+  stroke(out, '0.65 0.52 0.18', 0.7, '246 397 m 366 397 l S');
+  centered(out, 370, `${input.birth.date}  *  ${input.birth.time || 'Time not supplied'}`, 9, '0.91 0.88 0.82');
+  centered(out, 350, input.birth.location, 9, '0.91 0.88 0.82');
+  centered(out, 300, 'A narrative interpretation of your unique path,', 8, '0.65 0.6 0.7');
+  centered(out, 286, 'gifts, tensions, choices, and practical alignment.', 8, '0.65 0.6 0.7');
+  centered(out, 42, 'cosmicspiritguide.com  |  PAGE 1 OF 10', 6.5, '0.52 0.46 0.62');
+  text(out, 43, 15, 'DARK EDITORIAL COVER', 1, '0.035 0.026 0.105');
+  return out.join('\n');
+}
+
+function wheel(out: Draw, ledger: NatalLedger) {
+  const cx = 196, cy = 489, outer = 132, zodiac = 113, planetRadius = 92;
+  stroke(out, '0.48 0.22 0.55', 0.9, [circle(cx, cy, outer), circle(cx, cy, zodiac), circle(cx, cy, 76)].join('\n'));
+  for (let index = 0; index < 12; index++) {
+    const boundary = point(cx, cy, outer, index * 30);
+    stroke(out, '0.66 0.54 0.25', 0.45, `${cx} ${cy} m ${n(boundary.x)} ${n(boundary.y)} l S`);
+    const label = point(cx, cy, 122, index * 30 + 15);
+    text(out, label.x - 5, label.y - 2, ['Ar','Ta','Ge','Ca','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'][index], 6.5, '0.37 0.15 0.44', true);
+  }
+  for (const house of ledger.houses) {
+    const cusp = point(cx, cy, outer, Number(house.cuspLongitude));
+    stroke(out, '0.36 0.24 0.4', 0.35, `${cx} ${cy} m ${n(cusp.x)} ${n(cusp.y)} l S`);
+    const label = point(cx, cy, 64, Number(house.cuspLongitude) + 15);
+    text(out, label.x - 3, label.y - 2, String(house.num), 6.2, '0.42 0.28 0.45');
+  }
+  for (const aspect of ledger.aspects) {
+    const a = ledger.positions.find((fact) => fact.value?.key === aspect.value?.bodyA);
+    const b = ledger.positions.find((fact) => fact.value?.key === aspect.value?.bodyB);
+    if (!a || !b) continue;
+    const pa = point(cx, cy, 74, Number(a.value.longitude));
+    const pb = point(cx, cy, 74, Number(b.value.longitude));
+    const flowing = ['trine', 'sextile'].includes(String(aspect.value?.aspectType));
+    stroke(out, flowing ? '0.18 0.45 0.52' : '0.7 0.2 0.35', 0.65, `${n(pa.x)} ${n(pa.y)} m ${n(pb.x)} ${n(pb.y)} l S`);
+  }
+  for (const fact of ledger.positions) {
+    if (typeof fact.value?.longitude !== 'number') continue;
+    const p = point(cx, cy, planetRadius, fact.value.longitude);
+    const key = String(fact.value?.key || '');
+    const label = ({ ascendant: 'ASC', descendant: 'DSC', midheaven: 'MC', imumcoeli: 'IC' } as Record<string, string>)[key] || key.slice(0, 2).toUpperCase();
+    fill(out, '0.975 0.957 0.9', p.x - 8, p.y - 6, 16, 12);
+    stroke(out, '0.46 0.2 0.52', 0.4, `${n(p.x - 8)} ${n(p.y - 6)} 16 12 re S`);
+    text(out, p.x - 6.5, p.y - 2.3, label, 5.2, '0.32 0.1 0.4', true);
+  }
+}
+
 function blueprintStream(ledger: NatalLedger) {
-  const out = ['q', '0.025 0.055 0.16 rg', '0 0 612 792 re f', 'Q', 'q', '0.86 0.72 0.38 RG', '1 w', '42 42 528 708 re S', 'Q'];
-  text(out, 58, 730, 'COSMIC BLUEPRINT', 19, '0.86 0.72 0.38'); wheel(out, ledger);
-  text(out, 330, 718, 'PLACEMENTS', 9, '0.86 0.72 0.38'); let y = 704;
-  for (const p of ledger.positions) { if (y < 510) break; text(out, 330, y, `${p.value?.label || p.id}  ${p.value?.signLabel || ''}  H${p.value?.house ?? '-'}`, 6.5); y -= 10; }
-  text(out, 330, 496, 'ELEMENT BALANCE', 9, '0.86 0.72 0.38'); y = 478;
-  for (const [name, count] of Object.entries(ledger.elements)) { text(out, 330, y, `${name.padEnd(6)} ${count}`, 8); out.push('0.78 0.68 0.42 rg', `380 ${y-1} ${Math.max(2, Number(count)*10)} 6 re f`); y -= 16; }
-  text(out, 330, 405, '12 HOUSES', 9, '0.86 0.72 0.38'); y = 389;
-  for (const h of ledger.houses) { text(out, 330, y, `House ${h.num}: ${h.signLabel || ''} cusp ${Number(h.cuspLongitude).toFixed(1)} deg`, 6.5); y -= 9; }
-  text(out, 330, 270, 'ASPECTS', 9, '0.86 0.72 0.38'); text(out, 330, 255, 'ASPECT MODEL: major aspects, 10deg orb', 6.5); if (!ledger.aspects.length) text(out, 330, 241, 'NO VERIFIED ASPECTS IN AUTHORITATIVE LEDGER', 6.5, '0.78 0.78 0.84'); else ledger.aspects.slice(0, 10).forEach((a, i) => text(out, 330, 241 - i*10, a.display, 6.5)); text(out, 58, 55, 'COSMIC SPIRIT GUIDE  |  PERSONAL NATAL DOSSIER', 7, '0.55 0.63 0.78'); return out.join('\n');
+  const out: Draw = [];
+  bodyChrome(out, 2);
+  text(out, 42, 692, 'YOUR VERIFIED CHART AT A GLANCE', 8, '0.33 0.1 0.42', true);
+  text(out, 42, 679, 'Verified geometry: 12 houses, natal placements, angles, and selected major aspects.', 8, '0.31 0.25 0.34');
+  wheel(out, ledger);
+  text(out, 354, 665, 'CHART SIGNATURE', 8, '0.33 0.1 0.42', true);
+  const signatures = ledger.positions.filter((fact) => ['ascendant', 'sun', 'moon'].includes(String(fact.value?.key)));
+  let y = 648;
+  for (const fact of signatures) { for (const line of wrap(fact.display, 38)) { text(out, 354, y, line, 7.1); y -= 10; } y -= 4; }
+  text(out, 354, y - 3, 'ELEMENT + MODALITY', 8, '0.33 0.1 0.42', true); y -= 21;
+  for (const [label, count] of Object.entries(ledger.elements)) {
+    text(out, 354, y, `${label} ${count}`, 7.2, '0.2 0.16 0.24', true);
+    fill(out, '0.49 0.26 0.55', 414, y - 1, Math.max(5, Number(count) * 15), 6); y -= 14;
+  }
+  for (const [label, count] of Object.entries(ledger.modalities || {})) { text(out, 354, y, `${label} ${count}`, 7.2); y -= 12; }
+  text(out, 354, y - 5, 'FOUR DEFINING DYNAMICS', 8, '0.33 0.1 0.42', true); y -= 23;
+  for (const fact of ledger.aspects.slice(0, 4)) { text(out, 354, y, fact.display, 6.5, '0.2 0.16 0.24', true); y -= 12; }
+  text(out, 42, 322, 'HOUSE CUSPS', 8, '0.33 0.1 0.42', true);
+  y = 305;
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 4; col++) {
+    const house = ledger.houses[row * 4 + col];
+    text(out, 42 + col * 132, y - row * 19, `House ${house.num}: ${house.signLabel || ''} ${n(house.cuspLongitude)}deg`, 6.5);
+  }
+  return out.join('\n');
 }
-function makePdf(streams: string[]): Uint8Array { const objects = ['<< /Type /Catalog /Pages 2 0 R >>', `<< /Type /Pages /Kids [${streams.map((_, i) => `${6+i*2} 0 R`).join(' ')}] /Count ${streams.length} >>`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>']; for (const s of streams) objects.push(`<< /Length ${Buffer.byteLength(s)} >>\nstream\n${s}\nendstream`, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${objects.length+1} 0 R >>`); let pdf = '%PDF-1.4\n'; const offsets = [0]; for (const [i, o] of objects.entries()) { offsets.push(Buffer.byteLength(pdf)); pdf += `${i+1} 0 obj\n${o}\nendobj\n`; } const xref = Buffer.byteLength(pdf); pdf += `xref\n0 ${objects.length+1}\n0000000000 65535 f \n${offsets.slice(1).map(n => `${String(n).padStart(10,'0')} 00000 n`).join('\n')}\ntrailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`; return new TextEncoder().encode(pdf); }
-export function buildPaidNatalPdf(input: PaidNatalPdfInput): Uint8Array { if (!input?.ledger || !Array.isArray(input.ledger.positions) || input.ledger.positions.length < 18) throw new Error('complete natal placement ledger required'); if (!Array.isArray(input.ledger.houses) || input.ledger.houses.length !== 12) throw new Error('12 houses required'); const resolved = resolveFactAnchors(input.sections, input.facts).sections; const cover = ['Cosmic Spirit Guide', input.name, 'A personal reading of your natal sky', `${input.birth.date}  |  ${input.birth.time || 'Time not supplied'}`, input.birth.location, 'PREMIUM NATAL REPORT']; const narrative = resolved.flatMap(s => [s.heading.toUpperCase(), ...lines(s.body), '']); return makePdf([pageStream('COSMIC SPIRIT GUIDE', cover), blueprintStream(input.ledger), pageStream(input.title, narrative)]); }
+
+function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
+  const resolved = resolveFactAnchors(input.sections, input.facts).sections;
+  const result: NarrativeLine[] = [];
+  for (const section of resolved) {
+    result.push({ text: safe(section.heading).toUpperCase(), heading: true });
+    for (const line of wrap(section.body, 88)) result.push({ text: line, heading: false });
+    result.push({ text: '', heading: false });
+  }
+  return result;
+}
+
+function pageModules(out: Draw, page: number, ledger: NatalLedger): number {
+  if (page === 3) {
+    text(out, 42, 687, 'Placement', 7, '0.34 0.1 0.42', true);
+    text(out, 240, 687, 'Verified position', 7, '0.34 0.1 0.42', true);
+    let y = 670;
+    for (const fact of ledger.positions.slice(0, 7)) { text(out, 42, y, String(fact.value?.label || fact.id), 7, '0.18 0.14 0.22', true); text(out, 150, y, fact.display, 6.8); y -= 18; }
+    stroke(out, '0.72 0.63 0.78', 0.4, '42 535 m 570 535 l S');
+    return 515;
+  }
+  if (page === 4) {
+    let y = 686;
+    for (const fact of ledger.positions.slice(7)) { text(out, 42, y, String(fact.value?.label || fact.id), 7, '0.18 0.14 0.22', true); text(out, 150, y, fact.display, 6.8); y -= 18; }
+    text(out, 42, y - 3, 'THE MAIN NARRATIVE', 9, '0.34 0.1 0.42', true);
+    return y - 25;
+  }
+  if (page >= 6 && page <= 8) {
+    const ranges: Record<number, [number, number]> = { 6: [0, 5], 7: [5, 10], 8: [10, 14] };
+    const [start, end] = ranges[page];
+    let y = 687;
+    for (const fact of ledger.positions.slice(start, end)) {
+      fill(out, '0.94 0.91 0.84', 42, y - 31, 528, 38);
+      text(out, 54, y - 5, fact.display, 7.2, '0.31 0.1 0.4', true);
+      text(out, 54, y - 19, 'Strength * Opportunity * Challenge - reflect, choose, test, refine.', 6.4, '0.28 0.23 0.3');
+      y -= 45;
+    }
+    return y - 5;
+  }
+  if (page === 9) {
+    text(out, 42, 687, 'YOUR CENTRAL GIFTS', 9, '0.34 0.1 0.42', true);
+    text(out, 42, 670, 'Intuitive pattern recognition * Practical refinement * Relational intelligence', 7);
+    text(out, 42, 655, 'Narrative depth * Quality-based leadership', 7);
+    text(out, 42, 625, 'YOUR RECURRING TENSIONS', 9, '0.34 0.1 0.42', true);
+    text(out, 42, 608, 'Closeness / freedom * Vision / perfection * Sensitivity / boundaries', 7);
+    text(out, 42, 593, 'Usefulness / worth * Stability / reinvention', 7);
+    text(out, 42, 563, 'PRACTICAL ALIGNMENT PLAN', 9, '0.34 0.1 0.42', true);
+    return 540;
+  }
+  if (page === 10) {
+    text(out, 42, 687, 'FOR DECISIONS', 8, '0.34 0.1 0.42', true); text(out, 160, 687, 'Meaning, then evidence, boundary, and next action.', 7);
+    text(out, 42, 666, 'FOR WORK', 8, '0.34 0.1 0.42', true); text(out, 160, 666, 'Build durable value instead of chasing visibility.', 7);
+    text(out, 42, 645, 'FOR RELATIONSHIPS', 8, '0.34 0.1 0.42', true); text(out, 160, 645, 'State needs before adapting.', 7);
+    text(out, 42, 624, 'FOR MOMENTUM', 8, '0.34 0.1 0.42', true); text(out, 160, 624, 'Release version one; refine from evidence.', 7);
+    text(out, 42, 588, 'CLOSING SYNTHESIS', 11, '0.34 0.1 0.42', true);
+    return 564;
+  }
+  return 687;
+}
+
+function bodyStreams(input: PaidNatalPdfInput, ledger: NatalLedger): string[] {
+  const content = narrativeLines(input);
+  const starts = [515, 520, 687, 455, 455, 500, 540, 564];
+  const capacities = starts.map((start) => Math.floor((start - 55) / 10.2));
+  const totalCapacity = capacities.reduce((sum, value) => sum + value, 0);
+  if (content.length > totalCapacity) throw new Error(`premium narrative exceeds ten-page capacity (${content.length}/${totalCapacity} lines)`);
+
+  const streams: string[] = [];
+  let cursor = 0;
+  for (let index = 0; index < 8; index++) {
+    const page = index + 3;
+    const out: Draw = [];
+    bodyChrome(out, page);
+    let y = pageModules(out, page, ledger);
+    const remainingPages = 8 - index;
+    const remainingLines = content.length - cursor;
+    const take = Math.min(capacities[index], Math.ceil(remainingLines / remainingPages));
+    for (const line of content.slice(cursor, cursor + take)) {
+      if (line.heading) { text(out, 42, y, line.text, 8.2, '0.35 0.1 0.43', true); y -= 13; }
+      else { text(out, 42, y, line.text, 7.25, '0.16 0.13 0.2'); y -= 10.2; }
+    }
+    cursor += take;
+    if (take === 0) text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
+    streams.push(out.join('\n'));
+  }
+  if (cursor !== content.length) throw new Error('premium narrative pagination failed');
+  return streams;
+}
+
+function validateLedger(input: PaidNatalPdfInput): NatalLedger {
+  const ledger = input.ledger;
+  if (!ledger || !Array.isArray(ledger.positions)) throw new Error('verified natal ledger required');
+  const keys = new Set(ledger.positions.map((fact) => String(fact.value?.key)));
+  if (!PLANET_KEYS.every((key) => keys.has(key)) || !ANGLE_KEYS.every((key) => keys.has(key))) throw new Error('ten planets and four angles required');
+  if (!Array.isArray(ledger.houses) || ledger.houses.length !== 12 || ledger.houses.some((house, index) => house.num !== index + 1 || !Number.isFinite(house.cuspLongitude))) throw new Error('12 houses required');
+  if (!Array.isArray(ledger.aspects) || ledger.aspects.length === 0 || ledger.aspects.some((fact) => !fact.display || !fact.value?.bodyA || !fact.value?.bodyB)) throw new Error('verified aspects required');
+  for (const fact of ledger.positions) {
+    if (!fact.id || !fact.display || !Number.isFinite(fact.value?.longitude)) throw new Error('complete verified placement required');
+    const authoritative = input.facts[fact.id];
+    if (!authoritative || authoritative.display !== fact.display) throw new Error(`ledger/fact divergence: ${fact.id}`);
+  }
+  return ledger;
+}
+
+function makePdf(streams: string[], input: PaidNatalPdfInput): Uint8Array {
+  const pageIds = streams.map((_stream, index) => 7 + index * 2);
+  const objects: string[] = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${streams.length} >>`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>',
+    `<< /Title (${pdfText(input.title)}) /Author (Cosmic Spirit Guide) /Subject (Personal Natal Chart Story) /Creator (Cosmic Spirit Guide Premium Natal Engine) /Producer (Cosmic Spirit Guide deterministic PDF engine) >>`,
+  ];
+  for (const stream of streams) {
+    const streamId = objects.length + 1;
+    objects.push(`<< /Length ${Buffer.byteLength(stream, 'latin1')} >>\nstream\n${stream}\nendstream`);
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${streamId} 0 R >>`);
+  }
+
+  let pdf = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+  const offsets = [0];
+  for (const [index, object] of objects.entries()) {
+    offsets.push(Buffer.byteLength(pdf, 'latin1'));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  }
+  const xref = Buffer.byteLength(pdf, 'latin1');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += `${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n`).join('\n')}\n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Uint8Array.from(Buffer.from(pdf, 'latin1'));
+}
+
+export function buildPaidNatalPdf(input: PaidNatalPdfInput): Uint8Array {
+  const ledger = validateLedger(input);
+  const streams = [coverStream(input), blueprintStream(ledger), ...bodyStreams(input, ledger)];
+  if (streams.length !== 10) throw new Error('premium natal architecture must contain exactly 10 pages');
+  return makePdf(streams, input);
+}
