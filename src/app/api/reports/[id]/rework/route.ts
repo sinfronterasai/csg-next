@@ -6,6 +6,12 @@ import { dispatchReport } from '@/lib/reportPipeline';
 import type { ReportType } from '@/lib/reportEngine';
 import crypto from 'crypto';
 
+function requestOrigin(request: Request): string {
+  const proto = request.headers.get('x-forwarded-proto')?.split(',')[0].trim() || new URL(request.url).protocol.replace(':', '');
+  const host = request.headers.get('x-forwarded-host')?.split(',')[0].trim() || request.headers.get('host') || new URL(request.url).host;
+  return `${proto}://${host}`;
+}
+
 // Uses the same database-backed editor/admin session policy as editor-decision.
 // Browser callers never receive or submit the pipeline bearer. No billing calls.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     if (user.role !== 'editor' && user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     // Session-authenticated mutations must be same-origin, including operator tools.
-    if (request.headers.get('origin') !== new URL(request.url).origin) return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    if (request.headers.get('origin') !== requestOrigin(request)) return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
     const { id } = await params;
     if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) return NextResponse.json({ error: 'Invalid report id' }, { status: 400 });
     const raw = await request.text();
