@@ -59,6 +59,11 @@ it.each(['approved', 'needs_editor', 'queued', 'processing'])('protects %s witho
   expect((await reading()).result).toEqual(original);
 });
 
+it('allows an error state to rework only from the locked paid snapshot', async () => {
+  await db.query("UPDATE readings SET pipeline_status = 'error'");
+  expect(await claim()).toMatchObject({ outcome: 'claimed', reportId: newId, snapshot: original.metadata });
+});
+
 it.each(["status = 'paid'", 'user_id = 8', "sku = 'report-transit'", "report_type = 'transit'", 'amount = 0', 'stripe_payment_id = NULL'])('rejects invalid entitlement: %s', async (change) => {
   await db.exec(`UPDATE report_orders SET ${change}`);
   expect(await claim()).toMatchObject({ outcome: 'not_entitled' });

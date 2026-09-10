@@ -589,7 +589,7 @@ export async function claimPaidRework(input: {
         evidence?.source === 'authenticated_pipeline' && evidence.reportId === input.expectedReportId && evidence.status === 'failed';
       if (r.result.reportId !== input.expectedReportId || o.report_id !== input.expectedReportId ||
           !isValidPurchaseId(input.reportId) || input.reportId === input.expectedReportId ||
-          (!['rejected', 'dispatch_failed'].includes(r.pipeline_status) && !evidencedFailure)) {
+          (!['rejected', 'dispatch_failed', 'error'].includes(r.pipeline_status) && !evidencedFailure)) {
         return finalize(tx, { outcome: 'conflict' });
       }
       // Incident quarantine: reading 1160's immutable facts have a known wrong
