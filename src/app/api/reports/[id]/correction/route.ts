@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (body.action === 'preview') {
       const result = await previewPaidSnapshotCorrection(Number(id), body.expectedReportId);
       if (result.outcome !== 'preview') return bad(result.outcome);
-      return NextResponse.json({ action: 'preview', oldReportId: result.oldReportId, digest: result.digest, snapshot: result.snapshot });
+      return NextResponse.json({ action: 'preview', oldReportId: result.oldReportId, digest: result.digest, summary: { oldReportId: result.oldReportId, digest: result.digest, birthData: result.snapshot.birthData } });
     }
     if (body.action !== 'approve' || !/^[a-f0-9]{64}$/.test(body.digest) || typeof body.reason !== 'string' || body.reason.trim().length < 5 || body.reason.length > 500) {
       return NextResponse.json({ error: 'Approval requires the exact preview digest and a bounded reason' }, { status: 400 });

@@ -6,15 +6,16 @@ import { useRouter } from 'next/navigation';
 export default function SiteHeader() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/auth/user');
-        setAuthed(res.ok);
+        const data = await res.json().catch(() => null);
+        setUserRole(res.ok ? data?.user?.role ?? 'user' : null);
       } catch {
-        setAuthed(false);
+        setUserRole(null);
       }
     })();
   }, []);
@@ -23,7 +24,7 @@ export default function SiteHeader() {
     fetch('/api/auth/logout', { method: 'POST' })
       .then((res) => {
         if (res.ok) {
-          setAuthed(false);
+          setUserRole(null);
           setOpen(false);
         }
       })
@@ -40,6 +41,7 @@ export default function SiteHeader() {
       <a href="/blog" className="text-gray-300 hover:text-gold transition-colors duration-300">Blog</a>
       <a href="/birth-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">Birth Chart</a>
       <a href="/tarot" className="text-gray-300 hover:text-gold transition-colors duration-300">Tarot</a>
+      {(userRole === 'editor' || userRole === 'admin') && <a href="/admin/reports/recovery" className="text-gold hover:text-white transition-colors duration-300">Recovery</a>}
       <div className="relative group">
         <button onClick={() => router.push('/reports')} className="flex items-center gap-2 text-gray-300 hover:text-gold transition-colors duration-300">
           Reports
@@ -84,9 +86,9 @@ export default function SiteHeader() {
         </nav>
 
         <div className="hidden md:flex items-center space-x-4">
-          {authed === null ? (
+          {userRole === undefined ? (
             <span className="text-xs uppercase tracking-widest text-gray-400">…</span>
-          ) : authed ? (
+          ) : userRole ? (
             <>
               <a href="/profile" className="text-sm uppercase tracking-widest text-gray-300 hover:text-gold transition-colors duration-300">My Profile</a>
               <button onClick={logout} className="text-sm uppercase tracking-widest border border-gold rounded-full px-4 py-1.5 text-gold hover:text-white transition-colors duration-300">Sign Out</button>
@@ -110,7 +112,7 @@ export default function SiteHeader() {
       {open && (
         <div className="md:hidden mt-3 mx-2 glass-panel rounded-3xl p-6 flex flex-col space-y-4 text-center tracking-widest transition-all duration-300">
           {navLinks}
-          {authed ? (
+          {userRole ? (
             <>
               <a href="/profile" className="bg-gradient-to-r from-cosmic-primary to-cosmic-secondary text-white py-3 rounded-full text-xs uppercase font-semibold">My Profile</a>
               <button onClick={logout} className="border border-gold text-gold hover:text-white py-3 rounded-full text-xs uppercase font-semibold transition-colors duration-300">Sign Out</button>
