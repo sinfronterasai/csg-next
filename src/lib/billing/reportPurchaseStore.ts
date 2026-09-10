@@ -493,7 +493,7 @@ function correctionDigest(snapshot: SnapshotCorrection): string {
 
 function isKnownInvalidSantaCruzSnapshot(row: any): boolean {
   const b = row?.result?.metadata?.birthData;
-  return b?.dob === '1980-03-09' && b?.birthTime === '16:21' &&
+  return b?.dob === '1980-03-09' && /^(?:16:21|16:21:00)$/.test(String(b?.birthTime ?? '')) &&
     b?.place && /santa\s+cruz/i.test(String(b.place)) &&
     Number(b.lat) === 36.97412 && Number(b.lon) === -122.0308 && b?.tz === 'UTC';
 }
