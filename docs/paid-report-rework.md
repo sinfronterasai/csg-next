@@ -78,14 +78,19 @@ Elapsed queue time alone is **never** treated as failure. No timer sweep exists.
   `invalid_snapshot` (409) because its stored UTC facts are known wrong. Failure
   evidence does not authorize replaying invalid facts. Do not change its ID or
   remove this guard to force a retry.
-- Fact rebuild/admin correction is NOT implemented. Before recovering 1160 (or
-  any other report with suspected invalid facts), verify original civil birth
-  inputs, timezone and historical offset using the corrected deterministic chart
-  path. An audited correction must retain the old snapshot in attempt history,
-  persist a separate versioned replacement with provenance and privileged review,
-  and atomically bind that replacement to a new attempt without charging again.
-  This endpoint intentionally accepts no snapshot overrides; do not edit the old
-  immutable metadata in place. The chart fix alone does not repair stored facts.
+- Audited correction for the quarantined correlation is implemented separately at
+  `POST /api/reports/[readingId]/correction`. `action: preview` derives the stored
+  civil date/time/place, applies the server-owned verified Pacific IANA zone and
+  coordinates, rebuilds VerifiedFactsV2 through Swiss Ephemeris, and returns a
+  canonical SHA-256 digest. `action: approve` accepts only that digest and a reason;
+  it rebuilds/validates the same correction, appends the complete old result and
+  provenance to immutable rework history, and atomically binds a new attempt to
+  the existing consumed order without payment. The old snapshot is never mutated.
+  Only editor/admin sessions may call it, and browser overrides are rejected.
+- The correction profile is deliberately limited to known-invalid report 1160's
+  correlation and the audited Santa Cruz coordinates. If the stored civil inputs,
+  report facts, entitlement, or digest do not validate, it fails closed without
+  changing either row.
 - For otherwise valid snapshots, inspect the actual failed execution and its
   timestamp/correlation before submitting evidence; never invent a fresh
   timestamp for an old failure.

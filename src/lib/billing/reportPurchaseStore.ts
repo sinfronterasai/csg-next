@@ -17,7 +17,12 @@
 //     correlation (with the reading's ACTUAL status) WITHOUT creating a new reading.
 import { query, transaction } from '@/lib/db';
 import { LAUNCH_PAID_TYPES, gateGeneration } from '@/lib/launch/allowlist';
+import { buildVerifiedFactsForReport } from '@/lib/reportFacts/integrate';
 import crypto from 'crypto';
+
+const KNOWN_INVALID_REPORT_ID = '6deeb156-4f6d-40e2-988d-a714ff966c39';
+// Audited server-side correction profile; never accepted from a request body.
+const CORRECTED_1160 = { timezone: 'America/Los_Angeles', latitude: 36.97412, longitude: -122.0308 } as const;
 
 export type ReportPurchaseStatus = 'pending' | 'paid' | 'consumed' | 'failed';
 
@@ -467,6 +472,87 @@ export async function recordPipelineFailure(input: unknown): Promise<'applied' |
  * Lock the order before the reading, matching consumeReportPurchase's lock order.
  * The existing paid entitlement is never reopened and no billing API is called.
  */
+type SnapshotCorrection = {
+  birthData: { firstName?: string; dob: string; birthTime: string | null; place: string; lat: number; lon: number; tz: string; solarFallback: boolean };
+  verifiedFacts: any;
+};
+
+export type SnapshotCorrectionPreview =
+  | { outcome: 'preview'; oldReportId: string; digest: string; snapshot: SnapshotCorrection }
+  | { outcome: 'conflict' | 'not_found' | 'invalid_snapshot' | 'missing_snapshot' };
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value as Record<string, unknown>).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson((value as any)[k])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+
+function correctionDigest(snapshot: SnapshotCorrection): string {
+  return crypto.createHash('sha256').update(canonicalJson(snapshot)).digest('hex');
+}
+
+async function build1160Correction(row: any): Promise<SnapshotCorrection | null> {
+  if (row?.result?.reportId !== KNOWN_INVALID_REPORT_ID) return null;
+  const old = row.result?.metadata; const b = old?.birthData;
+  if (!b || typeof b.dob !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.dob) || typeof b.place !== 'string' || !b.place.trim() ||
+      (b.birthTime !== null && (typeof b.birthTime !== 'string' || !/^\d{2}:\d{2}$/.test(b.birthTime)))) return null;
+  if (!row.result?.reportType || !old.verifiedFacts?.asOfDate) return null;
+  const birth = { name: typeof b.firstName === 'string' ? b.firstName : undefined, date: b.dob, time: b.birthTime || undefined,
+    location: b.place, timezone: CORRECTED_1160.timezone, latitude: CORRECTED_1160.latitude, longitude: CORRECTED_1160.longitude,
+    unknownTime: Boolean(b.solarFallback) };
+  const built = await buildVerifiedFactsForReport(row.result.reportType, birth, old.verifiedFacts.asOfDate);
+  if (!built.ok) return null;
+  return { birthData: { firstName: birth.name, dob: birth.date, birthTime: birth.time || null, place: birth.location,
+    lat: CORRECTED_1160.latitude, lon: CORRECTED_1160.longitude, tz: CORRECTED_1160.timezone, solarFallback: birth.unknownTime }, verifiedFacts: built.ledger };
+}
+
+export async function previewPaidSnapshotCorrection(readingId: number, expectedReportId: string): Promise<SnapshotCorrectionPreview> {
+  const { rows } = await query("SELECT * FROM readings WHERE id = $1 AND type = 'report'", [readingId]);
+  const row = rows[0];
+  if (!row) return { outcome: 'not_found' };
+  if (row.result?.reportId !== expectedReportId) return { outcome: 'conflict' };
+  if (row.result?.reportId !== KNOWN_INVALID_REPORT_ID) return { outcome: 'invalid_snapshot' };
+  const snapshot = await build1160Correction(row);
+  if (!snapshot) return { outcome: 'missing_snapshot' };
+  return { outcome: 'preview', oldReportId: expectedReportId, digest: correctionDigest(snapshot), snapshot };
+}
+
+export async function approvePaidSnapshotCorrection(input: {
+  readingId: number; expectedReportId: string; digest: string; reportId: string; actorId: number; reason: string;
+}): Promise<{ outcome: 'claimed'; reportId: string; reportType: string; snapshot: SnapshotCorrection } | { outcome: 'conflict' | 'not_found' | 'not_entitled' | 'invalid_snapshot' | 'missing_snapshot' }> {
+  const preview = await previewPaidSnapshotCorrection(input.readingId, input.expectedReportId);
+  if (preview.outcome !== 'preview') return preview;
+  if (!/^[a-f0-9]{64}$/.test(input.digest) || input.digest !== correctionDigest(preview.snapshot)) return { outcome: 'conflict' };
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const orders = await tx('SELECT * FROM report_orders WHERE reading_id = $1 FOR UPDATE', [input.readingId]);
+      const readings = await tx('SELECT * FROM readings WHERE id = $1 FOR UPDATE', [input.readingId]);
+      const o = orders.rows[0]; const r = readings.rows[0];
+      if (!r || orders.rows.length !== 1 || !o || o.status !== 'consumed' || r.type !== 'report' || Number(o.user_id) !== Number(r.user_id) ||
+          o.report_id !== input.expectedReportId || r.result?.reportId !== KNOWN_INVALID_REPORT_ID || !LAUNCH_PAID_TYPES.includes(o.report_type) ||
+          !gateGeneration(o.report_type, r.user_id).allowed || !isValidSkuPair(o.report_type, o.sku) || Number(o.amount) <= 0 || !o.stripe_session_id || !o.stripe_payment_id) {
+        return finalize(tx, { outcome: 'not_entitled' });
+      }
+      if (!['queued', 'processing'].includes(r.pipeline_status) || !isValidPurchaseId(input.reportId) || input.reportId === input.expectedReportId) return finalize(tx, { outcome: 'conflict' });
+      // Rebuild from the locked row, rather than trusting the earlier preview.
+      // This closes the preview/approval race and makes the digest bind to the
+      // exact immutable civil-input source that is being replaced.
+      const lockedSnapshot = await build1160Correction(r);
+      if (!lockedSnapshot || correctionDigest(lockedSnapshot) !== input.digest) return finalize(tx, { outcome: 'conflict' });
+      const { reworkHistory = [], ...previousResult } = r.result; const now = new Date().toISOString();
+      const result = { ...r.result, reportId: input.reportId, metadata: lockedSnapshot, verifiedFacts: lockedSnapshot.verifiedFacts,
+        pipeline: { status: 'queued' }, attemptStartedAt: now,
+        reworkHistory: [...reworkHistory, { kind: 'snapshot_correction', reportId: input.expectedReportId, status: r.pipeline_status,
+          callbackHash: r.pipeline_callback_hash, result: previousResult, actorId: input.actorId, reason: input.reason, requestedAt: now,
+          replacementDigest: input.digest, correction: CORRECTED_1160 }] };
+      await tx(`UPDATE readings SET result = $2::jsonb, pipeline_status = 'queued', pipeline_callback_hash = NULL WHERE id = $1`, [input.readingId, JSON.stringify(result)]);
+      await tx('UPDATE report_orders SET report_id = $2, updated_at = now() WHERE id = $1', [o.id, input.reportId]);
+      return finalize(tx, { outcome: 'claimed', reportId: input.reportId, reportType: o.report_type, snapshot: lockedSnapshot });
+    } catch (error) { await tx('ROLLBACK'); throw error; }
+  });
+}
+
 export async function claimPaidRework(input: {
   readingId: number;
   expectedReportId: string;
@@ -502,7 +588,7 @@ export async function claimPaidRework(input: {
       // Incident quarantine: reading 1160's immutable facts have a known wrong
       // UTC conversion. A prose retry cannot repair them. Key by correlation,
       // not environment-specific row ID; keep blocked pending an audited rebuild.
-      if (r.result.reportId === '6deeb156-4f6d-40e2-988d-a714ff966c39') {
+      if (r.result.reportId === KNOWN_INVALID_REPORT_ID) {
         return finalize(tx, { outcome: 'invalid_snapshot' });
       }
       const snapshot = r.result.metadata;
