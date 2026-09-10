@@ -491,8 +491,15 @@ function correctionDigest(snapshot: SnapshotCorrection): string {
   return crypto.createHash('sha256').update(canonicalJson(snapshot)).digest('hex');
 }
 
+function isKnownInvalidSantaCruzSnapshot(row: any): boolean {
+  const b = row?.result?.metadata?.birthData;
+  return b?.dob === '1980-03-09' && b?.birthTime === '16:21' &&
+    b?.place && /santa\s+cruz/i.test(String(b.place)) &&
+    Number(b.lat) === 36.97412 && Number(b.lon) === -122.0308 && b?.tz === 'UTC';
+}
+
 async function build1160Correction(row: any): Promise<SnapshotCorrection | null> {
-  if (row?.result?.reportId !== KNOWN_INVALID_REPORT_ID) return null;
+  if (!isKnownInvalidSantaCruzSnapshot(row)) return null;
   const old = row.result?.metadata; const b = old?.birthData;
   if (!b || typeof b.dob !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.dob) || typeof b.place !== 'string' || !b.place.trim() ||
       (b.birthTime !== null && (typeof b.birthTime !== 'string' || !/^\d{2}:\d{2}$/.test(b.birthTime)))) return null;
@@ -511,7 +518,7 @@ export async function previewPaidSnapshotCorrection(readingId: number, expectedR
   const row = rows[0];
   if (!row) return { outcome: 'not_found' };
   if (row.result?.reportId !== expectedReportId) return { outcome: 'conflict' };
-  if (row.result?.reportId !== KNOWN_INVALID_REPORT_ID) return { outcome: 'invalid_snapshot' };
+  if (!isKnownInvalidSantaCruzSnapshot(row)) return { outcome: 'invalid_snapshot' };
   const snapshot = await build1160Correction(row);
   if (!snapshot) return { outcome: 'missing_snapshot' };
   return { outcome: 'preview', oldReportId: expectedReportId, digest: correctionDigest(snapshot), snapshot };
@@ -530,7 +537,7 @@ export async function approvePaidSnapshotCorrection(input: {
       const readings = await tx('SELECT * FROM readings WHERE id = $1 FOR UPDATE', [input.readingId]);
       const o = orders.rows[0]; const r = readings.rows[0];
       if (!r || orders.rows.length !== 1 || !o || o.status !== 'consumed' || r.type !== 'report' || Number(o.user_id) !== Number(r.user_id) ||
-          o.report_id !== input.expectedReportId || r.result?.reportId !== KNOWN_INVALID_REPORT_ID || !LAUNCH_PAID_TYPES.includes(o.report_type) ||
+          o.report_id !== input.expectedReportId || !isKnownInvalidSantaCruzSnapshot(r) || !LAUNCH_PAID_TYPES.includes(o.report_type) ||
           !gateGeneration(o.report_type, r.user_id).allowed || !isValidSkuPair(o.report_type, o.sku) || Number(o.amount) <= 0 || !o.stripe_session_id || !o.stripe_payment_id) {
         return finalize(tx, { outcome: 'not_entitled' });
       }

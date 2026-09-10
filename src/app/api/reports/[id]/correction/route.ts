@@ -7,8 +7,6 @@ import type { ReportType } from '@/lib/reportEngine';
 import crypto from 'crypto';
 
 const MAX_BODY_BYTES = 2048;
-const OLD_REPORT_ID = '6deeb156-4f6d-40e2-988d-a714ff966c39';
-
 function requestOrigin(request: Request): string {
   const proto = request.headers.get('x-forwarded-proto')?.split(',')[0].trim() || new URL(request.url).protocol.replace(':', '');
   const host = request.headers.get('x-forwarded-host')?.split(',')[0].trim() || request.headers.get('host') || new URL(request.url).host;
@@ -36,8 +34,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: 'Malformed body' }, { status: 400 }); }
     if (!body || typeof body !== 'object' || Array.isArray(body) ||
         Object.keys(body).some((k) => !['action', 'expectedReportId', 'digest', 'reason'].includes(k)) ||
-        !isValidPurchaseId(body.expectedReportId) || body.expectedReportId !== OLD_REPORT_ID) {
-      return NextResponse.json({ error: 'Expected the quarantined report correlation' }, { status: 400 });
+        !isValidPurchaseId(body.expectedReportId)) {
+      return NextResponse.json({ error: 'Expected the selected report correlation' }, { status: 400 });
     }
     if (body.action === 'preview') {
       const result = await previewPaidSnapshotCorrection(Number(id), body.expectedReportId);
