@@ -26,9 +26,6 @@ export interface BirthInput {
   latitude?: number;
   longitude?: number;
   unknownTime?: boolean;
-  timezone?: string;
-  latitude?: number;
-  longitude?: number;
 }
 
 function todayISO(): string {
