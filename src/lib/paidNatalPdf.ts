@@ -199,10 +199,11 @@ function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
   const resolved = resolveFactAnchors(input.sections, input.facts).sections;
   const result: NarrativeLine[] = [];
   for (const [paragraph, section] of resolved.entries()) {
-    const body = section.body.trim();
-    if (/^equilibrium[.!]?$/i.test(body)) continue;
+    const originalBody = section.body.trim();
+    const body = originalBody.replace(/\n\s*equilibrium[.!]?$/i, '').trim();
+    if (!body && /^equilibrium[.!]?$/i.test(originalBody)) continue;
     result.push({ text: safe(section.heading).toUpperCase(), heading: true, paragraph, lastInParagraph: false });
-    const lines = wrap(section.body, 88);
+    const lines = wrap(body, 88);
     lines.forEach((line, index) => result.push({ text: line, heading: false, paragraph, lastInParagraph: index === lines.length - 1 }));
     result.push({ text: '', heading: false, paragraph, lastInParagraph: true });
   }
