@@ -18,13 +18,14 @@ export type NarrativePrompt = { sectionId: string; role: string; wordLimit: { mi
 export type NarrativeFactPack = { sectionId: string; role: string; wordLimit: { min: number; max: number }; facts: FactRef[] };
 
 function fail(message: string): never { throw new Error(`deterministic report compilation failed: ${message}`); }
+const ROOT_BODY_KEYS = new Set<string>(BODY_ORDER);
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`;
   return JSON.stringify(value);
 }
 function asPosition(fact: VerifiedFact): PositionValue {
-  if (!fact || fact.kind !== 'position' || fact.source !== 'swiss-ephemeris' || !fact.id || !fact.display?.trim()) fail('invalid position fact');
+  if (!fact || fact.kind !== 'position' || !['swiss-ephemeris', 'derived-deterministic'].includes(fact.source) || !fact.id || !fact.display?.trim()) fail('invalid position fact');
   const value = fact.value as PositionValue;
   if (!value || typeof value !== 'object' || value.key !== fact.id.slice(6, -9) || !value.label || !value.sign || !value.signLabel) fail(`invalid position ${fact.id}`);
   if (!Number.isFinite(value.degreeInSign) || value.degreeInSign < 0 || value.degreeInSign >= 30) fail(`invalid degree for ${fact.id}`);
@@ -40,6 +41,7 @@ function positionMap(ledger: VerifiedFactsV2): Map<string, VerifiedFact> {
   for (const fact of ledger.common.positions) {
     const value = asPosition(fact);
     const authority = ledger.facts[fact.id];
+    if (ROOT_BODY_KEYS.has(value.key) && fact.source !== 'swiss-ephemeris') fail(`root position ${fact.id} is not a Swiss Ephemeris fact`);
     if (fact.id !== `natal.${value.key}.position` || !authority || authority.id !== fact.id || authority.kind !== fact.kind || authority.source !== fact.source || authority.display !== fact.display || canonical(authority.value) !== canonical(fact.value)) fail(`position ${fact.id} is not ledger authority`);
     if (map.has(value.key)) fail(`duplicate position ${value.key}`);
     map.set(value.key, fact);
