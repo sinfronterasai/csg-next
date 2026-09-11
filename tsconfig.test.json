@@ -6,6 +6,7 @@
   },
   "include": [
     "src/lib/reportFacts/**/*",
+    "src/lib/deterministicReportCompiler.ts",
     "src/lib/reportEngine.ts",
     "src/lib/reportPipeline.ts",
     "src/lib/chartEngine.ts",
@@ -13,7 +14,8 @@
     "src/lib/transit.ts",
     "tests/reports/fixtures/factsFixtures.ts",
     "tests/reports/factsV2.test.ts",
-    "tests/reports/generate-repeat-fastpath.test.ts"
+    "tests/reports/generate-repeat-fastpath.test.ts",
+    "tests/reports/deterministicReportCompiler.test.ts"
   ],
   "exclude": ["node_modules"]
 }
