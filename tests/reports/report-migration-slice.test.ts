@@ -47,8 +47,9 @@ describe('first deterministic report migration slice', () => {
     process.env.REPORT_PIPELINE_TOKEN = 'test-token';
     __setFetch((async (_url, init) => { body = JSON.parse(String(init?.body)); return new Response('{}', { status: 200 }); }) as typeof fetch);
     await dispatchReport({ reportId: 'r1', reportType: 'natal', tier: 'free', birthData: { dob: '2026-01-01', birthTime: null, place: 'Test', lat: 0, lon: 0, tz: 'UTC', solarFallback: false }, verifiedFacts: ledger, writerInput: { narrativeFactPacks: buildNarrativeFactPacks(compiled) }, promptSlug: '', callbackUrl: 'https://app.invalid/callback' });
-    expect(body.verifiedFacts).toEqual({ narrativeFactPacks: buildNarrativeFactPacks(compiled) });
-    expect(JSON.stringify(body.verifiedFacts)).not.toContain('csg-report-facts-v2');
+    expect(body.verifiedFacts).toEqual(ledger);
+    expect(body.writerInput).toEqual({ narrativeFactPacks: buildNarrativeFactPacks(compiled) });
+    expect(JSON.stringify(body.writerInput)).not.toContain('csg-report-facts-v2');
     delete process.env.N8N_REPORT_WEBHOOK_URL;
     delete process.env.REPORT_PIPELINE_TOKEN;
   });

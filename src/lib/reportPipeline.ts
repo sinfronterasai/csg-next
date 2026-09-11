@@ -140,10 +140,10 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
     reportType: contractType,
     tier: input.tier,
     birthData: input.birthData,
-    // Compatibility seam: callers still persist/pass the full ledger, but the
-    // writer webhook receives only the compiler's compact section packs whenever
-    // the migration adapter supplies them.
-    verifiedFacts: input.writerInput ?? input.verifiedFacts,
+    // Keep the verified ledger available to deterministic n8n nodes; only the
+    // writer prompt consumes the compact compiler packs.
+    verifiedFacts: input.verifiedFacts,
+    writerInput: input.writerInput,
     promptSlug: input.promptSlug || PROMPT_SLUG[contractType],
     callbackUrl,
   };
