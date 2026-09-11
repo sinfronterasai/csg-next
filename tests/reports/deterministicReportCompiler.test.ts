@@ -14,7 +14,7 @@ function ledger(overrides: Partial<VerifiedFactsV2> = {}): VerifiedFactsV2 {
     position('sun', 'Sun', 'Sun — 10° Aries — House 1', { longitude: 10, retrograde: true, dignity: 'domicile' }),
     position('moon', 'Moon', 'Moon — 20° Taurus — House 2', { longitude: 50, degreeInSign: 20, sign: 'taurus', signLabel: 'Taurus', house: 2 }),
     position('mercury', 'Mercury', 'Mercury — 5° Gemini — House 3', { longitude: 65, degreeInSign: 5, sign: 'gemini', signLabel: 'Gemini', house: 3 }),
-    ...(['venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'] as const).map((key) => position(key, key[0].toUpperCase() + key.slice(1), `${key} — 10° Aries — House 1`)),
+    ...(['venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron', 'juno'] as const).map((key) => position(key, key[0].toUpperCase() + key.slice(1), `${key} — 10° Aries — House 1`)),
   ];
   const facts = Object.fromEntries(positions.map((fact) => [fact.id, fact]));
   return {
@@ -30,16 +30,16 @@ function ledger(overrides: Partial<VerifiedFactsV2> = {}): VerifiedFactsV2 {
 describe('deterministic Premium Natal compiler', () => {
   it('renders canonical ledger placements in stable order without internal IDs', () => {
     const result = compilePremiumNatalReport(ledger());
-    expect(result.tables.planets.map((row) => row.body)).toEqual(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']);
-    expect(result.tables.planets[0]).toEqual({ body: 'Sun', sign: 'Aries', degree: '10°', house: '1', retrograde: 'Retrograde', dignity: 'domicile' });
+    expect(result.tables.planets.map((row) => row.body)).toEqual(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Chiron', 'Juno']);
+    expect(result.tables.planets[0]).toEqual({ key: 'sun', body: 'Sun', sign: 'Aries', degree: '10°', house: '1', retrograde: 'Retrograde', dignity: 'domicile' });
     expect(JSON.stringify(result.tables)).not.toContain('natal.sun.position');
-    expect(result.narrativeSlots.map((slot) => slot.id)).toEqual(['identity', 'inner-world', 'integration']);
+    expect(result.narrativeSlots.map((slot) => slot.id)).toEqual(['identity', 'inner-world', 'integration', 'dynamics']);
   });
 
   it('keeps canonical ordering when the ledger array is shuffled', () => {
     const source = ledger();
     const shuffled = { ...source, common: { ...source.common, positions: [...source.common.positions].reverse() } };
-    expect(compilePremiumNatalReport(shuffled).tables.planets.map((row) => row.body)).toEqual(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']);
+    expect(compilePremiumNatalReport(shuffled).tables.planets.map((row) => row.body)).toEqual(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Chiron', 'Juno']);
   });
 
   it('fails closed for missing or invalid factual positions', () => {
@@ -54,10 +54,10 @@ describe('deterministic Premium Natal compiler', () => {
     const compiled = compilePremiumNatalReport(ledger());
     const prompt = buildNarrativePrompt(compiled, 'identity');
     expect(prompt).toEqual({ sectionId: 'identity', role: 'warm interpreter', wordLimit: { min: 90, max: 140 }, facts: [
-      { label: 'Sun', display: 'Sun — 10° Aries — House 1' },
+      { id: 'natal.sun.position', label: 'Sun', display: 'Sun — 10° Aries — House 1' },
     ] });
     expect(Object.keys(prompt)).toEqual(['sectionId', 'role', 'wordLimit', 'facts']);
-    expect(Object.keys(prompt.facts[0])).toEqual(['label', 'display']);
+    expect(Object.keys(prompt.facts[0])).toEqual(['id', 'label', 'display']);
     expect(JSON.stringify(prompt)).not.toContain('longitude');
     expect(JSON.stringify(prompt)).not.toContain('degreeInSign');
   });
