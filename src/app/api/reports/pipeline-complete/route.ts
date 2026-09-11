@@ -27,6 +27,7 @@ interface StoredCallbackSection extends CallbackSection { prose: string }
 interface CallbackBody {
   reportId?: string;
   status?: string;
+  reportType?: string;
   sections?: CallbackSection[];
   judge?: Record<string, unknown>;
   editorNote?: string | null;
@@ -37,7 +38,7 @@ interface CallbackBody {
   blocks?: unknown;
 }
 
-const BODY_KEYS = new Set(['reportId', 'status', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks']);
+const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks']);
 const SECTION_KEYS = new Set(['id', 'blocks']);
 const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
 const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
