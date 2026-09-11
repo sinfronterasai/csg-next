@@ -203,7 +203,7 @@ function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
     const body = /main narrative/i.test(section.heading)
       ? originalBody.replace(/(?:^|\s+)equilibrium[.!]?$/i, '').trim()
       : originalBody;
-    if (!body && /^equilibrium[.!]?$/i.test(originalBody)) continue;
+    if (/^equilibrium[.!]?$/i.test(originalBody)) continue;
     result.push({ text: safe(section.heading).toUpperCase(), heading: true, paragraph, lastInParagraph: false });
     const lines = wrap(body, 88);
     lines.forEach((line, index) => result.push({ text: line, heading: false, paragraph, lastInParagraph: index === lines.length - 1 }));
