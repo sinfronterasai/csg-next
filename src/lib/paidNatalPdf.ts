@@ -1,3 +1,5 @@
+import type { PremiumNatalCompilation } from './deterministicReportCompiler';
+
 // Server-safe Premium Natal PDF renderer. Every visual and prose fact is read
 // from the same immutable verified ledger snapshot; this module never computes
 // astrology or substitutes scaffold chart data.
@@ -14,6 +16,8 @@ export interface PaidNatalPdfInput {
   name: string;
   birth: { date: string; time: string; location: string };
   facts: Record<string, PaidFact>;
+  /** Compiled factual skeleton; supplied by the report route, never by n8n. */
+  compiledReport?: PremiumNatalCompilation;
   ledger?: NatalLedger;
   sections: { heading: string; body: string }[];
 }

@@ -45,6 +45,8 @@ export interface DispatchInput {
   tier: PipelineTier;
   birthData: BirthDataPayload;
   verifiedFacts: Record<string, unknown>;
+  /** Compact compiler-owned input for the writer; never includes the full ledger. */
+  writerInput?: { narrativeFactPacks: unknown[] };
   promptSlug: string;
   /** Override callback URL (tests use this). Falls back to CSG_REPORT_CALLBACK_URL. */
   callbackUrl?: string;
@@ -138,7 +140,10 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
     reportType: contractType,
     tier: input.tier,
     birthData: input.birthData,
-    verifiedFacts: input.verifiedFacts,
+    // Compatibility seam: callers still persist/pass the full ledger, but the
+    // writer webhook receives only the compiler's compact section packs whenever
+    // the migration adapter supplies them.
+    verifiedFacts: input.writerInput ?? input.verifiedFacts,
     promptSlug: input.promptSlug || PROMPT_SLUG[contractType],
     callbackUrl,
   };

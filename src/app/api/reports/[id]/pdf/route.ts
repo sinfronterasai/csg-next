@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { getReadingById, isReportDeliverable } from '@/lib/profile/store';
 import { buildPaidNatalPdf, type PaidNatalPdfInput, type PaidFact } from '@/lib/paidNatalPdf';
+import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,6 +23,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const facts = ledger?.facts;
     const sections = result.pipeline?.sections;
     if (!birth || !facts || !ledger?.common || !Array.isArray(sections)) return NextResponse.json({ error: 'Report facts incomplete' }, { status: 422 });
+    // The PDF input is assembled from the deterministic compiler. Pipeline prose
+    // remains an optional narrative layer and cannot supply chart tables.
+    const compiledReport = ledger?.schemaVersion === 'csg-report-facts-v2' && Array.isArray(ledger?.common?.positions)
+      ? compilePremiumNatalReport(ledger)
+      : undefined;
     const positions = Object.values(facts).filter((f: any) => f?.kind === 'position') as PaidFact[];
     const houses = ledger.common.houses ?? [];
     const aspects = ledger.common.aspects ?? [];
@@ -30,6 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       name: String(birth.firstName || 'Seeker'),
       birth: { date: String(birth.dob), time: String(birth.birthTime || ''), location: String(birth.place) },
       facts,
+      compiledReport,
       ledger: {
         positions,
         houses,

@@ -13,6 +13,7 @@ import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
+import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -225,6 +226,7 @@ export async function POST(request: Request) {
       );
     }
     const verifiedFacts = v2.ledger;
+    const writerInput = buildWriterInput(verifiedFacts);
     const title = REPORT_META[type].title;
     const price = REPORT_META[type].price;
     const reportId = crypto.randomUUID();
@@ -246,10 +248,11 @@ export async function POST(request: Request) {
         solarFallback: chart.unknownTime,
       },
       verifiedFacts,
+      ...(writerInput ? { writerInput } : {}),
     };
     const readingResult = {
       title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'free',
-      verifiedFacts, pending: true,
+      verifiedFacts, ...(writerInput ? { writerInput } : {}), pending: true,
       metadata: snapshot,
       partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
     };
@@ -320,6 +323,7 @@ async function buildReadingInput(opts: {
   const v2 = await buildVerifiedFactsForReport(contractType, chart);
   if (!v2.ok) throw new V2PreflightError(v2.preflight);
   const verifiedFacts = v2.ledger;
+  const writerInput = buildWriterInput(verifiedFacts);
   const title = REPORT_META[type].title;
   // Persist the IMMUTABLE request snapshot (normalized birth data + verified facts)
   // inside result.metadata so retry (and dispatch) uses the exact original values,
@@ -336,6 +340,7 @@ async function buildReadingInput(opts: {
       solarFallback: chart.unknownTime,
     },
     verifiedFacts,
+    ...(writerInput ? { writerInput } : {}),
   };
   return {
     userId: Number(decoded.userId),
@@ -346,7 +351,7 @@ async function buildReadingInput(opts: {
     pipelineStatus,
     resultJson: JSON.stringify({
       title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: price > 0 ? 'paid' : 'free',
-      verifiedFacts, pending: true,
+      verifiedFacts, ...(writerInput ? { writerInput } : {}), pending: true,
       metadata: snapshot,
       partnerLabel: (type === 'synastry' || type === 'composite' || type === 'couples') && partner?.birthDate ? `Partner ${partner.birthDate}` : undefined,
     }),
@@ -367,6 +372,7 @@ async function dispatchWithFailClosed(opts: {
       tier: opts.price > 0 ? 'paid' : 'free',
       birthData: meta ? meta.birthData : undefined,
       verifiedFacts: meta ? meta.verifiedFacts : undefined,
+      writerInput: meta?.writerInput,
       promptSlug: '',
       callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     });
@@ -385,6 +391,15 @@ async function dispatchWithFailClosed(opts: {
 async function markReadingFailed(readingId: number) {
   // Dispatch failure (not a judge rejection) -> dispatch_failed, which is retryable.
   await query(`UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1`, [Number(readingId)]);
+}
+
+// Explicit migration seam: retain the immutable ledger for retry/PDF assembly,
+// but give the writer only compact section-specific facts.
+function buildWriterInput(ledger: any) {
+  if (ledger?.schemaVersion !== 'csg-report-facts-v2' || ledger?.reportType !== 'natal') return undefined;
+  if (!Array.isArray(ledger?.common?.positions) || ledger.common.positions.length === 0) return undefined;
+  const compiledReport = compilePremiumNatalReport(ledger);
+  return { narrativeFactPacks: buildNarrativeFactPacks(compiledReport) };
 }
 
 function buildRepeatResponse(readingId: number, reportId: string, readingStatus: string) {
