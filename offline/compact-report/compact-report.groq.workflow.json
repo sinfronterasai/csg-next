@@ -36,7 +36,6 @@
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "id": "compact-loop-0003",

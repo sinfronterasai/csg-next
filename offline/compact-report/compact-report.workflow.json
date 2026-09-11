@@ -29,7 +29,7 @@
       "position": [240, 0]
     },
     {
-      "parameters": { "batchSize": 1, "options": {} },
+      "parameters": { "options": {} },
       "id": "compact-loop-0003",
       "name": "Loop Over Four Compiler Slots",
       "type": "n8n-nodes-base.splitInBatches",
