@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { computeChart, geocodeLocation, geocodeCoordinates } from '@/lib/chartEngine';
+import { buildVerifiedFactsForReport } from '@/lib/reportFacts/integrate';
+import { compileFreeBirthChart, validateFreeBirthInput } from '@/lib/freeBirthChart';
 
 export async function GET() {
   try {
@@ -23,6 +25,14 @@ export async function GET() {
       return NextResponse.json({ hasChart: false, message: 'No birth chart found. Please create one first.' });
     }
     const c = rows[0];
+    // pg returns DATE/TIME as JS Date objects; normalize once and use the
+    // persisted coordinates + IANA timezone as the immutable calculation anchor.
+    const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
+    const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v).slice(0, 8)));
+    const birthInfo = { date: toDateStr(c.birth_date), time: toTimeStr(c.birth_time), location: c.location_name, latitude: Number(c.latitude), longitude: Number(c.longitude), timezone: c.timezone, unknownTime: Boolean(c.unknown_time) };
+    const ledgerResult = await buildVerifiedFactsForReport('natal', birthInfo);
+    if (!ledgerResult.ok) return NextResponse.json({ hasChart: true, error: 'Birth chart data is temporarily unavailable' }, { status: 503 });
+    const report = compileFreeBirthChart(ledgerResult.ledger);
     const natal = typeof c.natal_positions === 'string' ? JSON.parse(c.natal_positions) : c.natal_positions;
     const houses = typeof c.houses === 'string' ? JSON.parse(c.houses) : c.houses;
     const planets: any[] = natal?.planets || [];
@@ -47,13 +57,9 @@ export async function GET() {
       sun: planets.find((p: any) => p.key === 'sun') || null,
       moon: planets.find((p: any) => p.key === 'moon') || null,
     };
-    // pg returns DATE/TIME as JS Date objects; the client/engine expect strings.
-    const toDateStr = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10));
-    const toTimeStr = (v: any) => (v instanceof Date ? v.toTimeString().slice(0, 5) : (v == null ? '' : String(v)));
-    const birthInfo = { date: toDateStr(c.birth_date), time: toTimeStr(c.birth_time), location: c.location_name, latitude: c.latitude, longitude: c.longitude };
-    return NextResponse.json({ hasChart: true, chart: chartData, birthInfo, chartId: c.id });
+    return NextResponse.json({ hasChart: true, chart: chartData, report, chartId: c.id });
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to fetch birth chart', details: err?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch birth chart' }, { status: 500 });
   }
 }
 
@@ -70,12 +76,8 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
     const { name, date, time, location, latitude, longitude, unknownTime, chartId } = body;
-    if (!date || !location) {
-      return NextResponse.json({ error: 'Missing required fields', details: 'date and location are required' }, { status: 400 });
-    }
-    if (!unknownTime && !time) {
-      return NextResponse.json({ error: 'Missing required fields', details: 'time is required unless unknownTime is set' }, { status: 400 });
-    }
+    const inputCheck = validateFreeBirthInput({ date, time, location, latitude, longitude, unknownTime: Boolean(unknownTime) });
+    if (!inputCheck.ok) return NextResponse.json({ error: 'Invalid birth input', details: inputCheck.error }, { status: 400 });
     // Resolve the zone at the exact coordinates used for calculation. A timezone
     // from a different forward-geocoded city must never be combined with them.
     let geo: { lat: number; lon: number; timezone: string } | null = null;
@@ -95,6 +97,12 @@ export async function POST(request: Request) {
       name: name || '', date, time: unknown ? undefined : (time || '12:00'), location,
       latitude: geo.lat, longitude: geo.lon, timezone: geo.timezone, unknownTime: unknown,
     });
+    const ledgerResult = await buildVerifiedFactsForReport('natal', {
+      name, date, time: unknown ? undefined : (time || '12:00'), location,
+      latitude: geo.lat, longitude: geo.lon, timezone: geo.timezone, unknownTime: unknown,
+    });
+    if (!ledgerResult.ok) return NextResponse.json({ error: 'Birth chart data is temporarily unavailable' }, { status: 503 });
+    const report = compileFreeBirthChart(ledgerResult.ledger);
 
     // Update an existing owned chart when chartId is supplied (the "Update"
     // action); otherwise insert a new one ("Create Another"). This keeps a
@@ -152,8 +160,8 @@ export async function POST(request: Request) {
       sun: chart.sun,
       moon: chart.moon,
     };
-    return NextResponse.json({ success: true, chartId: savedId, chart: chartData });
+    return NextResponse.json({ success: true, chartId: savedId, chart: chartData, report });
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to save birth chart', details: err?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save birth chart' }, { status: 500 });
   }
 }

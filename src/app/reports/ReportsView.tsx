@@ -269,7 +269,7 @@ export default function Reports() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => generate('natal')}
+              onClick={() => router.push('/birth-chart')}
               disabled={loading === 'natal'}
               className="px-6 py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
             >
@@ -304,7 +304,7 @@ export default function Reports() {
               <div className="pt-5 border-t border-white/5">
                 {p.kind === 'free' ? (
                   <button
-                    onClick={() => generate(p.id)}
+                    onClick={() => router.push('/birth-chart')}
                     disabled={loading === p.id}
                     className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
                   >

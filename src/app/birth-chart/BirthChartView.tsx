@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import BirthChartWheel from '../../components/BirthChartWheel';
 import type { ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
+import type { FreeBirthChartReport } from '../../lib/freeBirthChart';
 
 export default function BirthChart() {
   const [formData, setFormData] = useState({ name: '', date: '', time: '', location: '', unknownTime: false });
@@ -11,7 +12,7 @@ export default function BirthChart() {
   const [result, setResult] = useState<ChartData | null>(null);
   const [savedToProfile, setSavedToProfile] = useState<null | boolean>(null);
   const [savedChartId, setSavedChartId] = useState<number | null>(null);
-  // mode: 'view' = show saved chart, 'edit' = show calculator form
+  const [freeReport, setFreeReport] = useState<FreeBirthChartReport | null>(null);
   const [mode, setMode] = useState<'view' | 'edit'>('edit');
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -25,6 +26,7 @@ export default function BirthChart() {
           const data = await res.json();
           if (data.hasChart && data.chart) {
             setResult(data.chart as ChartData);
+            setFreeReport((data.report as FreeBirthChartReport) ?? null);
             setSavedChartId(data.chartId ?? null);
             setMode('view');
           }
@@ -97,6 +99,7 @@ export default function BirthChart() {
           });
           const saveJson = await saveRes.json();
           if (saveJson.chartId) setSavedChartId(saveJson.chartId);
+          setFreeReport((saveJson.report as FreeBirthChartReport) ?? null);
           setSavedToProfile(saveRes.ok);
         } catch {
           setSavedToProfile(false);
@@ -127,16 +130,22 @@ export default function BirthChart() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="glass-panel-light p-4 rounded-2xl">
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
-                <span className="text-base font-serif text-white block mt-1">{result.sun.label} in {result.sun.signLabel}</span>
+                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'sun')?.body} in {freeReport?.placements.find((p) => p.key === 'sun')?.sign}</span>
                 <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
               </div>
               <div className="glass-panel-light p-4 rounded-2xl">
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
-                <span className="text-base font-serif text-white block mt-1">{result.moon.label} in {result.moon.signLabel}</span>
+                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'moon')?.body} in {freeReport?.placements.find((p) => p.key === 'moon')?.sign}</span>
                 <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
               </div>
             </div>
             <BirthChartWheel chartData={result} interactive />
+            {freeReport && (
+              <div className="mt-8" data-testid="free-birth-chart-report">
+                <div className="flex items-center justify-between mb-3"><span className="text-xs text-gold tracking-wider uppercase">Verified Placements</span><span className="text-[10px] text-gray-500 uppercase tracking-wider">{freeReport.asOfDate}</span></div>
+                <div className="overflow-x-auto rounded-2xl border border-white/10"><table className="w-full text-sm text-left"><thead className="text-[10px] uppercase tracking-wider text-gray-400 bg-white/5"><tr><th className="px-3 py-2">Body</th><th className="px-3 py-2">Sign</th><th className="px-3 py-2">Degree</th><th className="px-3 py-2">House</th><th className="px-3 py-2">Motion</th></tr></thead><tbody>{freeReport.tables.planets.map((placement) => <tr key={placement.key} className="border-t border-white/5"><td className="px-3 py-2 text-white">{placement.body}</td><td className="px-3 py-2 text-gray-300">{placement.sign}</td><td className="px-3 py-2 text-gray-300">{placement.degree}</td><td className="px-3 py-2 text-gray-300">{placement.house}</td><td className="px-3 py-2 text-gray-400">{placement.retrograde}</td></tr>)}</tbody></table></div>
+              </div>
+            )}
             <div className="mt-8 flex flex-wrap gap-3 justify-center">
               <button onClick={startUpdate} className="px-6 py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_25px_rgba(223,183,108,0.5)]">
                 Update Chart
