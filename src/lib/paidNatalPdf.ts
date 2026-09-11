@@ -27,7 +27,8 @@ type NarrativeLine = { text: string; heading: boolean };
 
 const ANCHOR = /\[\[([^\]]+)\]\]/g;
 const PLANET_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'imumcoeli'];
+const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven'];
+const ICUMCOELI_KEYS = ['icumcoeli', 'imumcoeli'];
 const PAGE_TITLES = [
   '', 'YOUR COSMIC BLUEPRINT', 'YOUR COSMIC BLUEPRINT', 'THE MAIN NARRATIVE',
   'THE MAIN NARRATIVE - CONTINUED', 'YOUR PLANETARY GUIDES', 'YOUR PLANETARY GUIDES - CONTINUED',
@@ -318,7 +319,7 @@ function validateLedger(input: PaidNatalPdfInput): NatalLedger {
   const ledger = input.ledger;
   if (!ledger || !Array.isArray(ledger.positions)) throw new Error('verified natal ledger required');
   const keys = new Set(ledger.positions.map((fact) => String(fact.value?.key)));
-  if (!PLANET_KEYS.every((key) => keys.has(key)) || !ANGLE_KEYS.every((key) => keys.has(key))) throw new Error('ten planets and four angles required');
+  if (!PLANET_KEYS.every((key) => keys.has(key)) || !ANGLE_KEYS.every((key) => keys.has(key)) || !ICUMCOELI_KEYS.some((key) => keys.has(key))) throw new Error('ten planets and four angles required');
   if (!Array.isArray(ledger.houses) || ledger.houses.length !== 12 || ledger.houses.some((house, index) => house.num !== index + 1 || !Number.isFinite(house.cuspLongitude))) throw new Error('12 houses required');
   if (!Array.isArray(ledger.aspects) || ledger.aspects.length === 0 || ledger.aspects.some((fact) => !fact.display || !fact.value?.bodyA || !fact.value?.bodyB)) throw new Error('verified aspects required');
   for (const fact of ledger.positions) {
