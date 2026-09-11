@@ -11,6 +11,7 @@
 // under the plain Node test environment with a stubbed fetch.
 
 import crypto from 'crypto';
+import { buildNarrativeFactPacks, compilePremiumNatalReport, type PremiumNatalCompilation } from './deterministicReportCompiler';
 
 // --- Contract types -----------------------------------------------------------
 
@@ -50,6 +51,8 @@ export interface DispatchInput {
   promptSlug: string;
   /** Override callback URL (tests use this). Falls back to CSG_REPORT_CALLBACK_URL. */
   callbackUrl?: string;
+  /** Compiler output supplied by the app for the compact child. */
+  compiled?: PremiumNatalCompilation;
 }
 
 export interface DispatchResult {
@@ -120,6 +123,61 @@ export function verifyCallbackToken(provided: string | null | undefined): boolea
   return timingSafeEqual(provided, expected);
 }
 
+export type PremiumNatalWorkflow = 'legacy' | 'compact';
+
+/** Compact is opt-in; all products/configurations otherwise use legacy. */
+export function getPremiumNatalWorkflow(env: Record<string, string | undefined> = process.env, reportType?: string): PremiumNatalWorkflow {
+  return reportType === 'natalpremium' && env.N8N_PREMIUM_NATAL_WORKFLOW === 'compact' ? 'compact' : 'legacy';
+}
+
+export type CompactCallbackBlock = { role: 'narrative' | 'reflection' | 'practical'; prose: string; factIds: string[] };
+export type CompactCallback = {
+  schemaVersion: 'csg-compact-report-callback-v1'; reportId: string; status: 'approved' | 'rejected'; reportType: 'natal';
+  skeleton: unknown; tables: unknown; blocks: Array<{ sectionId: string; blocks: CompactCallbackBlock[] }>; rejectReasons?: string[];
+};
+function compactFail(message: string): never { throw new Error(`invalid compact callback: ${message}`); }
+
+/** Map the private compact contract; deterministic tables never cross into app pipeline state. */
+export function convertCompactCallback(value: unknown, expected: { reportId: string; compiled: PremiumNatalCompilation }) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) compactFail('body');
+  const callback = value as Partial<CompactCallback>;
+  if (callback.schemaVersion !== 'csg-compact-report-callback-v1' || callback.reportId !== expected.reportId) compactFail('schema or correlation');
+  if (callback.reportType !== 'natal' || !['approved', 'rejected'].includes(callback.status as string)) compactFail('status');
+  if (!callback.tables || !callback.skeleton) compactFail('deterministic snapshot');
+  if (callback.status === 'rejected') {
+    if (!Array.isArray(callback.rejectReasons) || callback.rejectReasons.length === 0 || callback.rejectReasons.some((r) => typeof r !== 'string' || !r.trim())) compactFail('rejection reasons');
+    return { reportId: expected.reportId, status: 'rejected' as const, sections: [], judge: undefined, rejectReasons: callback.rejectReasons };
+  }
+  const slots = expected.compiled.narrativeSlots;
+  if (!Array.isArray(callback.blocks) || callback.blocks.length !== slots.length) compactFail('complete slots');
+  const byId = new Map(callback.blocks.map((block) => [block.sectionId, block]));
+  if (byId.size !== slots.length || slots.some((slot) => !byId.has(slot.id))) compactFail('slot allowlist');
+  const roleMap = { narrative: 'meaning', reflection: 'synthesis', practical: 'agency' } as const;
+  const sections = slots.map((slot) => {
+    const block = byId.get(slot.id)!;
+    if (!Array.isArray(block.blocks) || block.blocks.length === 0) compactFail(`missing blocks for ${slot.id}`);
+    const allowedFacts = new Set(slot.relevantFactIds);
+    return { id: slot.id, blocks: block.blocks.map((item) => {
+      if (!item || !['narrative', 'reflection', 'practical'].includes(item.role) || typeof item.prose !== 'string' || !item.prose.trim() || !Array.isArray(item.factIds) || item.factIds.length === 0 || item.factIds.some((id) => typeof id !== 'string' || !allowedFacts.has(id))) compactFail(`unsupported block for ${slot.id}`);
+      return { role: roleMap[item.role], prose: item.prose, factIds: [...item.factIds] };
+    }) };
+  });
+  return { reportId: expected.reportId, status: 'approved' as const, sections, judge: { source: 'compact' }, rejectReasons: [] };
+}
+
+export function buildDispatchPayload(input: DispatchInput, workflow: PremiumNatalWorkflow = getPremiumNatalWorkflow(process.env, input.reportType)) {
+  const contractType = mapReportType(input.reportType);
+  if (!contractType) throw new Error(`Unsupported n8n reportType: ${input.reportType}`);
+  if (workflow === 'compact') {
+    if (input.reportType !== 'natalpremium') throw new Error('Compact workflow is Premium Natal only');
+    const compiled = input.compiled ?? compilePremiumNatalReport(input.verifiedFacts as any);
+    return { reportId: input.reportId, reportType: 'natal' as const, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts,
+      deterministic: { schemaVersion: compiled.schemaVersion, skeleton: { metadata: compiled.metadata, narrativeSlots: compiled.narrativeSlots }, tables: compiled.tables },
+      narrativeFactPacks: buildNarrativeFactPacks(compiled), promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
+  }
+  return { reportId: input.reportId, reportType: contractType, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts, writerInput: input.writerInput, promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
+}
+
 // --- R1: dispatcher -----------------------------------------------------------
 
 export async function dispatchReport(input: DispatchInput): Promise<DispatchResult> {
@@ -131,22 +189,12 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
     throw new Error(`Unsupported n8n reportType: ${input.reportType}`);
   }
 
-  const webhookUrl = requireEnv('N8N_REPORT_WEBHOOK_URL');
+  const workflow = getPremiumNatalWorkflow(process.env, input.reportType);
+  const webhookUrl = workflow === 'compact' ? requireEnv('N8N_COMPACT_REPORT_WEBHOOK_URL') : requireEnv('N8N_REPORT_WEBHOOK_URL');
   const token = requireEnv('REPORT_PIPELINE_TOKEN');
   const callbackUrl = input.callbackUrl ?? requireEnv('CSG_REPORT_CALLBACK_URL');
 
-  const payload = {
-    reportId: input.reportId,
-    reportType: contractType,
-    tier: input.tier,
-    birthData: input.birthData,
-    // Keep the verified ledger available to deterministic n8n nodes; only the
-    // writer prompt consumes the compact compiler packs.
-    verifiedFacts: input.verifiedFacts,
-    writerInput: input.writerInput,
-    promptSlug: input.promptSlug || PROMPT_SLUG[contractType],
-    callbackUrl,
-  };
+  const payload = buildDispatchPayload({ ...input, callbackUrl }, workflow);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);

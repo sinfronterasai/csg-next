@@ -23,7 +23,7 @@ The primary endpoint is configured by `REPORT_NARRATIVE_ENDPOINT`; targeted repa
 
 ## Output
 
-`csg-compact-report-callback-v1` with `status: approved`, the deterministic `skeleton` and `tables` copied from the frozen input, and exactly four validated narrative blocks in compiler order. AI-supplied table fields are discarded.
+`csg-compact-report-callback-v1` with the exact input `reportId`, `status: approved`, the deterministic `skeleton` and `tables` copied from the frozen input, and exactly four validated narrative blocks in compiler order. AI-supplied table fields are discarded.
 
 ## Verification
 

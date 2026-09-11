@@ -3,7 +3,8 @@ import {
   getReadingByReportId, applyPipelineCallback, canonicalCallbackHash,
   type PipelineStatus,
 } from '@/lib/profile/store';
-import { verifyCallbackToken } from '@/lib/reportPipeline';
+import { verifyCallbackToken, convertCompactCallback } from '@/lib/reportPipeline';
+import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
 
 // POST /api/reports/pipeline-complete
 // n8n calls this with the generated/approved/rejected report. The app is the
@@ -30,9 +31,13 @@ interface CallbackBody {
   judge?: Record<string, unknown>;
   editorNote?: string | null;
   rejectReasons?: string[];
+  schemaVersion?: string;
+  skeleton?: unknown;
+  tables?: unknown;
+  blocks?: unknown;
 }
 
-const BODY_KEYS = new Set(['reportId', 'status', 'sections', 'judge', 'editorNote', 'rejectReasons']);
+const BODY_KEYS = new Set(['reportId', 'status', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks']);
 const SECTION_KEYS = new Set(['id', 'blocks']);
 const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
 const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
@@ -99,7 +104,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid callback body' }, { status: 400 });
   }
 
-  const { reportId, status, sections, judge, editorNote, rejectReasons } = body;
+  const { reportId, status, sections, judge, editorNote, rejectReasons, schemaVersion } = body;
+  const isCompact = schemaVersion === 'csg-compact-report-callback-v1';
+  const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+  if ((!isCompact && ['schemaVersion', 'skeleton', 'tables', 'blocks'].some(hasOwn)) ||
+      (isCompact && ['sections', 'judge', 'editorNote'].some(hasOwn))) {
+    return NextResponse.json({ error: 'Invalid callback contract' }, { status: 400 });
+  }
 
   // R2.2 — validate body and known reportId before mutation.
   if (!isNonBlankString(reportId)) {
@@ -108,10 +119,11 @@ export async function POST(request: Request) {
   if (!status || !VALID_STATUSES.has(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
-  if (!Array.isArray(sections) || !sections.every(isValidSection)) {
+  const standardSections = sections ?? [];
+  if (!isCompact && (!Array.isArray(sections) || !sections.every(isValidSection))) {
     return NextResponse.json({ error: 'Invalid sections' }, { status: 400 });
   }
-  if (new Set(sections.map((section) => section.id)).size !== sections.length) {
+  if (!isCompact && new Set(standardSections.map((section) => section.id)).size !== standardSections.length) {
     return NextResponse.json({ error: 'Duplicate section id' }, { status: 400 });
   }
   if (judge !== undefined && (typeof judge !== 'object' || judge === null || Array.isArray(judge))) {
@@ -125,12 +137,12 @@ export async function POST(request: Request) {
   }
 
   // R7 — contract-required content per status.
-  if (status === 'approved') {
-    if (sections.length === 0 || !judge || typeof judge !== 'object') {
+  if (status === 'approved' && !isCompact) {
+    if (standardSections.length === 0 || !judge || typeof judge !== 'object') {
       return NextResponse.json({ error: 'Approved callbacks require sections and judge' }, { status: 400 });
     }
   }
-  if (status === 'rejected') {
+  if (status === 'rejected' && !isCompact) {
     if (!Array.isArray(rejectReasons) || rejectReasons.length === 0) {
       return NextResponse.json({ error: 'Rejected callbacks require rejectReasons' }, { status: 400 });
     }
@@ -142,14 +154,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
   }
 
-  // R2.4/R4 — atomic, hash-aware duplicate/conflict handling.
-  const normalizedSections = normalizeSections(sections);
+  let callbackSections = sections ?? [];
+  let callbackJudge = judge;
+  let callbackRejectReasons = Array.isArray(rejectReasons) ? rejectReasons : [];
+  if (isCompact) {
+    try {
+      const storedResult = typeof existing.result === 'string' ? JSON.parse(existing.result) : (existing.result ?? {});
+      const ledger = storedResult?.verifiedFacts ?? storedResult?.metadata?.verifiedFacts;
+      const mapped = convertCompactCallback(body, { reportId, compiled: compilePremiumNatalReport(ledger) });
+      callbackSections = mapped.sections;
+      callbackJudge = mapped.judge;
+      callbackRejectReasons = mapped.rejectReasons;
+    } catch {
+      return NextResponse.json({ error: 'Invalid compact callback' }, { status: 400 });
+    }
+  }
+
+  // Compact callbacks are converted into the existing app contract. Their
+  // deterministic tables/skeleton are deliberately not copied into pipeline state.
+  const normalizedSections = normalizeSections(callbackSections);
   const callbackHash = canonicalCallbackHash({
     status,
     sections: normalizedSections,
-    judge: judge ?? null,
+    judge: callbackJudge ?? null,
     editorNote: editorNote ?? null,
-    rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
+    rejectReasons: callbackRejectReasons,
   });
 
   // R2.5 — build the inner pipeline object (NOT nested). applyPipelineCallback
@@ -157,9 +186,9 @@ export async function POST(request: Request) {
   const pipelineValue: Record<string, unknown> = {
     status,
     sections: normalizedSections,
-    judge: judge ?? null,
+    judge: callbackJudge ?? null,
     editorNote: editorNote ?? null,
-    rejectReasons: Array.isArray(rejectReasons) ? rejectReasons : [],
+    rejectReasons: callbackRejectReasons,
     completedAt: new Date().toISOString(),
   };
 
