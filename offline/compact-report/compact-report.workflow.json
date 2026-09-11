@@ -107,7 +107,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const items = $input.all().map(i => i.json); const expected = ['identity','inner-world','integration','dynamics']; const seen = new Set(items.map(i => i.narrativeBlock?.sectionId)); if (items.length !== 4 || seen.size !== 4 || expected.some(id => !seen.has(id))) throw new Error('final quality gate rejected incomplete narrative slots'); const first = items[0]; const blocks = expected.map(id => items.find(i => i.narrativeBlock.sectionId === id).narrativeBlock); return [{ json: { schemaVersion: 'csg-compact-report-callback-v1', reportId: first.reportId, status: 'approved', reportType: 'natal', skeleton: first._deterministicSnapshot.skeleton, tables: first._deterministicSnapshot.tables, blocks } }];"
+        "jsCode": "const candidates = [...$('Accumulate Validated Slot').all(), ...$input.all()].map(i => i.json); const bySection = new Map(); for (const item of candidates) { const id = item.narrativeBlock?.sectionId; if (id && item.narrativeBlock) bySection.set(id, item); } const expected = ['identity','inner-world','integration','dynamics']; if (bySection.size !== 4 || expected.some(id => !bySection.has(id))) throw new Error('final quality gate rejected incomplete narrative slots'); const first = bySection.get(expected[0]); const blocks = expected.map(id => bySection.get(id).narrativeBlock); return [{ json: { schemaVersion: 'csg-compact-report-callback-v1', reportId: first.reportId, status: 'approved', reportType: 'natal', skeleton: first._deterministicSnapshot.skeleton, tables: first._deterministicSnapshot.tables, blocks } }];"
       },
       "id": "compact-final-0010",
       "name": "Final Deterministic Quality Gate + Callback",
