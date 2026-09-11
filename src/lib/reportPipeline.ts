@@ -47,7 +47,7 @@ export interface DispatchInput {
   birthData: BirthDataPayload;
   verifiedFacts: Record<string, unknown>;
   /** Compact compiler-owned input for the writer; never includes the full ledger. */
-  writerInput?: { narrativeFactPacks: unknown[] };
+  writerInput?: { narrativeFactPacks: unknown[]; deterministic?: { tables: unknown; skeleton: unknown } };
   promptSlug: string;
   /** Override callback URL (tests use this). Falls back to CSG_REPORT_CALLBACK_URL. */
   callbackUrl?: string;

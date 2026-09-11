@@ -399,7 +399,17 @@ function buildWriterInput(ledger: any) {
   if (ledger?.schemaVersion !== 'csg-report-facts-v2' || ledger?.reportType !== 'natal') return undefined;
   if (!Array.isArray(ledger?.common?.positions) || ledger.common.positions.length === 0) return undefined;
   const compiledReport = compilePremiumNatalReport(ledger);
-  return { narrativeFactPacks: buildNarrativeFactPacks(compiledReport) };
+  return {
+    narrativeFactPacks: buildNarrativeFactPacks(compiledReport),
+    deterministic: {
+      tables: compiledReport.tables,
+      skeleton: {
+        schemaVersion: compiledReport.schemaVersion,
+        sectionOrder: compiledReport.narrativeSlots.map((slot) => slot.id),
+        narrativeSlots: compiledReport.narrativeSlots,
+      },
+    },
+  };
 }
 
 function buildRepeatResponse(readingId: number, reportId: string, readingStatus: string) {
