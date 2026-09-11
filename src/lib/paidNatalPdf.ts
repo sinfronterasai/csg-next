@@ -200,9 +200,7 @@ function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
   const result: NarrativeLine[] = [];
   for (const [paragraph, section] of resolved.entries()) {
     const originalBody = section.body.trim();
-    const body = /main narrative/i.test(section.heading)
-      ? originalBody.replace(/(?:^|\s+)equilibrium[.!]?$/i, '').trim()
-      : originalBody;
+    const body = originalBody.replace(/(?:^|\s+)equilibrium[.!]?$/i, '').trim();
     if (/^equilibrium[.!]?$/i.test(originalBody)) continue;
     result.push({ text: safe(section.heading).toUpperCase(), heading: true, paragraph, lastInParagraph: false });
     const lines = wrap(body, 88);
