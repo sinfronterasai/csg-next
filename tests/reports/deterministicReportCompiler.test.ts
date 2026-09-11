@@ -42,6 +42,11 @@ describe('deterministic Premium Natal compiler', () => {
     expect(compilePremiumNatalReport(shuffled).tables.planets.map((row) => row.body)).toEqual(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Chiron', 'Juno']);
   });
 
+  it('accepts a serialized ledger whose equivalent authority objects are not the same references', () => {
+    const roundTripped = JSON.parse(JSON.stringify(ledger())) as VerifiedFactsV2;
+    expect(() => compilePremiumNatalReport(roundTripped)).not.toThrow();
+  });
+
   it('fails closed for missing or invalid factual positions', () => {
     const missing = ledger({ common: { ...ledger().common, positions: [] } });
     expect(() => compilePremiumNatalReport(missing)).toThrow(/position|required/i);

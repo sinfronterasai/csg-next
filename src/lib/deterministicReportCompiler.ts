@@ -34,7 +34,8 @@ function positionMap(ledger: VerifiedFactsV2): Map<string, VerifiedFact> {
   const map = new Map<string, VerifiedFact>();
   for (const fact of ledger.common.positions) {
     const value = asPosition(fact);
-    if (fact.id !== `natal.${value.key}.position` || ledger.facts[fact.id] !== fact) fail(`position ${fact.id} is not ledger authority`);
+    const authority = ledger.facts[fact.id];
+    if (fact.id !== `natal.${value.key}.position` || !authority || authority.id !== fact.id || authority.kind !== fact.kind || authority.source !== fact.source || authority.display !== fact.display || JSON.stringify(authority.value) !== JSON.stringify(fact.value)) fail(`position ${fact.id} is not ledger authority`);
     if (map.has(value.key)) fail(`duplicate position ${value.key}`);
     map.set(value.key, fact);
   }
