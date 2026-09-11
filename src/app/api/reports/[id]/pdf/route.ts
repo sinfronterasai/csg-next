@@ -48,7 +48,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     };
     const pdf = buildPaidNatalPdf(input);
     return new Response(pdf as BodyInit, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="cosmic-spirit-guide-natal-${id}.pdf"`, 'Cache-Control': 'private, no-store' } });
-  } catch {
+  } catch (error) {
+    console.error('[paid-natal-pdf] generation failed', error instanceof Error ? error.message : 'unknown error');
     return NextResponse.json({ error: 'Could not generate report PDF' }, { status: 500 });
   }
 }
