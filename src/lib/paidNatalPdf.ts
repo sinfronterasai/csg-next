@@ -27,7 +27,7 @@ type NarrativeLine = { text: string; heading: boolean };
 
 const ANCHOR = /\[\[([^\]]+)\]\]/g;
 const PLANET_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'icumcoeli'];
+const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'imumcoeli'];
 const PAGE_TITLES = [
   '', 'YOUR COSMIC BLUEPRINT', 'YOUR COSMIC BLUEPRINT', 'THE MAIN NARRATIVE',
   'THE MAIN NARRATIVE - CONTINUED', 'YOUR PLANETARY GUIDES', 'YOUR PLANETARY GUIDES - CONTINUED',
@@ -92,11 +92,12 @@ function point(cx: number, cy: number, radius: number, longitude: number) {
   return { x: cx + radius * Math.cos(radians), y: cy + radius * Math.sin(radians) };
 }
 
-function bodyChrome(out: Draw, page: number, title = PAGE_TITLES[page]) {
+function bodyChrome(out: Draw, page: number, title = PAGE_TITLES[page], name = '') {
   fill(out, '0.975 0.957 0.9', 0, 0, 612, 792);
   fill(out, '0.25 0.09 0.36', 0, 782, 612, 10);
   text(out, 42, 756, 'COSMIC SPIRIT GUIDE  *  NATAL CHART STORY', 7.5, '0.31 0.2 0.36', true);
   text(out, 42, 724, title, 18, '0.29 0.08 0.38', true);
+  if (name.trim()) text(out, 570 - safe(`FOR ${name}`).length * 3.1, 728, `FOR ${safe(name).toUpperCase()}`, 6.5, '0.42 0.29 0.46', true);
   stroke(out, '0.65 0.52 0.18', 0.7, '42 710 m 570 710 l S');
   text(out, 42, 25, 'COSMIC SPIRIT GUIDE  |  PREMIUM NATAL', 6.5, '0.42 0.34 0.45');
   text(out, 503, 25, `PAGE ${page} OF 10`, 6.5, '0.42 0.34 0.45');
@@ -116,6 +117,7 @@ function coverStream(input: PaidNatalPdfInput) {
   stroke(out, '0.65 0.52 0.18', 0.7, '246 397 m 366 397 l S');
   centered(out, 370, `${input.birth.date}  *  ${input.birth.time || 'Time not supplied'}`, 9, '0.91 0.88 0.82');
   centered(out, 350, input.birth.location, 9, '0.91 0.88 0.82');
+  centered(out, 325, `Prepared for ${input.name}`, 8.5, '0.83 0.71 0.42', true);
   centered(out, 300, 'A narrative interpretation of your unique path,', 8, '0.65 0.6 0.7');
   centered(out, 286, 'gifts, tensions, choices, and practical alignment.', 8, '0.65 0.6 0.7');
   centered(out, 42, 'cosmicspiritguide.com  |  PAGE 1 OF 10', 6.5, '0.52 0.46 0.62');
@@ -158,9 +160,9 @@ function wheel(out: Draw, ledger: NatalLedger) {
   }
 }
 
-function blueprintStream(ledger: NatalLedger) {
+function blueprintStream(input: PaidNatalPdfInput, ledger: NatalLedger) {
   const out: Draw = [];
-  bodyChrome(out, 2);
+  bodyChrome(out, 2, PAGE_TITLES[2], input.name);
   text(out, 42, 692, 'YOUR VERIFIED CHART AT A GLANCE', 8, '0.33 0.1 0.42', true);
   text(out, 42, 679, 'Verified geometry: 12 houses, natal placements, angles, and selected major aspects.', 8, '0.31 0.25 0.34');
   wheel(out, ledger);
@@ -168,14 +170,21 @@ function blueprintStream(ledger: NatalLedger) {
   const signatures = ledger.positions.filter((fact) => ['ascendant', 'sun', 'moon'].includes(String(fact.value?.key)));
   let y = 648;
   for (const fact of signatures) { for (const line of wrap(fact.display, 38)) { text(out, 354, y, line, 7.1); y -= 10; } y -= 4; }
-  text(out, 354, y - 3, 'ELEMENT + MODALITY', 8, '0.33 0.1 0.42', true); y -= 21;
+  text(out, 354, y - 3, 'ELEMENT BALANCE', 8, '0.33 0.1 0.42', true); y -= 21;
   for (const [label, count] of Object.entries(ledger.elements)) {
     text(out, 354, y, `${label} ${count}`, 7.2, '0.2 0.16 0.24', true);
-    fill(out, '0.49 0.26 0.55', 414, y - 1, Math.max(5, Number(count) * 15), 6); y -= 14;
+    fill(out, '0.49 0.26 0.55', 414, y - 1, Math.max(5, Number(count) * 15), 6);
+    stroke(out, '0.73 0.62 0.3', 0.35, `${n(414 + Math.max(5, Number(count) * 15))} ${n(y - 1)} m ${n(414 + Math.max(5, Number(count) * 15))} ${n(y + 5)} l S`); y -= 14;
   }
+  text(out, 354, y, 'MODALITY', 7.2, '0.33 0.1 0.42', true); y -= 13;
   for (const [label, count] of Object.entries(ledger.modalities || {})) { text(out, 354, y, `${label} ${count}`, 7.2); y -= 12; }
-  text(out, 354, y - 5, 'FOUR DEFINING DYNAMICS', 8, '0.33 0.1 0.42', true); y -= 23;
-  for (const fact of ledger.aspects.slice(0, 4)) { text(out, 354, y, fact.display, 6.5, '0.2 0.16 0.24', true); y -= 12; }
+  text(out, 354, y - 5, 'ASPECT NETWORK', 8, '0.33 0.1 0.42', true); y -= 20;
+  for (const [index, fact] of ledger.aspects.slice(0, 4).entries()) {
+    const flowing = ['trine', 'sextile'].includes(String(fact.value?.aspectType));
+    fill(out, flowing ? '0.18 0.45 0.52' : '0.7 0.2 0.35', 354, y - 3, 6, 6);
+    for (const line of wrap(fact.display, 40)) { text(out, 366, y, line, 6.2, '0.2 0.16 0.24', index === 0); y -= 9; }
+    y -= 3;
+  }
   text(out, 42, 322, 'HOUSE CUSPS', 8, '0.33 0.1 0.42', true);
   y = 305;
   for (let row = 0; row < 3; row++) for (let col = 0; col < 4; col++) {
@@ -196,7 +205,41 @@ function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
   return result;
 }
 
-function pageModules(out: Draw, page: number, ledger: NatalLedger): number {
+export function buildJourneySynthesis(input: PaidNatalPdfInput): string {
+  const ledger = validateLedger(input);
+  const dominantElement = Object.entries(ledger.elements).sort((a, b) => b[1] - a[1])[0];
+  const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
+  const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
+  const tension = ledger.aspects.find((fact) => ['square', 'opposition'].includes(String(fact.value?.aspectType)));
+  const drive = ledger.aspects.find((fact) => fact.value?.bodyA === 'mars' && fact.value?.bodyB === 'jupiter')
+    || ledger.aspects.find((fact) => ['conjunction', 'trine', 'sextile'].includes(String(fact.value?.aspectType)));
+  const placement = [sun?.display, moon?.display].filter(Boolean).join(' and ');
+  return `${input.name}'s journey is anchored by ${placement}. With ${dominantElement?.[1] ?? 0} ${dominantElement?.[0] ?? 'balanced'} signatures in the verified element balance, sensitivity becomes useful when it is given a repeatable form. ${tension ? `${tension.display} names the inner friction: hold both needs in view instead of choosing one too quickly. ` : ''}${drive ? `${drive.display} supplies a constructive route forward: turn the chart's capacity into a practice that can be tested in real life. ` : ''}The closing move is integration - let meaning set the direction, let evidence shape the next step, and let boundaries protect the work as it grows.`;
+}
+
+function pageModules(out: Draw, page: number, ledger: NatalLedger, input: PaidNatalPdfInput): number {
+  if (page === 5 && input.sections.reduce((total, section) => total + section.body.length, 0) < 3000) {
+    text(out, 42, 687, 'INTEGRATION PATHWAY', 9, '0.34 0.1 0.42', true);
+    text(out, 42, 670, 'A chart-grounded route from pattern to practice - not a prediction, but a sequence you can test.', 7.4);
+    const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
+    const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
+    const ascendant = ledger.positions.find((fact) => fact.value?.key === 'ascendant');
+    const steps = [
+      ['NOTICE', sun?.display || 'Verified Sun placement', 'Name the meaning or value asking for attention.'],
+      ['FEEL', moon?.display || 'Verified Moon placement', 'Include the emotional signal before acting.'],
+      ['EMBODY', ascendant?.display || 'Verified Ascendant placement', 'Choose a visible behavior that gives the insight form.'],
+      ['REFINE', ledger.aspects[0]?.display || 'Verified aspect pattern', 'Use evidence and boundaries to adjust the next iteration.'],
+    ];
+    let y = 625;
+    for (const [label, fact, instruction] of steps) {
+      fill(out, '0.94 0.91 0.84', 42, y - 42, 528, 52);
+      text(out, 56, y - 10, label, 7.3, '0.34 0.1 0.42', true);
+      text(out, 132, y - 10, fact, 7, '0.18 0.14 0.22', true);
+      text(out, 132, y - 26, instruction, 6.8, '0.28 0.23 0.3');
+      y -= 66;
+    }
+    return y - 4;
+  }
   if (page === 3) {
     text(out, 42, 687, 'Placement', 7, '0.34 0.1 0.42', true);
     text(out, 240, 687, 'Verified position', 7, '0.34 0.1 0.42', true);
@@ -239,7 +282,9 @@ function pageModules(out: Draw, page: number, ledger: NatalLedger): number {
     text(out, 42, 645, 'FOR RELATIONSHIPS', 8, '0.34 0.1 0.42', true); text(out, 160, 645, 'State needs before adapting.', 7);
     text(out, 42, 624, 'FOR MOMENTUM', 8, '0.34 0.1 0.42', true); text(out, 160, 624, 'Release version one; refine from evidence.', 7);
     text(out, 42, 588, 'CLOSING SYNTHESIS', 11, '0.34 0.1 0.42', true);
-    return 564;
+    let y = 564;
+    for (const line of wrap(buildJourneySynthesis(input), 88)) { text(out, 42, y, line, 7.25, '0.16 0.13 0.2'); y -= 10.2; }
+    return y - 8;
   }
   return 687;
 }
@@ -252,8 +297,8 @@ function bodyStreams(input: PaidNatalPdfInput, ledger: NatalLedger): string[] {
   for (let index = 0; index < 8; index++) {
     const page = index + 3;
     const out: Draw = [];
-    bodyChrome(out, page);
-    let y = pageModules(out, page, ledger);
+    bodyChrome(out, page, PAGE_TITLES[page], input.name);
+    let y = pageModules(out, page, ledger, input);
     while (cursor < content.length) {
       const line = content[cursor];
       const height = line.heading ? 13 : 10.2;
@@ -262,11 +307,6 @@ function bodyStreams(input: PaidNatalPdfInput, ledger: NatalLedger): string[] {
       else text(out, 42, y, line.text, 7.25, '0.16 0.13 0.2');
       y -= height;
       cursor += 1;
-    }
-    if (cursor === 0 && content.length === 0) {
-      text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
-    } else if (cursor === content.length && y >= footerBoundary) {
-      text(out, 42, y, 'Reflection space - note the choice, boundary, or experiment this page invites.', 7.2, '0.37 0.31 0.4');
     }
     streams.push(out.join('\n'));
   }
@@ -319,7 +359,7 @@ function makePdf(streams: string[], input: PaidNatalPdfInput): Uint8Array {
 
 export function buildPaidNatalPdf(input: PaidNatalPdfInput): Uint8Array {
   const ledger = validateLedger(input);
-  const streams = [coverStream(input), blueprintStream(ledger), ...bodyStreams(input, ledger)];
+  const streams = [coverStream(input), blueprintStream(input, ledger), ...bodyStreams(input, ledger)];
   if (streams.length !== 10) throw new Error('premium natal architecture must contain exactly 10 pages');
   return makePdf(streams, input);
 }

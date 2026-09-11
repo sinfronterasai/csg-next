@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
-import { buildPaidNatalPdf, resolveFactAnchors } from '@/lib/paidNatalPdf';
+import { buildJourneySynthesis, buildPaidNatalPdf, resolveFactAnchors } from '@/lib/paidNatalPdf';
 import {
   overflowReferenceInput,
   referenceAspects,
@@ -51,6 +51,21 @@ describe('Premium Natal PDF engine', () => {
     expect(text).not.toContain('[[');
   });
 
+  it('personalizes the chrome and derives the closing journey from verified chart patterns', () => {
+    const text = raw(buildPaidNatalPdf(referenceInput));
+    expect(text).toContain('FOR ETHAN');
+    expect(text).toContain('ASPECT NETWORK');
+    expect(text).toContain('ELEMENT BALANCE');
+    expect(text).toContain('INTEGRATION PATHWAY');
+
+    const synthesis = buildJourneySynthesis(referenceInput);
+    expect(synthesis).toContain('Ethan');
+    expect(synthesis).toContain('Earth');
+    expect(synthesis).toContain('Sun square Moon');
+    expect(synthesis).toContain('Mars conjunct Jupiter');
+    expect(synthesis).not.toMatch(/\b(?:maybe|probably|might)\b/i);
+  });
+
   it('preserves all overflow prose through the closing continuation without blank or spill pages', () => {
     const input = overflowReferenceInput();
     const text = raw(buildPaidNatalPdf(input));
@@ -78,7 +93,7 @@ describe('Premium Natal PDF engine', () => {
     const text = raw(buildPaidNatalPdf(referenceInput));
     for (const heading of [
       'YOUR COSMIC BLUEPRINT',
-      'ELEMENT + MODALITY',
+      'ELEMENT BALANCE',
       'YOUR VERIFIED CHART AT A GLANCE',
       'THE MAIN NARRATIVE',
       'YOUR PLANETARY GUIDES',
