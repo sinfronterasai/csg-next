@@ -27,7 +27,7 @@ type NarrativeLine = { text: string; heading: boolean };
 
 const ANCHOR = /\[\[([^\]]+)\]\]/g;
 const PLANET_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'imumcoeli'];
+const ANGLE_KEYS = ['ascendant', 'descendant', 'midheaven', 'icumcoeli'];
 const PAGE_TITLES = [
   '', 'YOUR COSMIC BLUEPRINT', 'YOUR COSMIC BLUEPRINT', 'THE MAIN NARRATIVE',
   'THE MAIN NARRATIVE - CONTINUED', 'YOUR PLANETARY GUIDES', 'YOUR PLANETARY GUIDES - CONTINUED',
