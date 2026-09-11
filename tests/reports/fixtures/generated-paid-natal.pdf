@@ -916,7 +916,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
 endobj
 10 0 obj
-<< /Length 6192 >>
+<< /Length 6132 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1314,19 +1314,13 @@ BT
 1 0 0 1 42 79 Tm
 (For momentum, release version one before perfecting version ten.) Tj
 ET
-BT
-/F1 7.25 Tf
-0.16 0.13 0.2 rg
-1 0 0 1 42 68.8 Tm
-() Tj
-ET
 endstream
 endobj
 11 0 obj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
 endobj
 12 0 obj
-<< /Length 2342 >>
+<< /Length 2405 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1468,33 +1462,39 @@ BT
 (THE MAIN NARRATIVE) Tj
 ET
 BT
+/F1 7.25 Tf
+0.16 0.13 0.2 rg
+1 0 0 1 42 535 Tm
+() Tj
+ET
+BT
 /F2 8.2 Tf
 0.35 0.1 0.43 rg
-1 0 0 1 42 535 Tm
+1 0 0 1 42 524.8 Tm
 (CLOSING SYNTHESIS) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 522 Tm
+1 0 0 1 42 511.8 Tm
 (You are not here to become less sensitive so that you can succeed. You are here to give) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 511.8 Tm
+1 0 0 1 42 501.6 Tm
 (sensitivity structure: imagination with standards, partnership with freedom, compassion) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 501.6 Tm
+1 0 0 1 42 491.4 Tm
 (with boundaries, and meaning with material form. END_OF_CLOSING_SYNTHESIS.) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 491.4 Tm
+1 0 0 1 42 481.2 Tm
 () Tj
 ET
 endstream
@@ -1503,7 +1503,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
 endobj
 14 0 obj
-<< /Length 2045 >>
+<< /Length 1893 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1557,102 +1557,78 @@ ET
 BT
 /F2 9 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 687 Tm
+1 0 0 1 42 696 Tm
 (INTEGRATION PATHWAY) Tj
 ET
 BT
-/F1 7.4 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 42 670 Tm
-(A chart-grounded route from pattern to practice - not a prediction, but a sequence you can test.) Tj
+/F1 7.2 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 42 682 Tm
+(Read each verified placement as a choice to notice, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
-42 583 528 52 re f
+42 634 528 38 re f
 Q
 BT
-/F2 7.3 Tf
-0.34 0.1 0.42 rg
-1 0 0 1 56 615 Tm
-(NOTICE) Tj
-ET
-BT
-/F2 7 Tf
-0.18 0.14 0.22 rg
-1 0 0 1 132 615 Tm
+/F2 7.2 Tf
+0.31 0.1 0.4 rg
+1 0 0 1 54 660 Tm
 (Sun in Pisces 19deg35 - house 7) Tj
 ET
 BT
-/F1 6.8 Tf
+/F1 6.4 Tf
 0.28 0.23 0.3 rg
-1 0 0 1 132 599 Tm
-(Name the meaning or value asking for attention.) Tj
+1 0 0 1 54 646 Tm
+(Gift: identity and purpose. Practice: name the value this placement serves.) Tj
 ET
 q
 0.94 0.91 0.84 rg
-42 517 528 52 re f
+42 589 528 38 re f
 Q
 BT
-/F2 7.3 Tf
-0.34 0.1 0.42 rg
-1 0 0 1 56 549 Tm
-(FEEL) Tj
-ET
-BT
-/F2 7 Tf
-0.18 0.14 0.22 rg
-1 0 0 1 132 549 Tm
+/F2 7.2 Tf
+0.31 0.1 0.4 rg
+1 0 0 1 54 615 Tm
 (Moon in Sagittarius 19deg50 - house 4) Tj
 ET
 BT
-/F1 6.8 Tf
+/F1 6.4 Tf
 0.28 0.23 0.3 rg
-1 0 0 1 132 533 Tm
-(Include the emotional signal before acting.) Tj
+1 0 0 1 54 601 Tm
+(Gift: emotional attunement. Practice: pause and record the signal before responding.) Tj
 ET
 q
 0.94 0.91 0.84 rg
-42 451 528 52 re f
+42 544 528 38 re f
 Q
 BT
-/F2 7.3 Tf
-0.34 0.1 0.42 rg
-1 0 0 1 56 483 Tm
-(EMBODY) Tj
+/F2 7.2 Tf
+0.31 0.1 0.4 rg
+1 0 0 1 54 570 Tm
+(Mercury Rx in Pisces 12deg03 - house 7) Tj
 ET
 BT
-/F2 7 Tf
-0.18 0.14 0.22 rg
-1 0 0 1 132 483 Tm
-(Ascendant in Leo 28deg11) Tj
-ET
-BT
-/F1 6.8 Tf
+/F1 6.4 Tf
 0.28 0.23 0.3 rg
-1 0 0 1 132 467 Tm
-(Choose a visible behavior that gives the insight form.) Tj
+1 0 0 1 54 556 Tm
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
-42 385 528 52 re f
+42 499 528 38 re f
 Q
 BT
-/F2 7.3 Tf
-0.34 0.1 0.42 rg
-1 0 0 1 56 417 Tm
-(REFINE) Tj
+/F2 7.2 Tf
+0.31 0.1 0.4 rg
+1 0 0 1 54 525 Tm
+(Venus in Taurus 3deg37 - house 9) Tj
 ET
 BT
-/F2 7 Tf
-0.18 0.14 0.22 rg
-1 0 0 1 132 417 Tm
-(Sun square Moon - orb 0deg15) Tj
-ET
-BT
-/F1 6.8 Tf
+/F1 6.4 Tf
 0.28 0.23 0.3 rg
-1 0 0 1 132 401 Tm
-(Use evidence and boundaries to adjust the next iteration.) Tj
+1 0 0 1 54 511 Tm
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 endstream
 endobj
@@ -1660,7 +1636,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 14 0 R >>
 endobj
 16 0 obj
-<< /Length 1908 >>
+<< /Length 1706 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1719,13 +1695,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 682 Tm
-(Sun in Pisces 19deg35 - house 7) Tj
+(Mars Rx in Virgo 0deg36 - house 1) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 668 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: initiative. Practice: choose one bounded action and finish its first version.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1735,13 +1711,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 637 Tm
-(Moon in Sagittarius 19deg50 - house 4) Tj
+(Jupiter Rx in Virgo 3deg27 - house 1) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 623 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: growth. Practice: expand only where evidence supports the next step.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1751,13 +1727,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 592 Tm
-(Mercury Rx in Pisces 12deg03 - house 7) Tj
+(Saturn Rx in Virgo 23deg58 - house 2) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 578 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1767,29 +1743,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 547 Tm
-(Venus in Taurus 3deg37 - house 9) Tj
+(Uranus Rx in Scorpio 25deg31 - house 4) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 533 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
-ET
-q
-0.94 0.91 0.84 rg
-42 476 528 38 re f
-Q
-BT
-/F2 7.2 Tf
-0.31 0.1 0.4 rg
-1 0 0 1 54 502 Tm
-(Mars Rx in Virgo 0deg36 - house 1) Tj
-ET
-BT
-/F1 6.4 Tf
-0.28 0.23 0.3 rg
-1 0 0 1 54 488 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 endstream
 endobj
@@ -1797,7 +1757,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 16 0 R >>
 endobj
 18 0 obj
-<< /Length 1922 >>
+<< /Length 2226 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1856,13 +1816,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 682 Tm
-(Jupiter Rx in Virgo 3deg27 - house 1) Tj
+(Neptune in Sagittarius 22deg36 - house 4) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 668 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1872,13 +1832,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 637 Tm
-(Saturn Rx in Virgo 23deg58 - house 2) Tj
+(Pluto Rx in Libra 21deg12 - house 3) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 623 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1888,13 +1848,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 592 Tm
-(Uranus Rx in Scorpio 25deg31 - house 4) Tj
+(Ascendant in Leo 28deg11) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 578 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: visible approach. Practice: let the first behavior match the inner intention.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1904,13 +1864,13 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 547 Tm
-(Neptune in Sagittarius 22deg36 - house 4) Tj
+(Descendant in Aquarius 28deg11) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 533 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 q
 0.94 0.91 0.84 rg
@@ -1920,13 +1880,29 @@ BT
 /F2 7.2 Tf
 0.31 0.1 0.4 rg
 1 0 0 1 54 502 Tm
-(Pluto Rx in Libra 21deg12 - house 3) Tj
+(Midheaven in Taurus 23deg27) Tj
 ET
 BT
 /F1 6.4 Tf
 0.28 0.23 0.3 rg
 1 0 0 1 54 488 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 431 528 38 re f
+Q
+BT
+/F2 7.2 Tf
+0.31 0.1 0.4 rg
+1 0 0 1 54 457 Tm
+(Imum Coeli in Scorpio 23deg27) Tj
+ET
+BT
+/F1 6.4 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 54 443 Tm
+(Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.) Tj
 ET
 endstream
 endobj
@@ -1934,7 +1910,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 18 0 R >>
 endobj
 20 0 obj
-<< /Length 1618 >>
+<< /Length 2024 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -1985,77 +1961,102 @@ BT
 1 0 0 1 43 12 Tm
 (CREAM BODY) Tj
 ET
-q
-0.94 0.91 0.84 rg
-42 656 528 38 re f
-Q
 BT
-/F2 7.2 Tf
-0.31 0.1 0.4 rg
-1 0 0 1 54 682 Tm
-(Ascendant in Leo 28deg11) Tj
-ET
-BT
-/F1 6.4 Tf
-0.28 0.23 0.3 rg
-1 0 0 1 54 668 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+/F2 9 Tf
+0.34 0.1 0.42 rg
+1 0 0 1 42 687 Tm
+(YOUR CENTRAL GIFTS) Tj
 ET
 q
-0.94 0.91 0.84 rg
-42 611 528 38 re f
+0.88 0.94 0.91 rg
+42 658 528 20 re f
 Q
 BT
-/F2 7.2 Tf
-0.31 0.1 0.4 rg
-1 0 0 1 54 637 Tm
-(Descendant in Aquarius 28deg11) Tj
-ET
-BT
-/F1 6.4 Tf
-0.28 0.23 0.3 rg
-1 0 0 1 54 623 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+/F1 6.8 Tf
+0.18 0.3 0.28 rg
+1 0 0 1 54 666 Tm
+(Sun in Pisces 19deg35 - house 7 - purpose you can articulate) Tj
 ET
 q
-0.94 0.91 0.84 rg
-42 566 528 38 re f
+0.88 0.94 0.91 rg
+42 633 528 20 re f
 Q
 BT
-/F2 7.2 Tf
-0.31 0.1 0.4 rg
-1 0 0 1 54 592 Tm
-(Midheaven in Taurus 23deg27) Tj
-ET
-BT
-/F1 6.4 Tf
-0.28 0.23 0.3 rg
-1 0 0 1 54 578 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+/F1 6.8 Tf
+0.18 0.3 0.28 rg
+1 0 0 1 54 641 Tm
+(Mars Rx in Virgo 0deg36 - house 1 with Jupiter Rx in Virgo 3deg27 - house 1 - constructive momentum) Tj
 ET
 q
-0.94 0.91 0.84 rg
-42 521 528 38 re f
+0.88 0.94 0.91 rg
+42 608 528 20 re f
 Q
 BT
-/F2 7.2 Tf
-0.31 0.1 0.4 rg
-1 0 0 1 54 547 Tm
-(Imum Coeli in Scorpio 23deg27) Tj
+/F1 6.8 Tf
+0.18 0.3 0.28 rg
+1 0 0 1 54 616 Tm
+(Venus trine Jupiter - orb 0deg10 - ease that grows through practice) Tj
 ET
 BT
-/F1 6.4 Tf
-0.28 0.23 0.3 rg
-1 0 0 1 54 533 Tm
-(Strength * Opportunity * Challenge - reflect, choose, test, refine.) Tj
+/F2 9 Tf
+0.34 0.1 0.42 rg
+1 0 0 1 42 590 Tm
+(YOUR RECURRING TENSIONS) Tj
 ET
+q
+0.97 0.9 0.88 rg
+42 561 528 20 re f
+Q
+BT
+/F1 6.8 Tf
+0.36 0.18 0.2 rg
+1 0 0 1 54 569 Tm
+(Sun square Moon - orb 0deg15) Tj
+ET
+q
+0.97 0.9 0.88 rg
+42 536 528 20 re f
+Q
+BT
+/F1 6.8 Tf
+0.36 0.18 0.2 rg
+1 0 0 1 54 544 Tm
+(Moon in Sagittarius 19deg50 - house 4 - sensitivity needs a clear boundary) Tj
+ET
+q
+0.97 0.9 0.88 rg
+42 511 528 20 re f
+Q
+BT
+/F1 6.8 Tf
+0.36 0.18 0.2 rg
+1 0 0 1 54 519 Tm
+(Vision and refinement - test a real version before perfecting it) Tj
+ET
+BT
+/F2 9 Tf
+0.34 0.1 0.42 rg
+1 0 0 1 42 493 Tm
+(PRACTICAL ALIGNMENT PLAN) Tj
+ET
+BT
+/F1 7 Tf
+0.22 0.18 0.26 rg
+1 0 0 1 42 476 Tm
+(A four-part loop: notice the signal, choose a bounded action, review evidence, refine.) Tj
+ET
+q
+0.65 0.52 0.18 RG
+0.7 w
+42 458 m 570 458 l S
+Q
 endstream
 endobj
 21 0 obj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 20 0 R >>
 endobj
 22 0 obj
-<< /Length 1298 >>
+<< /Length 1672 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -2110,43 +2111,71 @@ BT
 /F2 9 Tf
 0.34 0.1 0.42 rg
 1 0 0 1 42 687 Tm
-(YOUR CENTRAL GIFTS) Tj
+(A CHART-GROUNDED FOUR-WEEK LOOP) Tj
 ET
+q
+0.94 0.91 0.84 rg
+42 632 528 43 re f
+Q
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 42 670 Tm
-(Intuitive pattern recognition * Practical refinement * Relational intelligence) Tj
-ET
-BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 42 655 Tm
-(Narrative depth * Quality-based leadership) Tj
-ET
-BT
-/F2 9 Tf
+/F2 7.1 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 625 Tm
-(YOUR RECURRING TENSIONS) Tj
+1 0 0 1 56 656 Tm
+(WEEK 1 - NOTICE) Tj
 ET
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 42 608 Tm
-(Closeness / freedom * Vision / perfection * Sensitivity / boundaries) Tj
+/F1 6.7 Tf
+0.22 0.18 0.26 rg
+1 0 0 1 176 656 Tm
+(Sun in Pisces 19deg35 - house 7: write one value to guide the decision.) Tj
 ET
+q
+0.94 0.91 0.84 rg
+42 581 528 43 re f
+Q
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 42 593 Tm
-(Usefulness / worth * Stability / reinvention) Tj
-ET
-BT
-/F2 9 Tf
+/F2 7.1 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 563 Tm
-(PRACTICAL ALIGNMENT PLAN) Tj
+1 0 0 1 56 605 Tm
+(WEEK 2 - REGULATE) Tj
+ET
+BT
+/F1 6.7 Tf
+0.22 0.18 0.26 rg
+1 0 0 1 176 605 Tm
+(Moon in Sagittarius 19deg50 - house 4: name the signal and set one boundary.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 530 528 43 re f
+Q
+BT
+/F2 7.1 Tf
+0.34 0.1 0.42 rg
+1 0 0 1 56 554 Tm
+(WEEK 3 - ACT) Tj
+ET
+BT
+/F1 6.7 Tf
+0.22 0.18 0.26 rg
+1 0 0 1 176 554 Tm
+(Ascendant in Leo 28deg11: take one visible, time-boxed action.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 479 528 43 re f
+Q
+BT
+/F2 7.1 Tf
+0.34 0.1 0.42 rg
+1 0 0 1 56 503 Tm
+(WEEK 4 - REVIEW) Tj
+ET
+BT
+/F1 6.7 Tf
+0.22 0.18 0.26 rg
+1 0 0 1 176 503 Tm
+(Sun square Moon - orb 0deg15: compare evidence, then keep or revise.) Tj
 ET
 endstream
 endobj
@@ -2154,7 +2183,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 22 0 R >>
 endobj
 24 0 obj
-<< /Length 2464 >>
+<< /Length 3086 >>
 stream
 q
 0.975 0.957 0.9 rg
@@ -2205,106 +2234,146 @@ BT
 1 0 0 1 43 12 Tm
 (CREAM BODY) Tj
 ET
+q
+0.94 0.91 0.84 rg
+42 644 528 52 re f
+Q
 BT
-/F2 8 Tf
+/F2 7.3 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 687 Tm
-(FOR DECISIONS) Tj
+1 0 0 1 56 676 Tm
+(01 NOTICE) Tj
 ET
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 160 687 Tm
-(Meaning, then evidence, boundary, and next action.) Tj
+/F2 6.8 Tf
+0.18 0.14 0.22 rg
+1 0 0 1 145 676 Tm
+(Sun in Pisces 19deg35 - house 7) Tj
 ET
 BT
-/F2 8 Tf
+/F1 6.6 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 56 660 Tm
+(Write the value or purpose you want the next decision to serve.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 581 528 52 re f
+Q
+BT
+/F2 7.3 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 666 Tm
-(FOR WORK) Tj
+1 0 0 1 56 613 Tm
+(02 REGULATE) Tj
 ET
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 160 666 Tm
-(Build durable value instead of chasing visibility.) Tj
+/F2 6.8 Tf
+0.18 0.14 0.22 rg
+1 0 0 1 145 613 Tm
+(Moon in Sagittarius 19deg50 - house 4) Tj
 ET
 BT
-/F2 8 Tf
+/F1 6.6 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 56 597 Tm
+(Name the emotional signal and one boundary before committing.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 518 528 52 re f
+Q
+BT
+/F2 7.3 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 645 Tm
-(FOR RELATIONSHIPS) Tj
+1 0 0 1 56 550 Tm
+(03 ACT) Tj
 ET
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 160 645 Tm
-(State needs before adapting.) Tj
+/F2 6.8 Tf
+0.18 0.14 0.22 rg
+1 0 0 1 145 550 Tm
+(Ascendant in Leo 28deg11) Tj
 ET
 BT
-/F2 8 Tf
+/F1 6.6 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 56 534 Tm
+(Take one visible, time-boxed action that makes the intention real.) Tj
+ET
+q
+0.94 0.91 0.84 rg
+42 455 528 52 re f
+Q
+BT
+/F2 7.3 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 624 Tm
-(FOR MOMENTUM) Tj
+1 0 0 1 56 487 Tm
+(04 REVIEW) Tj
 ET
 BT
-/F1 7 Tf
-0.13 0.1 0.2 rg
-1 0 0 1 160 624 Tm
-(Release version one; refine from evidence.) Tj
+/F2 6.8 Tf
+0.18 0.14 0.22 rg
+1 0 0 1 145 487 Tm
+(Sun square Moon - orb 0deg15) Tj
+ET
+BT
+/F1 6.6 Tf
+0.28 0.23 0.3 rg
+1 0 0 1 56 471 Tm
+(After the test, keep what produced evidence and revise what created friction.) Tj
 ET
 BT
 /F2 11 Tf
 0.34 0.1 0.42 rg
-1 0 0 1 42 588 Tm
+1 0 0 1 42 431 Tm
 (CLOSING SYNTHESIS) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 564 Tm
+1 0 0 1 42 407 Tm
 (Ethan's journey is anchored by Sun in Pisces 19deg35 - house 7 and Moon in Sagittarius) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 553.8 Tm
+1 0 0 1 42 396.8 Tm
 (19deg50 - house 4. With 4 Earth signatures in the verified element balance, sensitivity) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 543.6 Tm
+1 0 0 1 42 386.6 Tm
 (becomes useful when it is given a repeatable form. Sun square Moon - orb 0deg15 names) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 533.4 Tm
+1 0 0 1 42 376.4 Tm
 (the inner friction: hold both needs in view instead of choosing one too quickly. Mars) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 523.2 Tm
+1 0 0 1 42 366.2 Tm
 (conjunct Jupiter - orb 2deg51 supplies a constructive route forward: turn the chart's) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 513 Tm
+1 0 0 1 42 356 Tm
 (capacity into a practice that can be tested in real life. The closing move is) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 502.8 Tm
+1 0 0 1 42 345.8 Tm
 (integration - let meaning set the direction, let evidence shape the next step, and let) Tj
 ET
 BT
 /F1 7.25 Tf
 0.16 0.13 0.2 rg
-1 0 0 1 42 492.6 Tm
+1 0 0 1 42 335.6 Tm
 (boundaries protect the work as it grows.) Tj
 ET
 endstream
@@ -2325,23 +2394,23 @@ xref
 0000002000 00000 n
 0000011741 00000 n
 0000011877 00000 n
-0000018122 00000 n
-0000018260 00000 n
-0000020655 00000 n
-0000020793 00000 n
-0000022891 00000 n
-0000023029 00000 n
-0000024990 00000 n
-0000025128 00000 n
-0000027103 00000 n
-0000027241 00000 n
-0000028912 00000 n
-0000029050 00000 n
-0000030401 00000 n
-0000030539 00000 n
-0000033056 00000 n
+0000018062 00000 n
+0000018200 00000 n
+0000020658 00000 n
+0000020796 00000 n
+0000022742 00000 n
+0000022880 00000 n
+0000024639 00000 n
+0000024777 00000 n
+0000027056 00000 n
+0000027194 00000 n
+0000029271 00000 n
+0000029409 00000 n
+0000031134 00000 n
+0000031272 00000 n
+0000034411 00000 n
 trailer
 << /Size 26 /Root 1 0 R /Info 5 0 R >>
 startxref
-33194
+34549
 %%EOF

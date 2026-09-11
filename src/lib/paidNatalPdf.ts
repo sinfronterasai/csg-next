@@ -23,7 +23,7 @@ export interface PaidNatalPdfInput {
 }
 
 type Draw = string[];
-type NarrativeLine = { text: string; heading: boolean };
+type NarrativeLine = { text: string; heading: boolean; paragraph: number; lastInParagraph: boolean };
 
 const ANCHOR = /\[\[([^\]]+)\]\]/g;
 const PLANET_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
@@ -198,10 +198,11 @@ function blueprintStream(input: PaidNatalPdfInput, ledger: NatalLedger) {
 function narrativeLines(input: PaidNatalPdfInput): NarrativeLine[] {
   const resolved = resolveFactAnchors(input.sections, input.facts).sections;
   const result: NarrativeLine[] = [];
-  for (const section of resolved) {
-    result.push({ text: safe(section.heading).toUpperCase(), heading: true });
-    for (const line of wrap(section.body, 88)) result.push({ text: line, heading: false });
-    result.push({ text: '', heading: false });
+  for (const [paragraph, section] of resolved.entries()) {
+    result.push({ text: safe(section.heading).toUpperCase(), heading: true, paragraph, lastInParagraph: false });
+    const lines = wrap(section.body, 88);
+    lines.forEach((line, index) => result.push({ text: line, heading: false, paragraph, lastInParagraph: index === lines.length - 1 }));
+    result.push({ text: '', heading: false, paragraph, lastInParagraph: true });
   }
   return result;
 }
@@ -219,28 +220,7 @@ export function buildJourneySynthesis(input: PaidNatalPdfInput): string {
 }
 
 function pageModules(out: Draw, page: number, ledger: NatalLedger, input: PaidNatalPdfInput): number {
-  if (page === 5 && input.sections.reduce((total, section) => total + section.body.length, 0) < 3000) {
-    text(out, 42, 687, 'INTEGRATION PATHWAY', 9, '0.34 0.1 0.42', true);
-    text(out, 42, 670, 'A chart-grounded route from pattern to practice - not a prediction, but a sequence you can test.', 7.4);
-    const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
-    const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
-    const ascendant = ledger.positions.find((fact) => fact.value?.key === 'ascendant');
-    const steps = [
-      ['NOTICE', sun?.display || 'Verified Sun placement', 'Name the meaning or value asking for attention.'],
-      ['FEEL', moon?.display || 'Verified Moon placement', 'Include the emotional signal before acting.'],
-      ['EMBODY', ascendant?.display || 'Verified Ascendant placement', 'Choose a visible behavior that gives the insight form.'],
-      ['REFINE', ledger.aspects[0]?.display || 'Verified aspect pattern', 'Use evidence and boundaries to adjust the next iteration.'],
-    ];
-    let y = 625;
-    for (const [label, fact, instruction] of steps) {
-      fill(out, '0.94 0.91 0.84', 42, y - 42, 528, 52);
-      text(out, 56, y - 10, label, 7.3, '0.34 0.1 0.42', true);
-      text(out, 132, y - 10, fact, 7, '0.18 0.14 0.22', true);
-      text(out, 132, y - 26, instruction, 6.8, '0.28 0.23 0.3');
-      y -= 66;
-    }
-    return y - 4;
-  }
+
   if (page === 3) {
     text(out, 42, 687, 'Placement', 7, '0.34 0.1 0.42', true);
     text(out, 240, 687, 'Verified position', 7, '0.34 0.1 0.42', true);
@@ -255,37 +235,102 @@ function pageModules(out: Draw, page: number, ledger: NatalLedger, input: PaidNa
     text(out, 42, y - 3, 'THE MAIN NARRATIVE', 9, '0.34 0.1 0.42', true);
     return y - 25;
   }
-  if (page >= 6 && page <= 8) {
-    const ranges: Record<number, [number, number]> = { 6: [0, 5], 7: [5, 10], 8: [10, 14] };
+  if (page >= 5 && page <= 7) {
+    // Keep the opener useful and distribute the ten planets before the four angles.
+    // The final page absorbs the angles, rather than leaving a title-only opener.
+    const ranges: Record<number, [number, number]> = { 5: [0, 4], 6: [4, 8], 7: [8, 14] };
     const [start, end] = ranges[page];
-    let y = 687;
+    let y = page === 5 ? 665 : 687;
+    if (page === 5) {
+      text(out, 42, 696, 'INTEGRATION PATHWAY', 9, '0.34 0.1 0.42', true);
+      text(out, 42, 682, 'Read each verified placement as a choice to notice, test, and refine.', 7.2, '0.28 0.23 0.3');
+    }
     for (const fact of ledger.positions.slice(start, end)) {
       fill(out, '0.94 0.91 0.84', 42, y - 31, 528, 38);
       text(out, 54, y - 5, fact.display, 7.2, '0.31 0.1 0.4', true);
-      text(out, 54, y - 19, 'Strength * Opportunity * Challenge - reflect, choose, test, refine.', 6.4, '0.28 0.23 0.3');
+      const key = String(fact.value?.key || 'placement');
+      const prompt = key === 'sun' ? 'Gift: identity and purpose. Practice: name the value this placement serves.'
+        : key === 'moon' ? 'Gift: emotional attunement. Practice: pause and record the signal before responding.'
+        : key === 'mars' ? 'Gift: initiative. Practice: choose one bounded action and finish its first version.'
+        : key === 'jupiter' ? 'Gift: growth. Practice: expand only where evidence supports the next step.'
+        : key === 'ascendant' ? 'Gift: visible approach. Practice: let the first behavior match the inner intention.'
+        : 'Gift: a distinct way of perceiving. Practice: reflect, choose, test, and refine.';
+      text(out, 54, y - 19, prompt, 6.4, '0.28 0.23 0.3');
       y -= 45;
     }
     return y - 5;
   }
-  if (page === 9) {
+  if (page === 8) {
+    const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
+    const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
+    const mars = ledger.positions.find((fact) => fact.value?.key === 'mars');
+    const jupiter = ledger.positions.find((fact) => fact.value?.key === 'jupiter');
+    const tension = ledger.aspects.find((fact) => ['square', 'opposition'].includes(String(fact.value?.aspectType)));
+    const flowing = ledger.aspects.find((fact) => ['trine', 'sextile'].includes(String(fact.value?.aspectType)));
     text(out, 42, 687, 'YOUR CENTRAL GIFTS', 9, '0.34 0.1 0.42', true);
-    text(out, 42, 670, 'Intuitive pattern recognition * Practical refinement * Relational intelligence', 7);
-    text(out, 42, 655, 'Narrative depth * Quality-based leadership', 7);
-    text(out, 42, 625, 'YOUR RECURRING TENSIONS', 9, '0.34 0.1 0.42', true);
-    text(out, 42, 608, 'Closeness / freedom * Vision / perfection * Sensitivity / boundaries', 7);
-    text(out, 42, 593, 'Usefulness / worth * Stability / reinvention', 7);
-    text(out, 42, 563, 'PRACTICAL ALIGNMENT PLAN', 9, '0.34 0.1 0.42', true);
-    return 540;
+    const gifts = [
+      `${sun?.display || 'Verified Sun placement'} - purpose you can articulate`,
+      `${mars?.display || 'Verified Mars placement'} with ${jupiter?.display || 'verified Jupiter placement'} - constructive momentum`,
+      `${flowing?.display || 'Verified flowing aspect'} - ease that grows through practice`,
+    ];
+    let y = 669;
+    for (const gift of gifts) { fill(out, '0.88 0.94 0.91', 42, y - 11, 528, 20); text(out, 54, y - 3, gift, 6.8, '0.18 0.3 0.28'); y -= 25; }
+    text(out, 42, y - 4, 'YOUR RECURRING TENSIONS', 9, '0.34 0.1 0.42', true); y -= 22;
+    const tensions = [
+      tension?.display || 'Verified tension aspect - hold both needs in view',
+      `${moon?.display || 'Verified Moon placement'} - sensitivity needs a clear boundary`,
+      'Vision and refinement - test a real version before perfecting it',
+    ];
+    for (const item of tensions) { fill(out, '0.97 0.9 0.88', 42, y - 11, 528, 20); text(out, 54, y - 3, item, 6.8, '0.36 0.18 0.2'); y -= 25; }
+    text(out, 42, y - 4, 'PRACTICAL ALIGNMENT PLAN', 9, '0.34 0.1 0.42', true);
+    text(out, 42, y - 21, 'A four-part loop: notice the signal, choose a bounded action, review evidence, refine.', 7, '0.22 0.18 0.26');
+    stroke(out, '0.65 0.52 0.18', 0.7, `42 ${n(y - 39)} m 570 ${n(y - 39)} l S`);
+    return y - 52;
+  }
+  if (page === 9) {
+    const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
+    const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
+    const ascendant = ledger.positions.find((fact) => fact.value?.key === 'ascendant');
+    const tension = ledger.aspects.find((fact) => ['square', 'opposition'].includes(String(fact.value?.aspectType)));
+    text(out, 42, 687, 'A CHART-GROUNDED FOUR-WEEK LOOP', 9, '0.34 0.1 0.42', true);
+    const plan: Array<[string, string]> = [
+      ['WEEK 1 - NOTICE', `${sun?.display || 'Verified Sun placement'}: write one value to guide the decision.`],
+      ['WEEK 2 - REGULATE', `${moon?.display || 'Verified Moon placement'}: name the signal and set one boundary.`],
+      ['WEEK 3 - ACT', `${ascendant?.display || 'Verified Ascendant placement'}: take one visible, time-boxed action.`],
+      ['WEEK 4 - REVIEW', `${tension?.display || 'Verified tension aspect'}: compare evidence, then keep or revise.`],
+    ];
+    let y = 666;
+    for (const [label, instruction] of plan) {
+      fill(out, '0.94 0.91 0.84', 42, y - 34, 528, 43);
+      text(out, 56, y - 10, label, 7.1, '0.34 0.1 0.42', true);
+      for (const [index, line] of wrap(instruction, 82).slice(0, 2).entries()) text(out, 176, y - 10 - index * 9, line, 6.7, '0.22 0.18 0.26');
+      y -= 51;
+    }
+    return y - 5;
   }
   if (page === 10) {
-    text(out, 42, 687, 'FOR DECISIONS', 8, '0.34 0.1 0.42', true); text(out, 160, 687, 'Meaning, then evidence, boundary, and next action.', 7);
-    text(out, 42, 666, 'FOR WORK', 8, '0.34 0.1 0.42', true); text(out, 160, 666, 'Build durable value instead of chasing visibility.', 7);
-    text(out, 42, 645, 'FOR RELATIONSHIPS', 8, '0.34 0.1 0.42', true); text(out, 160, 645, 'State needs before adapting.', 7);
-    text(out, 42, 624, 'FOR MOMENTUM', 8, '0.34 0.1 0.42', true); text(out, 160, 624, 'Release version one; refine from evidence.', 7);
-    text(out, 42, 588, 'CLOSING SYNTHESIS', 11, '0.34 0.1 0.42', true);
-    let y = 564;
-    for (const line of wrap(buildJourneySynthesis(input), 88)) { text(out, 42, y, line, 7.25, '0.16 0.13 0.2'); y -= 10.2; }
-    return y - 8;
+    const sun = ledger.positions.find((fact) => fact.value?.key === 'sun');
+    const moon = ledger.positions.find((fact) => fact.value?.key === 'moon');
+    const ascendant = ledger.positions.find((fact) => fact.value?.key === 'ascendant');
+    const tension = ledger.aspects.find((fact) => ['square', 'opposition'].includes(String(fact.value?.aspectType)));
+    const steps: Array<[string, string, string]> = [
+      ['01 NOTICE', sun?.display || 'Verified Sun placement', 'Write the value or purpose you want the next decision to serve.'],
+      ['02 REGULATE', moon?.display || 'Verified Moon placement', 'Name the emotional signal and one boundary before committing.'],
+      ['03 ACT', ascendant?.display || 'Verified Ascendant placement', 'Take one visible, time-boxed action that makes the intention real.'],
+      ['04 REVIEW', tension?.display || 'Verified chart tension', 'After the test, keep what produced evidence and revise what created friction.'],
+    ];
+    let y = 687;
+    for (const [label, fact, instruction] of steps) {
+      fill(out, '0.94 0.91 0.84', 42, y - 43, 528, 52);
+      text(out, 56, y - 11, label, 7.3, '0.34 0.1 0.42', true);
+      text(out, 145, y - 11, fact, 6.8, '0.18 0.14 0.22', true);
+      for (const [index, line] of wrap(instruction, 78).slice(0, 2).entries()) text(out, 56, y - 27 - index * 9, line, 6.6, '0.28 0.23 0.3');
+      y -= 63;
+    }
+    text(out, 42, y - 4, 'CLOSING SYNTHESIS', 11, '0.34 0.1 0.42', true);
+    let closingY = y - 28;
+    for (const line of wrap(buildJourneySynthesis(input), 88)) { text(out, 42, closingY, line, 7.25, '0.16 0.13 0.2'); closingY -= 10.2; }
+    return closingY - 8;
   }
   return 687;
 }
@@ -303,6 +348,8 @@ function bodyStreams(input: PaidNatalPdfInput, ledger: NatalLedger): string[] {
     while (cursor < content.length) {
       const line = content[cursor];
       const height = line.heading ? 13 : 10.2;
+        // Never leave a paragraph's final line alone at the bottom of a page.
+        if (!line.heading && line.lastInParagraph && y - height < footerBoundary + 10.2) break;
       if (y - height < footerBoundary) break;
       if (line.heading) text(out, 42, y, line.text, 8.2, '0.35 0.1 0.43', true);
       else text(out, 42, y, line.text, 7.25, '0.16 0.13 0.2');

@@ -106,6 +106,18 @@ describe('Premium Natal PDF engine', () => {
     expect(text).toContain('CREAM BODY');
   });
 
+  it('keeps the planetary opener populated and makes alignment sections actionable', () => {
+    const text = raw(buildPaidNatalPdf(referenceInput));
+    expect(text).toContain('INTEGRATION PATHWAY');
+    expect(text).toContain('Gift: identity and purpose. Practice: name the value this placement serves.');
+    expect(text).toContain('YOUR CENTRAL GIFTS');
+    expect(text).toContain('Venus trine Jupiter - orb 0deg10 - ease that grows through practice');
+    expect(text).toContain('YOUR RECURRING TENSIONS');
+    expect(text).toContain('A CHART-GROUNDED FOUR-WEEK LOOP');
+    expect(text).toContain('WEEK 4 - REVIEW');
+    expect(text).not.toMatch(/\n\s*equilibrium\.?\s*\n/i);
+  });
+
   it('writes the deterministic Santa Cruz artifact fixture', () => {
     const first = buildPaidNatalPdf(referenceInput);
     const second = buildPaidNatalPdf(referenceInput);
