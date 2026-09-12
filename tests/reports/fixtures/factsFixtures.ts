@@ -1,0 +1,102 @@
+// Deterministic fixtures for VerifiedFactsV2 (R2-B9). Each fixture is a BirthInput
+// plus EXPECTED reference values computed independently (see tests/reports/factsV2
+// .test.ts, which rebuilds twice and asserts against these reference values).
+// No customer PII; synthetic public birth data used only to exercise compute.
+
+export interface FactsFixture {
+  name: string;
+  birth: { date: string; time?: string; location: string; unknownTime?: boolean; name?: string };
+  expect: {
+    knownTime: boolean;
+    boundaryCheck?: 'near0' | 'near29';
+    expectRetrograde?: boolean;
+    expectNullDignity?: boolean;
+    transitYear?: 'quiet' | 'event-heavy';
+    ref: {
+      sunSign: string;
+      sunDegreeInSign: number; // exact deterministic value
+      moonSign?: string;
+      ascendantSign?: string;
+      ascendantHouse?: number;
+      chartRuler?: string;
+      seventhHouseRuler?: string;
+      mcSign?: string; // Midheaven sign (F4-9 exact reference)
+      mcRuler?: string; // 10th-house ruler key
+      northNodeRuler?: string; // nodal ruler planet key
+      southNodeRuler?: string;
+      exactRetrograde?: string[]; // planet keys that are retrograde (F4-9)
+      nullDignityBody?: string; // body with no essential dignity (F4-9)
+      aspectCountMin: number;
+      hasRetrograde?: boolean;
+    };
+  };
+}
+
+export const KNOWN_TIME_ORDINARY: FactsFixture = {
+  name: 'known-ordinary',
+  birth: { date: '1990-06-15', time: '12:00', location: 'Paris', name: 'Fixture A' },
+  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', mcSign: 'taurus', mcRuler: 'venus', northNodeRuler: 'saturn', southNodeRuler: 'sun', exactRetrograde: ['saturn','uranus','neptune','pluto'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
+};
+
+export const UNKNOWN_TIME_SOLAR: FactsFixture = {
+  name: 'unknown-time-solar',
+  birth: { date: '1990-06-16', location: 'Berlin', unknownTime: true, name: 'Fixture B' },
+  expect: { knownTime: false, ref: { sunSign: 'gemini', sunDegreeInSign: 25.05, moonSign: undefined, aspectCountMin: 0 } },
+};
+
+// F6-8: distinct unknown-time fixture where the Moon stays in ONE sign across the
+// entire local birth date (Berlin 1990-06-11: Moon in Capricorn 00:00..23:59). The
+// Moon sign is INVARIANT and must be safely included with invariant:true.
+export const UNKNOWN_TIME_INVARIANT_MOON: FactsFixture = {
+  name: 'unknown-time-invariant-moon',
+  birth: { date: '1990-06-11', location: 'Berlin', unknownTime: true, name: 'Fixture C' },
+  expect: { knownTime: false, ref: { sunSign: 'gemini', sunDegreeInSign: 20.23, moonSign: 'capricorn', aspectCountMin: 0 } },
+};
+
+export const BOUNDARY_NEAR_0: FactsFixture = {
+  name: 'boundary-near-0',
+  birth: { date: '2000-03-21', time: '00:01', location: 'London', name: 'Fixture C' },
+  expect: { knownTime: true, boundaryCheck: 'near0', ref: { sunSign: 'aries', sunDegreeInSign: 0.68, ascendantSign: 'sagittarius', ascendantHouse: 1, chartRuler: 'jupiter', seventhHouseRuler: 'mercury', aspectCountMin: 30 } },
+};
+
+// F4-9: genuine 29.xx° boundary. Sun sits at ~29° Aries (just before Taurus ingress).
+export const BOUNDARY_NEAR_29: FactsFixture = {
+  name: 'boundary-near-29',
+  birth: { date: '2000-04-18', time: '21:30', location: 'London', name: 'Fixture D' },
+  expect: { knownTime: true, boundaryCheck: 'near29', ref: { sunSign: 'aries', sunDegreeInSign: 29.1, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30 } },
+};
+
+export const RETRO_NULL_DIGNITY: FactsFixture = {
+  name: 'retro-null-dignity',
+  birth: { date: '1979-10-05', time: '09:30', location: 'Tokyo', name: 'Fixture E' },
+  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', mcSign: 'virgo', mcRuler: 'mercury', northNodeRuler: 'mercury', southNodeRuler: 'jupiter', exactRetrograde: ['northnode'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
+};
+
+export const DENSE_ASPECT: FactsFixture = {
+  name: 'dense-aspect',
+  birth: { date: '1995-01-12', time: '06:15', location: 'New York', name: 'Fixture F' },
+  expect: { knownTime: true, ref: { sunSign: 'capricorn', sunDegreeInSign: 21.78, ascendantSign: 'capricorn', ascendantHouse: 1, chartRuler: 'saturn', seventhHouseRuler: 'moon', aspectCountMin: 30 } },
+};
+
+export const SPARSE_ASPECT: FactsFixture = {
+  name: 'sparse-aspect',
+  birth: { date: '1988-07-04', time: '03:40', location: 'Sydney', name: 'Fixture G' },
+  expect: { knownTime: true, ref: { sunSign: 'cancer', sunDegreeInSign: 11.99, ascendantSign: 'taurus', ascendantHouse: 1, chartRuler: 'venus', seventhHouseRuler: 'mars', aspectCountMin: 30 } },
+};
+
+export const QUIET_TRANSIT_YEAR: FactsFixture = {
+  name: 'quiet-transit-year',
+  birth: { date: '1988-02-10', time: '14:20', location: 'Sydney', name: 'Fixture H' },
+  expect: { knownTime: true, transitYear: 'quiet', ref: { sunSign: 'aquarius', sunDegreeInSign: 20.6, ascendantSign: 'taurus', ascendantHouse: 1, chartRuler: 'venus', seventhHouseRuler: 'mars', aspectCountMin: 30 } },
+};
+
+export const EVENT_HEAVY_TRANSIT_YEAR: FactsFixture = {
+  name: 'event-heavy-transit-year',
+  birth: { date: '1992-08-28', time: '21:05', location: 'Mexico City, Mexico', name: 'Fixture I' },
+  expect: { knownTime: true, transitYear: 'event-heavy', ref: { sunSign: 'virgo', sunDegreeInSign: 6.03, ascendantSign: 'aries', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', aspectCountMin: 30 } },
+};
+
+export const ALL_FIXTURES: FactsFixture[] = [
+  KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR, UNKNOWN_TIME_INVARIANT_MOON, BOUNDARY_NEAR_0, BOUNDARY_NEAR_29,
+  RETRO_NULL_DIGNITY, DENSE_ASPECT, SPARSE_ASPECT, QUIET_TRANSIT_YEAR, EVENT_HEAVY_TRANSIT_YEAR,
+];

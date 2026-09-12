@@ -8,7 +8,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Constants, load, type SwissEph } from '@fusionstrings/swiss-eph';
-import tzlookup from 'tz-lookup';
+import { mountEphemerisData } from './ephemerisData';
 import {
   getSign, getPlanet, getHouse, signFromLongitude, dignityFor, formatDegree, SignKey,
 } from './astrology';
@@ -55,14 +55,23 @@ export interface ChartData {
   planets: PlanetPlacement[];
   angles: AnglePlacement[];
   houses: HousePlacement[];
+  cusps: number[]; // 12 cusp longitudes (index 1..12), Placidus (known-time) or whole-sign (unknown)
   ascendant: AnglePlacement;
   midheaven: AnglePlacement;
   sun: PlanetPlacement;
   moon: PlanetPlacement;
+  unavailableBodies?: string[];
+}
+
+export class EphemerisUnavailableError extends Error {
+  constructor(public bodies: string[]) {
+    super(`Ephemeris unavailable for: ${bodies.join(', ')}`);
+    this.name = 'EphemerisUnavailableError';
+  }
 }
 
 // planet key -> Swiss Ephemeris body constant + our astrology.ts key
-const PLANET_BODIES: { key: string; se: number }[] = [
+export const PLANET_BODIES: { key: string; se: number }[] = [
   { key: 'sun', se: Constants.SE_SUN },
   { key: 'moon', se: Constants.SE_MOON },
   { key: 'mercury', se: Constants.SE_MERCURY },
@@ -74,21 +83,27 @@ const PLANET_BODIES: { key: string; se: number }[] = [
   { key: 'neptune', se: Constants.SE_NEPTUNE },
   { key: 'pluto', se: Constants.SE_PLUTO },
   { key: 'chiron', se: Constants.SE_CHIRON },
+  { key: 'juno', se: Constants.SE_JUNO },
   { key: 'northnode', se: Constants.SE_TRUE_NODE },
 ];
 
 // Swiss Ephemeris WASM is loaded once and reused across charts.
 let ephPromise: Promise<SwissEph> | null = null;
-function getEph(): Promise<SwissEph> {
+export function getEph(): Promise<SwissEph> {
   if (!ephPromise) {
     const wasmBytes = readFileSync(join(process.cwd(), 'node_modules/@fusionstrings/swiss-eph/wasm/swiss_eph.wasm'));
-    ephPromise = load(wasmBytes as unknown as Uint8Array);
+    ephPromise = load(wasmBytes as unknown as Uint8Array).then(eph => {
+      mountEphemerisData(eph);
+      return eph;
+    });
   }
   return ephPromise;
 }
 
 // Convert a local wall-clock datetime + IANA timezone to a UTC Julian Day.
-function localToJulianDay(year: number, month: number, day: number, hour: number, minute: number, tzId: string): number {
+// Exported so any derived-body computation (e.g. Juno) reuses the EXACT same
+// Julian Day and timezone as the rest of the chart (no server-tz drift).
+export function localToJulianDay(year: number, month: number, day: number, hour: number, minute: number, tzId: string): number {
   const localISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   // Offset in minutes east of UTC for this instant.
   const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tzId, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -103,10 +118,10 @@ function localToJulianDay(year: number, month: number, day: number, hour: number
   return jd;
 }
 
-function normDeg(d: number): number { return ((d % 360) + 360) % 360; }
+export function normDeg(d: number): number { return ((d % 360) + 360) % 360; }
 
 // Determine which house a longitude falls in, given the 12 cusp longitudes (cusps[1..12]).
-function houseForLongitude(longitude: number, cusps: number[]): number | null {
+export function houseForLongitude(longitude: number, cusps: number[]): number | null {
   const L = normDeg(longitude);
   for (let i = 1; i <= 12; i++) {
     const start = normDeg(cusps[i]);
@@ -121,58 +136,158 @@ function houseForLongitude(longitude: number, cusps: number[]): number | null {
 }
 
 
-// Lightweight geocoder. Fast path for known cities; also accepts "lat,lon".
-// (A full geocoding API can be swapped in here without touching the engine.)
-const CITY_TABLE: Record<string, { lat: number; lon: number }> = {
-  'paris, france': { lat: 48.8566, lon: 2.3522 },
-  'new york, ny': { lat: 40.7128, lon: -74.006 },
-  'new york': { lat: 40.7128, lon: -74.006 },
-  'london, uk': { lat: 51.5074, lon: -0.1278 },
-  'london': { lat: 51.5074, lon: -0.1278 },
-  'los angeles, ca': { lat: 34.0522, lon: -118.2437 },
-  'berlin, germany': { lat: 52.52, lon: 13.405 },
-  'tokyo, japan': { lat: 35.6762, lon: 139.6503 },
-  'mumbai, india': { lat: 19.076, lon: 72.8777 },
-  'sydney, australia': { lat: -33.8688, lon: 151.2093 },
-  'mexico city, mexico': { lat: 19.4326, lon: -99.1332 },
-  'cairo, egypt': { lat: 30.0444, lon: 31.2357 },
+// Geocoder: fast-cache of common cities, then a real forward-geocode call
+// Resolves a location to coordinates + IANA timezone. Uses Google Maps
+// Geocoding (plus the Time Zone API, since Geocoding does not return a tz)
+// when GOOGLE_MAPS_API_KEY is set; otherwise falls back to Open-Meteo (keyless).
+// Coordinate-only input and missing provider zones use offline tz-lookup.
+export interface GeoResult { lat: number; lon: number; timezone: string; }
+
+// Coordinate lookup is offline and cannot silently degrade to UTC.
+export function geocodeCoordinates(lat: number, lon: number): GeoResult | null {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  try {
+    const timezone: string = require('tz-lookup')(lat, lon);
+    new Intl.DateTimeFormat('en', { timeZone: timezone });
+    return { lat, lon, timezone };
+  } catch {
+    return null;
+  }
+}
+
+const CITY_TABLE: Record<string, GeoResult> = {
+  'paris, france': { lat: 48.8566, lon: 2.3522, timezone: 'Europe/Paris' },
+  'new york, ny': { lat: 40.7128, lon: -74.006, timezone: 'America/New_York' },
+  'new york': { lat: 40.7128, lon: -74.006, timezone: 'America/New_York' },
+  'london, uk': { lat: 51.5074, lon: -0.1278, timezone: 'Europe/London' },
+  'london': { lat: 51.5074, lon: -0.1278, timezone: 'Europe/London' },
+  'los angeles, ca': { lat: 34.0522, lon: -118.2437, timezone: 'America/Los_Angeles' },
+  // "Santa Cruz Ca" is otherwise resolved by Open-Meteo as Santa Cruz, Bahia,
+  // Brazil. Treat the common California shorthand as the US city.
+  'santa cruz ca': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
+  'santa cruz, ca': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
+  'santa cruz, california': { lat: 36.97412, lon: -122.0308, timezone: 'America/Los_Angeles' },
+  'berlin, germany': { lat: 52.52, lon: 13.405, timezone: 'Europe/Berlin' },
+  'tokyo, japan': { lat: 35.6762, lon: 139.6503, timezone: 'Asia/Tokyo' },
+  'mumbai, india': { lat: 19.076, lon: 72.8777, timezone: 'Asia/Kolkata' },
+  'sydney, australia': { lat: -33.8688, lon: 151.2093, timezone: 'Australia/Sydney' },
+  'mexico city, mexico': { lat: 19.4326, lon: -99.1332, timezone: 'America/Mexico_City' },
+  'cairo, egypt': { lat: 30.0444, lon: 31.2357, timezone: 'Africa/Cairo' },
 };
 
-export function geocode(location: string): { lat: number; lon: number } {
-  const key = location.trim().toLowerCase();
+// Resolve a location to coordinates + timezone.
+// - exact "lat,lon" string -> validated coordinates + offline IANA lookup
+// - known city in CITY_TABLE -> instant cache hit
+// - GOOGLE_MAPS_API_KEY set -> Google Maps Geocoding + Time Zone API
+// - otherwise -> Open-Meteo forward geocoding (keyless fallback)
+// Returns null only for empty/unresolvable input; callers must reject null.
+export async function geocodeLocation(location: string): Promise<GeoResult | null> {
+  const raw = (location || '').trim();
+  if (!raw) return null;
+  const key = raw.toLowerCase();
   if (CITY_TABLE[key]) return CITY_TABLE[key];
   const m = key.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-  if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
-  return CITY_TABLE['paris, france'];
+  if (m) return geocodeCoordinates(parseFloat(m[1]), parseFloat(m[2]));
+
+  const gkey = process.env.GOOGLE_MAPS_API_KEY;
+  if (gkey) {
+    // Try Google first; if it fails to resolve, fall back to Open-Meteo.
+    const viaGoogle = await googleGeocode(raw, gkey);
+    if (viaGoogle) return viaGoogle;
+  }
+  return openMeteoGeocode(raw);
+}
+
+// Google Maps: Geocoding gives lat/lng; Time Zone API recovers the IANA tz
+// (Google Geocoding does not return a timezone). Returns null on any failure.
+async function googleGeocode(location: string, apiKey: string): Promise<GeoResult | null> {
+  try {
+    const g = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`);
+    if (!g.ok) return null;
+    const gj = await g.json();
+    const res0 = gj?.results?.[0];
+    if (!res0?.geometry?.location) return null;
+    const { lat, lng } = res0.geometry.location;
+    // Time Zone API needs a timestamp; use now.
+    const t = await fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${Math.floor(Date.now() / 1000)}&key=${apiKey}`);
+    let tz = geocodeCoordinates(lat, lng)?.timezone;
+    if (t.ok) {
+      const tj = await t.json();
+      if (tj?.timeZoneId) tz = tj.timeZoneId;
+    }
+    if (!tz) return null;
+    new Intl.DateTimeFormat('en', { timeZone: tz });
+    return { lat, lon: lng, timezone: tz };
+  } catch {
+    return null;
+  }
+}
+
+// Open-Meteo forward geocoding (keyless). Returns null on failure.
+async function openMeteoGeocode(location: string): Promise<GeoResult | null> {
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const r = data?.results?.[0];
+    if (!r || typeof r.latitude !== 'number' || typeof r.longitude !== 'number') return null;
+    const anchor = geocodeCoordinates(r.latitude, r.longitude);
+    if (!anchor) return null;
+    const timezone = r.timezone || anchor.timezone;
+    new Intl.DateTimeFormat('en', { timeZone: timezone });
+    return { lat: r.latitude, lon: r.longitude, timezone };
+  } catch {
+    return null;
+  }
 }
 
 export async function computeChart(input: {
-  name: string;
+  name?: string;      // optional; defaults when chart is computed from saved data
   date: string;       // yyyy-mm-dd
   time?: string;      // HH:mm
   location: string;
+  // Saved IANA timezone/coordinates are authoritative for an immutable chart.
+  // A fresh geocode is only a fallback for unsaved/manual input.
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
   unknownTime?: boolean;
+  requireAllBodies?: boolean;
 }): Promise<ChartData> {
   const eph = await getEph();
-  const { lat, lon } = geocode(input.location);
+  const anchored = Number.isFinite(input.latitude) && Number.isFinite(input.longitude) && !!input.timezone;
+  const resolved = anchored ? null : await geocodeLocation(input.location);
+  if (!resolved && (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude) || !input.timezone)) {
+    throw new Error(`geocode: could not resolve location "${input.location}"`);
+  }
+  const lat = Number.isFinite(input.latitude) ? Number(input.latitude) : resolved!.lat;
+  const lon = Number.isFinite(input.longitude) ? Number(input.longitude) : resolved!.lon;
+  const timezone = input.timezone || resolved?.timezone || 'UTC';
   const [year, month, day] = input.date.split('-').map(Number);
   const unknownTime = Boolean(input.unknownTime);
   const hour = unknownTime ? 12 : parseInt((input.time || '12:00').split(':')[0], 10);
   const minute = unknownTime ? 0 : parseInt((input.time || '12:00').split(':')[1], 10);
 
   // Local time -> UTC Julian Day using the location's IANA timezone (Swiss Eph wants UT).
-  const tzId = safeTz(lat, lon);
+  const tzId = timezone || 'UTC';
   const jd = localToJulianDay(year, month, day, hour, minute, tzId);
 
   const FLAGS = Constants.SEFLG_SWIEPH | Constants.SEFLG_TROPICAL | Constants.SEFLG_SPEED;
 
-  const planets: PlanetPlacement[] = PLANET_BODIES.map(({ key, se }) => {
+  const unavailableBodies: string[] = [];
+  const planets: PlanetPlacement[] = PLANET_BODIES.flatMap(({ key, se }) => {
     const res = eph.swe_calc_ut(jd, se, FLAGS);
+    // Failed calls return zero-filled buffers. Zero longitude itself is valid.
+    if (res.returnCode < 0 || !Array.from(res.xx).every(Number.isFinite)) {
+      unavailableBodies.push(key);
+      return [];
+    }
     const long = normDeg(res.xx[0]);
     const speed = res.xx[3];
     const { sign, degreeInSign } = signFromLongitude(long);
     const info = getPlanet(key) || { key, label: key, glyph: '•', description: '' };
-    return {
+    return [{
       key,
       label: info.label,
       glyph: info.glyph,
@@ -185,8 +300,11 @@ export async function computeChart(input: {
       retrograde: speed < 0,
       dignity: dignityFor(key, sign.key),
       description: info.description,
-    };
+    }];
   });
+  if (unavailableBodies.some(key => !['chiron', 'juno'].includes(key)) || (input.requireAllBodies && unavailableBodies.length)) {
+    throw new EphemerisUnavailableError(unavailableBodies);
+  }
 
   // Houses via Swiss Ephemeris Placidus (or whole-sign when time unknown).
   // Swiss Ephemeris house-system code: 'P'=Placidus, 'W'=Whole Sign (char code).
@@ -237,26 +355,18 @@ export async function computeChart(input: {
       unknownTime,
     },
     planets,
+    unavailableBodies,
     angles,
     houses,
     ascendant,
     midheaven,
     sun,
     moon,
+    cusps,
   };
 }
 
 function angleFromLong(longitude: number, key: string, label: string): AnglePlacement {
   const { sign, degreeInSign } = signFromLongitude(longitude);
   return { key, label, longitude: normDeg(longitude), sign: sign.key, signLabel: sign.label, signGlyph: sign.glyph, degreeInSign };
-}
-
-// tz-lookup returns an IANA tz string; wrapped for safety.
-function safeTz(lat: number, lon: number): string {
-  try {
-    const tz = tzlookup(lat, lon);
-    return tz || 'UTC';
-  } catch {
-    return 'UTC';
-  }
 }

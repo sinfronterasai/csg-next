@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface HistoryItem {
   id: number;
@@ -34,12 +35,19 @@ export default function TarotHistory() {
   return (
     <ul className="space-y-3">
       {items.map((it) => (
-        <li key={it.id} className="rounded-xl border border-cosmic-700 bg-cosmic-900/70 p-4">
-          <p className="text-sm text-gold">{it.spreadId.replace(/_/g, " ")}</p>
-          <p className="mt-1 text-cosmic-100">{it.question}</p>
-          {it.astrologySummary && (
-            <p className="mt-1 text-xs text-cosmic-300/80">Astrology: {it.astrologySummary}</p>
-          )}
+        <li key={it.id}>
+          <Link href={`/tarot/reading/${it.id}`} className="block rounded-xl border border-cosmic-700 bg-cosmic-900/70 p-4 hover:border-gold/30 transition-all duration-300 cursor-pointer group">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <p className="text-sm text-gold">{it.spreadId.replace(/_/g, " ")}</p>
+                <p className="mt-1 text-cosmic-100">{it.question}</p>
+                {it.astrologySummary && (
+                  <p className="mt-1 text-xs text-cosmic-300/80">Astrology: {it.astrologySummary}</p>
+                )}
+              </div>
+              <i className="fa-solid fa-chevron-right text-gold/50 group-hover:text-gold transition-colors duration-300"></i>
+            </div>
+          </Link>
         </li>
       ))}
     </ul>

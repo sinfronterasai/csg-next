@@ -1,0 +1,326 @@
+old_path,decision,http_status,destination,reason,verified_status
+/about,REBUILD_SAME_PATH,200,/about,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/astrology/aquarius/aquarius,REBUILD_SAME_PATH,200,/astrology/aquarius/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/aries,REBUILD_SAME_PATH,200,/astrology/aquarius/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/cancer,REBUILD_SAME_PATH,200,/astrology/aquarius/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/capricorn,REBUILD_SAME_PATH,200,/astrology/aquarius/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/gemini,REBUILD_SAME_PATH,200,/astrology/aquarius/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/leo,REBUILD_SAME_PATH,200,/astrology/aquarius/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/libra,REBUILD_SAME_PATH,200,/astrology/aquarius/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/pisces,REBUILD_SAME_PATH,200,/astrology/aquarius/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/sagittarius,REBUILD_SAME_PATH,200,/astrology/aquarius/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/scorpio,REBUILD_SAME_PATH,200,/astrology/aquarius/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/taurus,REBUILD_SAME_PATH,200,/astrology/aquarius/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aquarius/virgo,REBUILD_SAME_PATH,200,/astrology/aquarius/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/aquarius,REBUILD_SAME_PATH,200,/astrology/aries/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/aries,REBUILD_SAME_PATH,200,/astrology/aries/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/cancer,REBUILD_SAME_PATH,200,/astrology/aries/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/capricorn,REBUILD_SAME_PATH,200,/astrology/aries/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/gemini,REBUILD_SAME_PATH,200,/astrology/aries/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/leo,REBUILD_SAME_PATH,200,/astrology/aries/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/libra,REBUILD_SAME_PATH,200,/astrology/aries/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/pisces,REBUILD_SAME_PATH,200,/astrology/aries/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/sagittarius,REBUILD_SAME_PATH,200,/astrology/aries/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/scorpio,REBUILD_SAME_PATH,200,/astrology/aries/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/taurus,REBUILD_SAME_PATH,200,/astrology/aries/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/aries/virgo,REBUILD_SAME_PATH,200,/astrology/aries/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/aquarius,REBUILD_SAME_PATH,200,/astrology/cancer/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/aries,REBUILD_SAME_PATH,200,/astrology/cancer/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/cancer,REBUILD_SAME_PATH,200,/astrology/cancer/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/capricorn,REBUILD_SAME_PATH,200,/astrology/cancer/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/gemini,REBUILD_SAME_PATH,200,/astrology/cancer/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/leo,REBUILD_SAME_PATH,200,/astrology/cancer/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/libra,REBUILD_SAME_PATH,200,/astrology/cancer/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/pisces,REBUILD_SAME_PATH,200,/astrology/cancer/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/sagittarius,REBUILD_SAME_PATH,200,/astrology/cancer/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/scorpio,REBUILD_SAME_PATH,200,/astrology/cancer/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/taurus,REBUILD_SAME_PATH,200,/astrology/cancer/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/cancer/virgo,REBUILD_SAME_PATH,200,/astrology/cancer/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/aquarius,REBUILD_SAME_PATH,200,/astrology/capricorn/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/aries,REBUILD_SAME_PATH,200,/astrology/capricorn/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/cancer,REBUILD_SAME_PATH,200,/astrology/capricorn/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/capricorn,REBUILD_SAME_PATH,200,/astrology/capricorn/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/gemini,REBUILD_SAME_PATH,200,/astrology/capricorn/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/leo,REBUILD_SAME_PATH,200,/astrology/capricorn/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/libra,REBUILD_SAME_PATH,200,/astrology/capricorn/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/pisces,REBUILD_SAME_PATH,200,/astrology/capricorn/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/sagittarius,REBUILD_SAME_PATH,200,/astrology/capricorn/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/scorpio,REBUILD_SAME_PATH,200,/astrology/capricorn/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/taurus,REBUILD_SAME_PATH,200,/astrology/capricorn/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/capricorn/virgo,REBUILD_SAME_PATH,200,/astrology/capricorn/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/aquarius,REBUILD_SAME_PATH,200,/astrology/gemini/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/aries,REBUILD_SAME_PATH,200,/astrology/gemini/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/cancer,REBUILD_SAME_PATH,200,/astrology/gemini/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/capricorn,REBUILD_SAME_PATH,200,/astrology/gemini/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/gemini,REBUILD_SAME_PATH,200,/astrology/gemini/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/leo,REBUILD_SAME_PATH,200,/astrology/gemini/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/libra,REBUILD_SAME_PATH,200,/astrology/gemini/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/pisces,REBUILD_SAME_PATH,200,/astrology/gemini/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/sagittarius,REBUILD_SAME_PATH,200,/astrology/gemini/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/scorpio,REBUILD_SAME_PATH,200,/astrology/gemini/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/taurus,REBUILD_SAME_PATH,200,/astrology/gemini/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/gemini/virgo,REBUILD_SAME_PATH,200,/astrology/gemini/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/aquarius,REBUILD_SAME_PATH,200,/astrology/leo/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/aries,REBUILD_SAME_PATH,200,/astrology/leo/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/cancer,REBUILD_SAME_PATH,200,/astrology/leo/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/capricorn,REBUILD_SAME_PATH,200,/astrology/leo/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/gemini,REBUILD_SAME_PATH,200,/astrology/leo/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/leo,REBUILD_SAME_PATH,200,/astrology/leo/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/libra,REBUILD_SAME_PATH,200,/astrology/leo/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/pisces,REBUILD_SAME_PATH,200,/astrology/leo/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/sagittarius,REBUILD_SAME_PATH,200,/astrology/leo/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/scorpio,REBUILD_SAME_PATH,200,/astrology/leo/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/taurus,REBUILD_SAME_PATH,200,/astrology/leo/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/leo/virgo,REBUILD_SAME_PATH,200,/astrology/leo/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/aquarius,REBUILD_SAME_PATH,200,/astrology/libra/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/aries,REBUILD_SAME_PATH,200,/astrology/libra/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/cancer,REBUILD_SAME_PATH,200,/astrology/libra/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/capricorn,REBUILD_SAME_PATH,200,/astrology/libra/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/gemini,REBUILD_SAME_PATH,200,/astrology/libra/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/leo,REBUILD_SAME_PATH,200,/astrology/libra/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/libra,REBUILD_SAME_PATH,200,/astrology/libra/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/pisces,REBUILD_SAME_PATH,200,/astrology/libra/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/sagittarius,REBUILD_SAME_PATH,200,/astrology/libra/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/scorpio,REBUILD_SAME_PATH,200,/astrology/libra/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/taurus,REBUILD_SAME_PATH,200,/astrology/libra/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/libra/virgo,REBUILD_SAME_PATH,200,/astrology/libra/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/aquarius,REBUILD_SAME_PATH,200,/astrology/pisces/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/aries,REBUILD_SAME_PATH,200,/astrology/pisces/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/cancer,REBUILD_SAME_PATH,200,/astrology/pisces/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/capricorn,REBUILD_SAME_PATH,200,/astrology/pisces/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/gemini,REBUILD_SAME_PATH,200,/astrology/pisces/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/leo,REBUILD_SAME_PATH,200,/astrology/pisces/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/libra,REBUILD_SAME_PATH,200,/astrology/pisces/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/pisces,REBUILD_SAME_PATH,200,/astrology/pisces/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/sagittarius,REBUILD_SAME_PATH,200,/astrology/pisces/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/scorpio,REBUILD_SAME_PATH,200,/astrology/pisces/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/taurus,REBUILD_SAME_PATH,200,/astrology/pisces/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/pisces/virgo,REBUILD_SAME_PATH,200,/astrology/pisces/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/aquarius,REBUILD_SAME_PATH,200,/astrology/sagittarius/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/aries,REBUILD_SAME_PATH,200,/astrology/sagittarius/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/cancer,REBUILD_SAME_PATH,200,/astrology/sagittarius/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/capricorn,REBUILD_SAME_PATH,200,/astrology/sagittarius/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/gemini,REBUILD_SAME_PATH,200,/astrology/sagittarius/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/leo,REBUILD_SAME_PATH,200,/astrology/sagittarius/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/libra,REBUILD_SAME_PATH,200,/astrology/sagittarius/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/pisces,REBUILD_SAME_PATH,200,/astrology/sagittarius/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/sagittarius,REBUILD_SAME_PATH,200,/astrology/sagittarius/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/scorpio,REBUILD_SAME_PATH,200,/astrology/sagittarius/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/taurus,REBUILD_SAME_PATH,200,/astrology/sagittarius/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/sagittarius/virgo,REBUILD_SAME_PATH,200,/astrology/sagittarius/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/aquarius,REBUILD_SAME_PATH,200,/astrology/scorpio/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/aries,REBUILD_SAME_PATH,200,/astrology/scorpio/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/cancer,REBUILD_SAME_PATH,200,/astrology/scorpio/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/capricorn,REBUILD_SAME_PATH,200,/astrology/scorpio/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/gemini,REBUILD_SAME_PATH,200,/astrology/scorpio/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/leo,REBUILD_SAME_PATH,200,/astrology/scorpio/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/libra,REBUILD_SAME_PATH,200,/astrology/scorpio/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/pisces,REBUILD_SAME_PATH,200,/astrology/scorpio/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/sagittarius,REBUILD_SAME_PATH,200,/astrology/scorpio/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/scorpio,REBUILD_SAME_PATH,200,/astrology/scorpio/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/taurus,REBUILD_SAME_PATH,200,/astrology/scorpio/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/scorpio/virgo,REBUILD_SAME_PATH,200,/astrology/scorpio/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/aquarius,REBUILD_SAME_PATH,200,/astrology/taurus/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/aries,REBUILD_SAME_PATH,200,/astrology/taurus/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/cancer,REBUILD_SAME_PATH,200,/astrology/taurus/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/capricorn,REBUILD_SAME_PATH,200,/astrology/taurus/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/gemini,REBUILD_SAME_PATH,200,/astrology/taurus/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/leo,REBUILD_SAME_PATH,200,/astrology/taurus/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/libra,REBUILD_SAME_PATH,200,/astrology/taurus/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/pisces,REBUILD_SAME_PATH,200,/astrology/taurus/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/sagittarius,REBUILD_SAME_PATH,200,/astrology/taurus/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/scorpio,REBUILD_SAME_PATH,200,/astrology/taurus/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/taurus,REBUILD_SAME_PATH,200,/astrology/taurus/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/taurus/virgo,REBUILD_SAME_PATH,200,/astrology/taurus/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/aquarius,REBUILD_SAME_PATH,200,/astrology/virgo/aquarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/aries,REBUILD_SAME_PATH,200,/astrology/virgo/aries,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/cancer,REBUILD_SAME_PATH,200,/astrology/virgo/cancer,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/capricorn,REBUILD_SAME_PATH,200,/astrology/virgo/capricorn,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/gemini,REBUILD_SAME_PATH,200,/astrology/virgo/gemini,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/leo,REBUILD_SAME_PATH,200,/astrology/virgo/leo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/libra,REBUILD_SAME_PATH,200,/astrology/virgo/libra,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/pisces,REBUILD_SAME_PATH,200,/astrology/virgo/pisces,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/sagittarius,REBUILD_SAME_PATH,200,/astrology/virgo/sagittarius,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/scorpio,REBUILD_SAME_PATH,200,/astrology/virgo/scorpio,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/taurus,REBUILD_SAME_PATH,200,/astrology/virgo/taurus,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/astrology/virgo/virgo,REBUILD_SAME_PATH,200,/astrology/virgo/virgo,"Astro sign-pair grid; rebuild identical path, unique content, noindex until approved (P2)",UNTESTED
+/blog/ai-tarot-reading-free-personalized-astrology-insights,REBUILD_SAME_PATH,200,/blog/ai-tarot-reading-free-personalized-astrology-insights,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach,REBUILD_SAME_PATH,200,/blog/building-trust-in-digital-spirituality-a-non-judgmental-supportive-approach,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/composite-chart-relationship-soul,REBUILD_SAME_PATH,200,/blog/composite-chart-relationship-soul,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity,REBUILD_SAME_PATH,200,/blog/find-calm-in-uncertainty-simple-daily-tarot-guidance-for-peaceful-clarity,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology,REBUILD_SAME_PATH,200,/blog/finding-calm-in-the-stars-and-cards-a-guide-to-reducing-anxiety-through-tarot-and-astrology,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/free-moon-sign-calculator-discover-your-emotional-core,REBUILD_SAME_PATH,200,/blog/free-moon-sign-calculator-discover-your-emotional-core,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/free-moon-sign-calculator-discover-your-emotional-core-1,REDIRECT,301,/blog/free-moon-sign-calculator-discover-your-emotional-core,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/free-moon-sign-calculator-discover-your-emotional-core-2,REDIRECT,301,/blog/free-moon-sign-calculator-discover-your-emotional-core,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match,REBUILD_SAME_PATH,200,/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-1,REDIRECT,301,/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match-11,REDIRECT,301,/blog/free-zodiac-compatibility-calculator-find-your-cosmic-match,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions,REBUILD_SAME_PATH,200,/blog/harnessing-lunar-magic-let-the-moon-s-energy-guide-your-emotions-and-actions,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth,REBUILD_SAME_PATH,200,/blog/harnessing-the-power-of-daily-personalized-guidance-for-personal-and-professional-growth,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone,REBUILD_SAME_PATH,200,/blog/how-technology-is-democratizing-spiritual-guidance-for-everyone,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide,REBUILD_SAME_PATH,200,/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-1,REDIRECT,301,/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide-2,REDIRECT,301,/blog/how-to-read-your-birth-chart-a-beginner-s-visual-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/love-compatibility-by-birth-date-the-complete-guide,REBUILD_SAME_PATH,200,/blog/love-compatibility-by-birth-date-the-complete-guide,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/love-compatibility-by-birth-date-the-complete-guide-1,REDIRECT,301,/blog/love-compatibility-by-birth-date-the-complete-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/love-compatibility-by-birth-date-the-complete-guide-5,REDIRECT,301,/blog/love-compatibility-by-birth-date-the-complete-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/mercury-retrograde-meaning-complete-survival-guide,REBUILD_SAME_PATH,200,/blog/mercury-retrograde-meaning-complete-survival-guide,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/mercury-retrograde-meaning-complete-survival-guide-1,REDIRECT,301,/blog/mercury-retrograde-meaning-complete-survival-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/mercury-retrograde-meaning-complete-survival-guide-2,REDIRECT,301,/blog/mercury-retrograde-meaning-complete-survival-guide,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology,REBUILD_SAME_PATH,200,/blog/mother-s-instinct-understanding-pregnancy-infant-temperament-and-psychology,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/numerology-compatibility-calculator-life-path-numbers,REBUILD_SAME_PATH,200,/blog/numerology-compatibility-calculator-life-path-numbers,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/numerology-compatibility-calculator-life-path-numbers-1,REDIRECT,301,/blog/numerology-compatibility-calculator-life-path-numbers,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/numerology-compatibility-calculator-life-path-numbers-2,REDIRECT,301,/blog/numerology-compatibility-calculator-life-path-numbers,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/relationship-compatibility-beyond-sun,REBUILD_SAME_PATH,200,/blog/relationship-compatibility-beyond-sun,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/rising-sign-calculator-find-your-ascendant-sign-free,REBUILD_SAME_PATH,200,/blog/rising-sign-calculator-find-your-ascendant-sign-free,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/rising-sign-calculator-find-your-ascendant-sign-free-2,REDIRECT,301,/blog/rising-sign-calculator-find-your-ascendant-sign-free,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today,REBUILD_SAME_PATH,200,/blog/step-into-your-power-embrace-ai-tailored-tarot-insights-today,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/the-future-of-fate-how-ai-powered-tarot-readings-work,REBUILD_SAME_PATH,200,/blog/the-future-of-fate-how-ai-powered-tarot-readings-work,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance,REBUILD_SAME_PATH,200,/blog/the-future-of-intuition-how-ai-is-transforming-spiritual-guidance,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/twin-flame-compatibility-test-are-they-your-other-half,REBUILD_SAME_PATH,200,/blog/twin-flame-compatibility-test-are-they-your-other-half,Canonical blog topic (slop-consolidation target); migrate body + 301 variants here (brief §4b),UNTESTED
+/blog/twin-flame-compatibility-test-are-they-your-other-half-1,REDIRECT,301,/blog/twin-flame-compatibility-test-are-they-your-other-half,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/twin-flame-compatibility-test-are-they-your-other-half-2,REDIRECT,301,/blog/twin-flame-compatibility-test-are-they-your-other-half,Slop duplicate; consolidated to canonical topic (brief §4b),UNTESTED
+/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met,REBUILD_SAME_PATH,200,/blog/twin-flame-vs-soulmate-the-real-difference-and-how-to-know-which-you-ve-met,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/blog/what-is-my-birth-chart,REBUILD_SAME_PATH,200,/blog/what-is-my-birth-chart,Keep-candidate blog post; migrate at identical slug (brief §4a),UNTESTED
+/coach,REDIRECT,301,/services,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/compatibility,REBUILD_SAME_PATH,200,/compatibility,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-aries,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-aries,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-cancer,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-cancer,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-capricorn,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-capricorn,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-gemini,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-gemini,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-leo,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-leo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-libra,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-pisces,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-taurus,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aquarius-and-virgo,REBUILD_SAME_PATH,200,/compatibility/aquarius-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-cancer,REBUILD_SAME_PATH,200,/compatibility/aries-and-cancer,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-capricorn,REBUILD_SAME_PATH,200,/compatibility/aries-and-capricorn,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-gemini,REBUILD_SAME_PATH,200,/compatibility/aries-and-gemini,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-leo,REBUILD_SAME_PATH,200,/compatibility/aries-and-leo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-libra,REBUILD_SAME_PATH,200,/compatibility/aries-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-pisces,REBUILD_SAME_PATH,200,/compatibility/aries-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/aries-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/aries-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-taurus,REBUILD_SAME_PATH,200,/compatibility/aries-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/aries-and-virgo,REBUILD_SAME_PATH,200,/compatibility/aries-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-capricorn,REBUILD_SAME_PATH,200,/compatibility/cancer-and-capricorn,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-gemini,REBUILD_SAME_PATH,200,/compatibility/cancer-and-gemini,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-leo,REBUILD_SAME_PATH,200,/compatibility/cancer-and-leo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-libra,REBUILD_SAME_PATH,200,/compatibility/cancer-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-pisces,REBUILD_SAME_PATH,200,/compatibility/cancer-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/cancer-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/cancer-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-taurus,REBUILD_SAME_PATH,200,/compatibility/cancer-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/cancer-and-virgo,REBUILD_SAME_PATH,200,/compatibility/cancer-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-gemini,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-gemini,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-leo,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-leo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-libra,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-pisces,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-taurus,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/capricorn-and-virgo,REBUILD_SAME_PATH,200,/compatibility/capricorn-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-leo,REBUILD_SAME_PATH,200,/compatibility/gemini-and-leo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-libra,REBUILD_SAME_PATH,200,/compatibility/gemini-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-pisces,REBUILD_SAME_PATH,200,/compatibility/gemini-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/gemini-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/gemini-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-taurus,REBUILD_SAME_PATH,200,/compatibility/gemini-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/gemini-and-virgo,REBUILD_SAME_PATH,200,/compatibility/gemini-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-libra,REBUILD_SAME_PATH,200,/compatibility/leo-and-libra,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-pisces,REBUILD_SAME_PATH,200,/compatibility/leo-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/leo-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/leo-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-taurus,REBUILD_SAME_PATH,200,/compatibility/leo-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/leo-and-virgo,REBUILD_SAME_PATH,200,/compatibility/leo-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/libra-and-pisces,REBUILD_SAME_PATH,200,/compatibility/libra-and-pisces,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/libra-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/libra-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/libra-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/libra-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/libra-and-taurus,REBUILD_SAME_PATH,200,/compatibility/libra-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/libra-and-virgo,REBUILD_SAME_PATH,200,/compatibility/libra-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/pisces-and-sagittarius,REBUILD_SAME_PATH,200,/compatibility/pisces-and-sagittarius,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/pisces-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/pisces-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/pisces-and-taurus,REBUILD_SAME_PATH,200,/compatibility/pisces-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/pisces-and-virgo,REBUILD_SAME_PATH,200,/compatibility/pisces-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/sagittarius-and-scorpio,REBUILD_SAME_PATH,200,/compatibility/sagittarius-and-scorpio,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/sagittarius-and-taurus,REBUILD_SAME_PATH,200,/compatibility/sagittarius-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/sagittarius-and-virgo,REBUILD_SAME_PATH,200,/compatibility/sagittarius-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/scorpio-and-taurus,REBUILD_SAME_PATH,200,/compatibility/scorpio-and-taurus,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/scorpio-and-virgo,REBUILD_SAME_PATH,200,/compatibility/scorpio-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/compatibility/taurus-and-virgo,REBUILD_SAME_PATH,200,/compatibility/taurus-and-virgo,Compatibility grid/hub; rebuild identical path (P2),UNTESTED
+/contact,REBUILD_SAME_PATH,200,/contact,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/credits,REDIRECT,301,/pricing,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/dashboard,REBUILD_SAME_PATH_NOINDEX,200,/dashboard,"App/auth route supported by csg-next; rebuild identical path, noindex",UNTESTED
+/energy,REDIRECT,301,/transits,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/forecasts,REDIRECT,301,/transits,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/horoscope,REBUILD_SAME_PATH,200,/horoscope,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/aquarius,REBUILD_SAME_PATH,200,/horoscope/aquarius,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/aries,REBUILD_SAME_PATH,200,/horoscope/aries,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/cancer,REBUILD_SAME_PATH,200,/horoscope/cancer,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/capricorn,REBUILD_SAME_PATH,200,/horoscope/capricorn,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/gemini,REBUILD_SAME_PATH,200,/horoscope/gemini,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/leo,REBUILD_SAME_PATH,200,/horoscope/leo,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/libra,REBUILD_SAME_PATH,200,/horoscope/libra,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/pisces,REBUILD_SAME_PATH,200,/horoscope/pisces,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/sagittarius,REBUILD_SAME_PATH,200,/horoscope/sagittarius,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/scorpio,REBUILD_SAME_PATH,200,/horoscope/scorpio,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/taurus,REBUILD_SAME_PATH,200,/horoscope/taurus,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/horoscope/virgo,REBUILD_SAME_PATH,200,/horoscope/virgo,"Horoscope hub/sign; rebuild identical path, time-bound guidance angle (P2)",UNTESTED
+/journal,REBUILD_SAME_PATH_NOINDEX,200,/journal,"App/auth route supported by csg-next; rebuild identical path, noindex",UNTESTED
+/login,REBUILD_SAME_PATH_NOINDEX,200,/login,"App/auth route supported by csg-next; rebuild identical path, noindex",UNTESTED
+/moon-phase,REDIRECT,301,/transits,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/moon-reading,REDIRECT,301,/birth-chart,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/newsletter,REDIRECT,301,/blog,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/pricing,REBUILD_SAME_PATH,200,/pricing,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/privacy,REBUILD_SAME_PATH,200,/privacy,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/profile,REDIRECT,301,/dashboard,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/reset-password,REBUILD_SAME_PATH_NOINDEX,200,/reset-password,"App/auth route supported by csg-next; rebuild identical path, noindex",UNTESTED
+/services,REBUILD_SAME_PATH,200,/services,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/subscription,REDIRECT,301,/pricing,Not in launch slice; one-hop same-intent destination (never homepage),UNTESTED
+/terms,REBUILD_SAME_PATH,200,/terms,Legal/trust/commercial page; hard cutover blocker (P1),UNTESTED
+/transits,REBUILD_SAME_PATH,200,/transits,"Transits hub; evergreen explainer now, dailies when ephemeris engine lands",UNTESTED
+/transits/2026-08-24,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-24,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-25,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-25,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-26,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-26,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-27,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-27,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-28,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-28,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-29,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-29,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-30,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-30,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-08-31,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-08-31,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-01,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-01,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-02,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-02,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-03,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-03,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-04,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-04,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-05,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-05,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-06,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-06,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-07,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-07,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-08,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-08,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-09,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-09,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-10,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-10,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-11,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-11,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-12,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-12,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-13,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-13,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-14,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-14,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-15,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-15,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-16,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-16,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-17,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-17,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-18,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-18,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-19,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-19,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-20,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-20,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-21,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-21,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/transits/2026-09-22,REBUILD_SAME_PATH_NOINDEX,200,/transits/2026-09-22,Daily transit page; route live but NOINDEX until ephemeris engine feeds real content (no fabricated dailies),UNTESTED
+/zodiac,REBUILD_SAME_PATH,200,/zodiac,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/aquarius,REBUILD_SAME_PATH,200,/zodiac/aquarius,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/aries,REBUILD_SAME_PATH,200,/zodiac/aries,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/cancer,REBUILD_SAME_PATH,200,/zodiac/cancer,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/capricorn,REBUILD_SAME_PATH,200,/zodiac/capricorn,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/gemini,REBUILD_SAME_PATH,200,/zodiac/gemini,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/leo,REBUILD_SAME_PATH,200,/zodiac/leo,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/libra,REBUILD_SAME_PATH,200,/zodiac/libra,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/pisces,REBUILD_SAME_PATH,200,/zodiac/pisces,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/sagittarius,REBUILD_SAME_PATH,200,/zodiac/sagittarius,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/scorpio,REBUILD_SAME_PATH,200,/zodiac/scorpio,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/taurus,REBUILD_SAME_PATH,200,/zodiac/taurus,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED
+/zodiac/virgo,REBUILD_SAME_PATH,200,/zodiac/virgo,"Zodiac hub/sign; rebuild identical path, evergreen reference angle (P2)",UNTESTED

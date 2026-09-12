@@ -9,9 +9,16 @@ export interface Spread {
   id: string;
   name: string;
   tier: Tier;
+  /** Display-only price string for the spread menu. Free -> "Free", premium -> "Member · $4.99". */
+  priceLabel: string;
   /** Short description shown on the picker. */
   blurb: string;
   positions: SpreadPosition[];
+  /**
+   * When set, selecting this spread draws immediately with this question,
+   * skipping the question modal. Undefined -> the modal is required.
+   */
+  fixedQuestion?: string;
 }
 
 // MVP set per resolved tier model (2026-08-03):
@@ -22,13 +29,16 @@ export const spreads: Spread[] = [
     id: 'one_card',
     name: 'One Card',
     tier: 'free',
+    priceLabel: 'Free',
     blurb: 'A single card for a quick, focused insight.',
+    fixedQuestion: 'What do I need to know right now?',
     positions: [{ label: 'Guidance', meaning: 'The core energy or message for your question right now.' }],
   },
   {
     id: 'past_present_future',
     name: 'Past · Present · Future',
     tier: 'free',
+    priceLabel: 'Free',
     blurb: 'See how the situation evolved and where it is heading.',
     positions: [
       { label: 'Past', meaning: 'The root or energy that has led to this moment.' },
@@ -40,6 +50,7 @@ export const spreads: Spread[] = [
     id: 'celtic_cross',
     name: 'Celtic Cross',
     tier: 'premium',
+    priceLabel: 'Member · $4.99',
     blurb: 'The classic 10-card deep dive into any situation.',
     positions: [
       { label: '1 · Present', meaning: 'The situation as it stands today.' },
@@ -58,6 +69,7 @@ export const spreads: Spread[] = [
     id: 'relationship_dynamics',
     name: 'Relationship Dynamics',
     tier: 'premium',
+    priceLabel: 'Member · $4.99',
     blurb: 'Map the energies between you and another person.',
     positions: [
       { label: 'You', meaning: 'Your energy and stance in the relationship.' },
@@ -72,6 +84,7 @@ export const spreads: Spread[] = [
     id: 'career_crossroads',
     name: 'Career Crossroads',
     tier: 'premium',
+    priceLabel: 'Member · $4.99',
     blurb: 'Clarity for a work or direction decision.',
     positions: [
       { label: 'Current Path', meaning: 'Where your career stands now.' },

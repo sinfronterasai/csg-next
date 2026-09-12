@@ -1,0 +1,338 @@
+{
+  "name": "CSG Compact Premium Natal Report (private Groq child)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "compact-trigger-0001",
+      "name": "Compact Report Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nif (!input.verifiedFacts || typeof input.verifiedFacts !== 'object') throw new Error('verifiedFacts is required');\nif (!input.deterministic?.tables || !input.deterministic?.skeleton) throw new Error('deterministic tables and skeleton are required');\nconst allowed = ['identity','inner-world','integration','dynamics'];\nconst packs = input.narrativeFactPacks;\nif (!Array.isArray(packs) || packs.length !== 4 || new Set(packs.map(p => p.sectionId)).size !== 4 || packs.some(p => !allowed.includes(p.sectionId))) throw new Error('narrativeFactPacks must contain exactly the four compiler slots');\nfor (const pack of packs) { if (!pack.wordLimit || pack.wordLimit.max < 1 || pack.wordLimit.max > 700 || !Array.isArray(pack.facts)) throw new Error(`invalid fact pack ${pack.sectionId}`); }\nreturn allowed.map(sectionId => ({ json: { ...input, narrativeFactPack: packs.find(p => p.sectionId === sectionId), sectionId, _deterministicSnapshot: JSON.parse(JSON.stringify(input.deterministic)) } }));"
+      },
+      "id": "compact-validate-0002",
+      "name": "Validate Input + Freeze Deterministic Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "compact-loop-0003",
+      "name": "Loop Over Four Compiler Slots",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "name": "Narrative Slot Call",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "parameters": {
+        "promptType": "define",
+        "batching": {},
+        "text": "={{ 'Return ONLY valid JSON for this one narrative slot. Use only the supplied facts; do not add factual claims. Required shape: {\\\"sectionId\\\":\\\"' + $json.sectionId + '\\\",\\\"blocks\\\":[{\\\"role\\\":\\\"narrative|reflection|practical\\\",\\\"prose\\\":\\\"...\\\",\\\"factIds\\\":[\\\"fact-id\\\"]}]}\\nINPUT: ' + JSON.stringify({sectionId: $json.sectionId, role: $json.narrativeFactPack.role, wordLimit: $json.narrativeFactPack.wordLimit, facts: $json.narrativeFactPack.facts}) }}"
+      },
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst original = $('Loop Over Four Compiler Slots').item.json;\nlet response;\ntry {\n  const raw = item.text ?? item.output ?? item.content ?? item;\n  response = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { response = null; }\nlet valid = !!response && response.sectionId === original.sectionId && Array.isArray(response.blocks) && response.blocks.length > 0;\nconst allowed = new Set((original.narrativeFactPack.facts || []).map(f => f.id));\nif (valid) for (const block of response.blocks) if (!['narrative','reflection','practical'].includes(block.role) || typeof block.prose !== 'string' || !block.prose.trim() || !Array.isArray(block.factIds) || block.factIds.some(id => !allowed.has(id))) valid = false;\nreturn [{ json: { ...original, narrativeBlock: valid ? { sectionId: original.sectionId, blocks: response.blocks } : null, _primaryValid: valid, _validationError: valid ? null : `strict narrative validation failed for ${original.sectionId}` } }];"
+      },
+      "id": "compact-parse-0005",
+      "name": "Strict Validate Narrative Slot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1010,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json._primaryValid }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "compact-valid-0006",
+      "name": "Slot Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1260,
+        0
+      ]
+    },
+    {
+      "name": "Repair Failed Slot Once",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "parameters": {
+        "promptType": "define",
+        "batching": {},
+        "text": "={{ 'Repair ONLY this narrative slot and return ONLY valid JSON. Keep the same sectionId. Use only supplied facts; remove unsupported claims. This is the single allowed targeted repair (attempt 1). Required shape: {\\\"sectionId\\\":\\\"' + $json.sectionId + '\\\",\\\"blocks\\\":[{\\\"role\\\":\\\"narrative|reflection|practical\\\",\\\"prose\\\":\\\"...\\\",\\\"factIds\\\":[\\\"fact-id\\\"]}]}\\nINPUT: ' + JSON.stringify({sectionId: $json.sectionId, repairAttempt: 1, role: $json.narrativeFactPack.role, wordLimit: $json.narrativeFactPack.wordLimit, facts: $json.narrativeFactPack.facts}) }}"
+      },
+      "position": [
+        720,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst original = $('Loop Over Four Compiler Slots').item.json;\nlet response;\ntry {\n  const raw = item.text ?? item.output ?? item.content ?? item;\n  response = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) { response = null; }\nif (!response || response.sectionId !== original.sectionId || !Array.isArray(response.blocks) || response.blocks.length < 1) throw new Error(`repair rejected for ${original.sectionId}`);\nconst allowed = new Set((original.narrativeFactPack.facts || []).map(f => f.id));\nfor (const block of response.blocks) { if (!['narrative','reflection','practical'].includes(block.role) || typeof block.prose !== 'string' || !block.prose.trim() || !Array.isArray(block.factIds) || block.factIds.some(id => !allowed.has(id))) throw new Error(`repair strict validation failed for ${original.sectionId}`); }\nreturn [{ json: { ...original, narrativeBlock: { sectionId: original.sectionId, blocks: response.blocks }, _repairAttempt: 1 } }];"
+      },
+      "id": "compact-repair-0008",
+      "name": "Strict Validate Repaired Slot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all(); if (items.length !== 1 || !items[0].json.narrativeBlock) throw new Error('accumulator received no validated slot'); return items;"
+      },
+      "id": "compact-accumulate-0009",
+      "name": "Accumulate Validated Slot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const candidates = [...$('Accumulate Validated Slot').all(), ...$input.all()].map(i => i.json); const bySection = new Map(); for (const item of candidates) { const id = item.narrativeBlock?.sectionId; if (id && item.narrativeBlock) bySection.set(id, item); } const expected = ['identity','inner-world','integration','dynamics']; if (bySection.size !== 4 || expected.some(id => !bySection.has(id))) throw new Error('final quality gate rejected incomplete narrative slots'); const first = bySection.get(expected[0]); const blocks = expected.map(id => bySection.get(id).narrativeBlock); return [{ json: { schemaVersion: 'csg-compact-report-callback-v1', reportId: first.reportId, status: 'approved', reportType: 'natal', skeleton: first._deterministicSnapshot.skeleton, tables: first._deterministicSnapshot.tables, blocks } }];"
+      },
+      "id": "compact-final-0010",
+      "name": "Final Deterministic Quality Gate + Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        0
+      ]
+    },
+    {
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "credentials": {
+        "groqApi": {
+          "id": "gROQCSGReports01",
+          "name": "CSG Groq Reports"
+        }
+      },
+      "parameters": {
+        "model": "={{ \"openai/gpt-oss-120b\" }}",
+        "options": {
+          "maxTokensToSample": 4096,
+          "temperature": 0.65
+        }
+      },
+      "name": "Groq Narrative Slot Model",
+      "position": [
+        480,
+        -160
+      ]
+    },
+    {
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "credentials": {
+        "groqApi": {
+          "id": "gROQCSGReports01",
+          "name": "CSG Groq Reports"
+        }
+      },
+      "parameters": {
+        "model": "={{ \"openai/gpt-oss-120b\" }}",
+        "options": {
+          "maxTokensToSample": 8192,
+          "temperature": 0
+        }
+      },
+      "name": "Groq Narrative Repair Model",
+      "position": [
+        480,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Compact Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input + Freeze Deterministic Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input + Freeze Deterministic Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Four Compiler Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Four Compiler Slots": {
+      "main": [
+        [
+          {
+            "node": "Narrative Slot Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final Deterministic Quality Gate + Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Narrative Slot Call": {
+      "main": [
+        [
+          {
+            "node": "Strict Validate Narrative Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strict Validate Narrative Slot": {
+      "main": [
+        [
+          {
+            "node": "Slot Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Valid?": {
+      "main": [
+        [
+          {
+            "node": "Accumulate Validated Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Repair Failed Slot Once",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repair Failed Slot Once": {
+      "main": [
+        [
+          {
+            "node": "Strict Validate Repaired Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strict Validate Repaired Slot": {
+      "main": [
+        [
+          {
+            "node": "Accumulate Validated Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accumulate Validated Slot": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Four Compiler Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Narrative Slot Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Narrative Slot Call",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Narrative Repair Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Repair Failed Slot Once",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "id": "compact-groq-6a5e39c06c6f4635"
+}

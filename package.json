@@ -4,21 +4,24 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 5000",
-    "build": "rm -rf .next && next build",
+    "build": "next build",
     "start": "next start -p 10000",
+    "db:migrate": "node scripts/migrate.mjs",
     "verify": "bash scripts/verify-local-build.sh",
-    "test": "jest",
-    "test:cov": "jest --coverage"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@fusionstrings/swiss-eph": "^0.1.1",
+    "@sanity/client": "^6.29.1",
     "@types/stripe": "^8.0.416",
     "astronomia": "^4.2.0",
     "bcryptjs": "^2.4.3",
     "framer-motion": "^11.18.2",
     "groq-sdk": "^0.7.0",
     "jsonwebtoken": "^9.0.2",
-    "next": "15.0.0",
+    "next": "15.5.25",
     "pg": "^8.11.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -26,6 +29,7 @@
     "tz-lookup": "^6.1.25"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",
@@ -38,9 +42,14 @@
     "autoprefixer": "^10.5.4",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "postcss": "^8.5.25",
-    "tailwindcss": "^3.4.19",
-    "ts-jest": "^29.4.12",
+    "pdf-lib": "^1.17.1",
+    "postcss": "^8.5.23",
+    "tailwindcss": "^3.4.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.0"
   }
 }

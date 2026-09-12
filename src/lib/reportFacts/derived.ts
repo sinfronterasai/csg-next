@@ -1,0 +1,810 @@
+// Deterministic derived layer for VerifiedFactsV2. Reuses chartEngine (Swiss
+// Ephemeris) and astrology reference data. No prose, no model math. Every derived
+// fact carries provenance (the source fact ids it was computed from) and an exact
+// renderer-owned display string.
+//
+// Source discipline (R2-B10): facts that ARE the raw Swiss Ephemeris output
+// (planet positions, Ascendant, Midheaven) are 'swiss-ephemeris' ROOT facts with
+// no provenance. Facts COMPUTED from those roots (Descendant, IC, South Node, Part
+// of Fortune, chart ruler, tallies, aspects, patterns, rulers, occupants) are
+// 'derived-deterministic' and MUST carry provenance to their input fact ids.
+
+import { computeChart, normDeg, houseForLongitude, PLANET_BODIES, type ChartData, type PlanetPlacement, type HousePlacement } from '@/lib/chartEngine';
+import { signFromLongitude, dignityFor, getSign, getPlanet, SIGNS } from '@/lib/astrology';
+import { ASPECT_DEFS, angularDistance } from '@/lib/transit';
+import type {
+  CommonDerived, NodeValue, PositionValue, AspectFact, PatternFact, PatternValue, VerifiedFact,
+  Dignity, FactSource, HouseCusp, RulerFact, HouseOccupants,
+} from './types';
+
+const DIGNITY_LABEL: Record<string, string> = {
+  domicile: 'in domicile', exaltation: 'exalted', detriment: 'in detriment', fall: 'in fall',
+};
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+export function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+// F12-5: serialized position longitudes use one exact 2dp basis. Normalize after
+// rounding so a value near 360° cannot serialize as the out-of-range value 360.
+export function normalizePublishedLongitude(n: number): number {
+  return normDeg(round2(normDeg(n)));
+}
+
+// Engine longitude retained until each deterministic consumer selects its declared precision.
+
+// F13-1: ONE authoritative position registry, derived mechanically from PLANET_BODIES
+// plus the explicit angles and derived points. PLANET_BODIES already includes Chiron
+// (and Juno), so they are included automatically — no second hand-written planet list
+// that can drift. Every generated position wrapper (kind 'position' in the flat facts
+// map) MUST bind to one of these registry keys, with its nested value.key and canonical
+// label identical to the registry. A wrapper whose map key is not in this registry is an
+// escaped position fact and must be rejected.
+export type PositionKind = 'root' | 'angle' | 'derived';
+export interface PositionRegistryEntry {
+  factsKey: string;      // flat-facts map key, e.g. 'natal.sun.position'
+  nestedKey: string;     // value.key, e.g. 'sun'
+  label: string;         // canonical display label, e.g. 'Sun'
+  kind: PositionKind;
+  provenance: string[];  // [] for root/angle, inputs for derived
+}
+const ANGLE_ENTRIES: PositionRegistryEntry[] = [
+  { factsKey: 'natal.ascendant.position', nestedKey: 'ascendant', label: 'Ascendant', kind: 'angle', provenance: [] },
+  { factsKey: 'natal.midheaven.position', nestedKey: 'midheaven', label: 'Midheaven', kind: 'angle', provenance: [] },
+];
+const DERIVED_ENTRIES: PositionRegistryEntry[] = [
+  { factsKey: 'natal.southnode.position', nestedKey: 'southnode', label: 'South Node', kind: 'derived', provenance: ['natal.northnode.position'] },
+  { factsKey: 'natal.descendant.position', nestedKey: 'descendant', label: 'Descendant', kind: 'derived', provenance: ['natal.ascendant.position'] },
+  { factsKey: 'natal.icumcoeli.position', nestedKey: 'icumcoeli', label: 'Imum Coeli', kind: 'derived', provenance: ['natal.midheaven.position'] },
+  { factsKey: 'natal.partoffortune.position', nestedKey: 'partoffortune', label: 'Part of Fortune', kind: 'derived', provenance: ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position'] },
+];
+export const POSITION_REGISTRY: PositionRegistryEntry[] = [
+  ...PLANET_BODIES.map((b) => {
+    const info = getPlanet(b.key) || { label: b.key };
+    return { factsKey: `natal.${b.key}.position`, nestedKey: b.key, label: info.label, kind: 'root' as PositionKind, provenance: [] };
+  }),
+  ...ANGLE_ENTRIES,
+  ...DERIVED_ENTRIES,
+];
+export const POSITION_REGISTRY_MAP: Record<string, PositionRegistryEntry> = Object.fromEntries(
+  POSITION_REGISTRY.map((e) => [e.factsKey, e]),
+);
+
+// F13-3: a marker value that a derived-point wrapper must never carry, used to prove the
+// re-derived semantic functions reject a corrupted value (e.g. South Node set to a coordinate
+// that is NOT North Node + 180).
+export const ESCAPED_POSITION = '__escaped_position__';
+
+// F13-1/F13-2: validate a position value against the authoritative registry. Both the
+// nested value.key and the canonical label must equal the registry entry bound to the
+// facts-map key, the longitude must be exactly the normalized 2dp basis, and the dignity
+// must equal dignityFor(key, sign) (null for non-dignity points). Returns null when valid.
+export function validateRegistryPositionValue(
+  factsKey: string,
+  value: any,
+  opts: { uncertainPolicy?: 'optional' | 'forbidden' | 'required-false' | 'required-true'; allowEscape?: boolean } = {},
+): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry) return `position factsKey ${JSON.stringify(factsKey)} is not in the authoritative registry`;
+  if (!value || typeof value !== 'object') return 'position value missing';
+  if (value.key !== entry.nestedKey) return `position value.key ${JSON.stringify(value.key)} != registry ${JSON.stringify(entry.nestedKey)}`;
+  if (value.label !== entry.label) return `position value.label ${JSON.stringify(value.label)} != registry ${JSON.stringify(entry.label)}`;
+  if (opts.allowEscape !== true && value.longitude === ESCAPED_POSITION) return 'escaped position longitude';
+  if (typeof value.longitude !== 'number') return 'longitude not a number';
+  if (value.longitude !== normalizePublishedLongitude(value.longitude)) return `longitude ${value.longitude} not equal to normalizePublishedLongitude(${value.longitude})`;
+  const derived = signFromLongitude(value.longitude);
+  if (value.sign !== derived.sign.key) return `sign ${value.sign} inconsistent with longitude ${value.longitude}`;
+  const expectedDignity = dignityFor(entry.nestedKey, derived.sign.key);
+  if (value.dignity !== expectedDignity) return `dignity ${JSON.stringify(value.dignity)} != dignityFor(${entry.nestedKey}, ${derived.sign.key}) = ${JSON.stringify(expectedDignity)}`;
+  if (opts.uncertainPolicy === 'forbidden' && value.uncertain !== undefined) return 'uncertain must be absent under known-time policy';
+  if (opts.uncertainPolicy === 'required-false') {
+    if (value.uncertain !== false) return `uncertain must be false under unknown-time policy, got ${JSON.stringify(value.uncertain)}`;
+  }
+  if (opts.uncertainPolicy === 'optional' && value.uncertain !== undefined && typeof value.uncertain !== 'boolean') return 'uncertain must be boolean';
+  if (opts.uncertainPolicy === 'required-true') {
+    if (value.uncertain !== true) return `uncertain must be true under unknown-time policy, got ${JSON.stringify(value.uncertain)}`;
+  }
+  return null;
+}
+
+// F13-3: re-derive a derived-point's truth from its canonical provenance and return a
+// comparison error string when the wrapper value does not equal the independent recomputation.
+// No tolerance bands. `longitudes` is the registry of canonical normalized longitudes keyed
+// by nested key (ascendant, midheaven, northnode, sun, moon, ...).
+const ANGLE_HOUSE: Record<string, number> = { ascendant: 1, midheaven: 10, descendant: 7, icumcoeli: 4 };
+export function issueDerivedTruth(
+  factsKey: string,
+  value: any,
+  longitudes: Record<string, number>,
+  cusps: number[],
+): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry || entry.kind !== 'derived') return null;
+  const expectedLong = (() => {
+    switch (entry.nestedKey) {
+      case 'southnode': return normDeg((longitudes['northnode'] ?? 0) + 180);
+      case 'descendant': return normDeg((longitudes['ascendant'] ?? 0) + 180);
+      case 'icumcoeli': return normDeg((longitudes['midheaven'] ?? 0) + 180);
+      case 'partoffortune': {
+        const asc = longitudes['ascendant'] ?? 0;
+        const sun = longitudes['sun'] ?? 0;
+        const moon = longitudes['moon'] ?? 0;
+        const isDay = (longitudes['sunHouse'] ?? 0) >= 7;
+        return normalizePublishedLongitude(isDay ? asc + moon - sun : asc + sun - moon);
+      }
+      default: return undefined;
+    }
+  })();
+  if (expectedLong === undefined) return `derived ${entry.nestedKey} has no truth rule`;
+  const normExpected = normalizePublishedLongitude(expectedLong);
+  if (value.longitude !== normExpected) return `derived ${entry.nestedKey} longitude ${value.longitude} != re-derived ${normExpected}`;
+  if (entry.nestedKey === 'partoffortune') return null; // POF house validated in validatePofValue
+  const expectedHouse = entry.nestedKey === 'descendant' ? 7 : entry.nestedKey === 'icumcoeli' ? 4 : houseForLongitude(normExpected, cusps);
+  if (value.house !== expectedHouse) return `derived ${entry.nestedKey} house ${value.house} != re-derived ${expectedHouse}`;
+  if (value.retrograde !== false) return `derived ${entry.nestedKey} retrograde must be false`;
+  if (value.dignity !== null) return `derived ${entry.nestedKey} dignity must be null`;
+  return null;
+}
+
+// F13-2: lock angle houses to their canonical values (ASC/MC/DSC/IC = 1/10/7/4).
+export function issueAngleHouse(factsKey: string, value: any): string | null {
+  const entry = POSITION_REGISTRY_MAP[factsKey];
+  if (!entry || entry.kind !== 'angle') return null;
+  const expected = ANGLE_HOUSE[entry.nestedKey];
+  if (value.house !== expected) return `angle ${entry.nestedKey} house ${value.house} != locked ${expected}`;
+  return null;
+}
+
+// F14-3 / F15-1 / F15-3: mechanically generate the exact expected JPL timestamp sequence
+// from a manifest row's start/stop/step. The contract is STRICT and fail-closed:
+//   - the date/time string is parsed NUMERICALLY and every component is range-checked
+//     (month 1-12, hour 0-23, minute 0-59, day valid for the exact month/year, leap-aware);
+//     regex-valid but impossible values (e.g. 2025-02-29, Feb 30, hour 24) are REJECTED,
+//     never silently normalized by Date.UTC.
+//   - the resulting UTC instant is ROUND-TRIPPED through all five components for exact
+//     equality with the parsed input, guarding JavaScript's special handling of years 0-99.
+//   - an unsupported runtime step throws.
+//   - the inclusive contract APPENDS the stop endpoint, so start === stop is a valid
+//     one-element sequence [start]; ONLY a strictly decreasing window (start > stop) is
+//     rejected. Non-singleton windows must be exactly divisible by step.
+// The sequence is generated ONLY by exact step increments (no unaligned final point).
+export function mechanicalJplTimestamps(start: string, stop: string, step: '1 h' | '1 d'): string[] {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const WIN = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+  const daysInMonth = (year: number, month: number): number => {
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return days[month - 1];
+  };
+  const parse = (iso: string): number => {
+    const m = WIN.exec(iso);
+    if (!m) throw new Error(`bad window value: ${iso}`);
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const hour = Number(m[4]);
+    const minute = Number(m[5]);
+    if (month < 1 || month > 12) throw new Error(`month ${month} out of range in ${iso}`);
+    if (hour < 0 || hour > 23) throw new Error(`hour ${hour} out of range in ${iso}`);
+    if (minute < 0 || minute > 59) throw new Error(`minute ${minute} out of range in ${iso}`);
+    if (day < 1 || day > daysInMonth(year, month)) throw new Error(`day ${day} invalid for ${year}-${String(month).padStart(2, '0')} in ${iso}`);
+    const d = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+    d.setUTCFullYear(year);
+    const ms = d.getTime();
+    if (
+      d.getUTCFullYear() !== year ||
+      d.getUTCMonth() + 1 !== month ||
+      d.getUTCDate() !== day ||
+      d.getUTCHours() !== hour ||
+      d.getUTCMinutes() !== minute
+    ) {
+      throw new Error(`calendar/time ${iso} failed round-trip validation`);
+    }
+    return ms;
+  };
+  const fmt = (ms: number): string => {
+    const d = new Date(ms);
+    const iso = `${String(d.getUTCFullYear()).padStart(4, "0")}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const m = WIN.exec(iso)!;
+    return `${m[1]}-${MONTHS[Number(m[2]) - 1]}-${m[3]} ${m[4]}:${m[5]}`;
+  };
+  const stepMs = step === '1 h' ? 3600_000 : step === '1 d' ? 86_400_000 : (() => { throw new Error(`unsupported step: ${step}`); })();
+  const startMs = parse(start);
+  const endMs = parse(stop);
+  if (endMs < startMs) throw new Error(`JPL window start > stop: ${start} > ${stop}`);
+  if (endMs === startMs) return [fmt(startMs)];
+  const stepsExact = (endMs - startMs) / stepMs;
+  if (!Number.isInteger(stepsExact) || stepsExact <= 0) {
+    throw new Error(`JPL window ${start}..${stop} (step ${step}) not exactly divisible by step`);
+  }
+  const out: string[] = [];
+  for (let i = 0; i <= stepsExact; i++) out.push(fmt(startMs + i * stepMs));
+  return out;
+}
+
+// F13-4: assert a raw JPL row sequence is exactly the mechanical expectation and that the
+// selected timestamp + row uniqueness hold. Returns a failure string or null.
+export function enforceJplSequenceAuthority(
+  rawResult: string,
+  row: { start: string; stop: string; step: '1 h' | '1 d'; timeToken: string; file: string },
+): string | null {
+  const JPL_ROW_PATTERN = /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/;
+  const jplRows = (s: string) => s.split('\n').filter((l) => JPL_ROW_PATTERN.test(l));
+  const jplTimestamp = (line: string) => {
+    const m = /(\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2}),/.exec(line);
+    if (!m) throw new Error(`unparseable JPL timestamp row: ${line}`);
+    return m[1];
+  };
+  const timestamps = jplRows(rawResult).map(jplTimestamp);
+  const expected = mechanicalJplTimestamps(row.start, row.stop, row.step);
+  if (JSON.stringify(timestamps) !== JSON.stringify(expected)) {
+    return `JPL sequence ${JSON.stringify(timestamps)} != mechanical ${JSON.stringify(expected)}`;
+  }
+  if (new Set(timestamps).size !== timestamps.length) return 'JPL timestamps not unique';
+  if (timestamps.filter((t) => t === row.timeToken).length !== 1) return `selected token ${row.timeToken} not unique`;
+  return null;
+}
+
+interface BodyLong {
+  id: string; key: string; label: string; longitude: number; full: PlanetPlacement;
+}
+
+// T3-3: Locked aspect set from 00-shared-foundation.md.
+// Major: conjunction, opposition, trine, square, sextile
+// Minor: quincunx, semi-sextile, semi-square, sesquisquare
+// Default orbs: luminaries (Sun+Moon) 10°, planets 8°, minor 2°
+// Body-aware orb selection in buildAspects.
+export const ASPECT_ORBS: { type: string; angle: number; orb: number; minor: boolean }[] = [
+  { type: 'conjunction', angle: 0, orb: 8, minor: false },
+  { type: 'sextile', angle: 60, orb: 8, minor: false },
+  { type: 'square', angle: 90, orb: 8, minor: false },
+  { type: 'trine', angle: 120, orb: 8, minor: false },
+  { type: 'opposition', angle: 180, orb: 8, minor: false },
+  // Minor aspects (locked 2° orb):
+  { type: 'semi-sextile', angle: 30, orb: 2, minor: true },
+  { type: 'semi-square', angle: 45, orb: 2, minor: true },
+  { type: 'sesquisquare', angle: 135, orb: 2, minor: true },
+  { type: 'quincunx', angle: 150, orb: 2, minor: true },
+];
+
+// Check if a body is a luminary (Sun or Moon)
+function isLuminary(key: string): boolean {
+  return key === 'sun' || key === 'moon';
+}
+
+// F4-10: luminary 10° when EITHER endpoint is a luminary (Sun or Moon)
+function getOrbForBodies(def: typeof ASPECT_ORBS[0], bodyA: string, bodyB: string): number {
+  if (def.minor) return 2; // All minor aspects use 2° orb
+  // Major aspects: 10° if either endpoint is a luminary, 8° otherwise
+  if (isLuminary(bodyA) || isLuminary(bodyB)) return 10;
+  return 8;
+}
+
+function positionFact(id: string, key: string, label: string, longitude: number, house: number | null, retrograde: boolean, source: FactSource = 'swiss-ephemeris', provenance?: string[]): VerifiedFact {
+  const normalizedLongitude = normalizePublishedLongitude(longitude);
+  const { sign, degreeInSign: rawDegreeInSign } = signFromLongitude(normalizedLongitude);
+  const degreeInSign = round2(rawDegreeInSign);
+  const dignity = dignityFor(key, sign.key) as Dignity;
+  const houseStr = house != null ? ` in the ${ordinal(house)} house` : '';
+  const retro = retrograde ? ' (retrograde)' : '';
+  const dig = dignity ? `, ${DIGNITY_LABEL[dignity]}` : '';
+  return {
+    id, kind: 'position', source,
+    display: `${label} at ${degreeInSign.toFixed(2)}° ${sign.label}${houseStr}${dig}${retro}`,
+    value: { key, label, longitude: normalizedLongitude, degreeInSign, sign: sign.key, signLabel: sign.label, house, retrograde, dignity },
+    ...(provenance !== undefined ? { provenance } : {}),
+  };
+}
+
+function toNodeValue(fact: VerifiedFact): NodeValue {
+  return { ...(fact.value as PositionValue), display: fact.display } as NodeValue;
+}
+
+// Resolve the ruling planet key for a sign (lowercased planet key).
+export function rulerKeyForSign(signKey: string): string {
+  const sign = SIGNS.find((s) => s.key === signKey) || getSign(signKey as any);
+  return (sign?.ruler || '').toLowerCase();
+}
+
+// Build a RulerFact for a house (by its cusp sign). Provenance = the ruler planet
+// position fact + the cusp reference (surfaced as a cusp fact).
+// F4-2: houseRuler derives all placement fields from the ruler planet's actual natal
+// position fact, not the cusp sign. Fail closed if the ruler position is absent.
+function houseRuler(cusp: HouseCusp, houseNum: number, cuspId: string, chart: ChartData): RulerFact {
+  const rk = rulerKeyForSign(cusp.sign);
+  const info = getPlanet(rk) || { label: rk };
+  const rulerPlanet = chart.planets.find(p => p.key === rk);
+  if (!rulerPlanet) throw new Error(`ruler planet ${rk} position not found for house ${houseNum}`);
+  const { sign, degreeInSign } = signFromLongitude(rulerPlanet.longitude);
+  const cond = dignityFor(rk, sign.key) as Dignity;
+  const condition = cond ? DIGNITY_LABEL[cond] : `in ${sign.label}`;
+  return {
+    house: houseNum, ruler: rk, rulerLabel: info.label,
+    sign: sign.key,
+    degreeInSign: round2(degreeInSign),
+    house_of_ruler: rulerPlanet.house ?? null,
+    retrograde: rulerPlanet.retrograde,
+    dignity: cond,
+    condition,
+    provenance: [cuspId, `natal.${rk}.position`],
+  };
+}
+
+export async function buildCommonDerived(chart: ChartData, unknownTime: boolean = (chart.birth?.unknownTime ?? false)): Promise<CommonDerived> {
+  // chart.planets already includes Juno (added to PLANET_BODIES in chartEngine), so
+  // the initial map yields exactly one Juno fact. We must NOT push a second one
+  // (R2-B1). Enforce unique IDs across every collection at the end.
+  const bodies: BodyLong[] = chart.planets.map((p) => ({
+    id: `natal.${p.key}.position`, key: p.key, label: p.label, longitude: p.longitude, full: p,
+  }));
+
+  const positions: VerifiedFact[] = chart.planets.map((p) =>
+    positionFact(`natal.${p.key}.position`, p.key, p.label, p.longitude, p.house, p.retrograde, 'swiss-ephemeris', undefined),
+  );
+  const byKey: Record<string, VerifiedFact> = {};
+  for (const f of positions) byKey[f.id] = f;
+
+  const north = chart.planets.find((p) => p.key === 'northnode')!;
+  const southLong = normDeg(north.longitude + 180);
+  const southHouse = unknownTime ? null : houseForLongitude(southLong, chart.cusps);
+  const southFact = positionFact('natal.southnode.position', 'southnode', 'South Node', southLong, southHouse, false, 'derived-deterministic', ['natal.northnode.position']);
+  positions.push(southFact);
+  byKey['natal.southnode.position'] = southFact;
+
+  const northNode = toNodeValue(byKey['natal.northnode.position']);
+  const southNode = toNodeValue(southFact);
+  const junoNode = toNodeValue(byKey['natal.juno.position']); // single Juno fact (R2-B1)
+
+  const moonBody = bodies.find((b) => b.key === 'moon');
+  const timeSensitiveKeys = new Set<string>(['moon']);
+  if (unknownTime) {
+    delete byKey['natal.moon.position'];
+    const idx = positions.findIndex((f) => f.id === 'natal.moon.position');
+    if (idx >= 0) positions.splice(idx, 1);
+    for (const f of positions) {
+      const v = f.value as any;
+      if (v.key !== 'sun' && v.key !== 'northnode' && v.key !== 'southnode' && v.key !== 'juno') {
+        (v as any).uncertain = true;
+        f.display += ' (approximate; birth time unknown)';
+      }
+    }
+  }
+
+  let partOfFortune: VerifiedFact | undefined;
+  let chartRuler: VerifiedFact | undefined;
+  let ascendant: NodeValue | undefined;
+  let descendant: NodeValue | undefined;
+  let midheaven: NodeValue | undefined;
+  let icumcoeli: NodeValue | undefined;
+  let houses: HouseCusp[] | undefined;
+  let rulers: CommonDerived['rulers'];
+  let occupants: HouseOccupants[] | undefined;
+  let nodalRulers: CommonDerived['nodalRulers'];
+  let pofLong: number | undefined; // F5-6: hoisted for aspect computation
+
+  if (!unknownTime) {
+    // F12-5: POF authority is the same normalized 2dp basis published by the
+    // canonical ASC/Sun/Moon position facts, not hidden full-precision engine values.
+    const ascLong = normalizePublishedLongitude(chart.ascendant.longitude);
+    const moonLong = normalizePublishedLongitude(chart.moon.longitude);
+    const sunLong = normalizePublishedLongitude(chart.sun.longitude);
+
+    // Ascendant / Midheaven ARE Swiss Eph root output -> swiss-ephemeris, no provenance.
+    const ascendantFact = positionFact('natal.ascendant.position', 'ascendant', 'Ascendant', chart.ascendant.longitude, 1, false, 'swiss-ephemeris');
+    const midheavenFact = positionFact('natal.midheaven.position', 'midheaven', 'Midheaven', chart.midheaven.longitude, 10, false, 'swiss-ephemeris');
+    // Descendant / IC are DERIVED (opposite points) -> derived-deterministic + provenance.
+    const descendantFact = positionFact('natal.descendant.position', 'descendant', 'Descendant', normDeg(chart.ascendant.longitude + 180), 7, false, 'derived-deterministic', ['natal.ascendant.position']);
+    const icumcoeliFact = positionFact('natal.icumcoeli.position', 'icumcoeli', 'Imum Coeli', normDeg(chart.midheaven.longitude + 180), 4, false, 'derived-deterministic', ['natal.midheaven.position']);
+    positions.push(ascendantFact, descendantFact, midheavenFact, icumcoeliFact);
+    byKey['natal.ascendant.position'] = ascendantFact;
+    byKey['natal.descendant.position'] = descendantFact;
+    byKey['natal.midheaven.position'] = midheavenFact;
+    byKey['natal.icumcoeli.position'] = icumcoeliFact;
+    ascendant = toNodeValue(ascendantFact);
+    descendant = toNodeValue(descendantFact);
+    midheaven = toNodeValue(midheavenFact);
+    icumcoeli = toNodeValue(icumcoeliFact);
+
+    // F4-3/F4-4: compute Part of Fortune exactly ONCE. Reuse identical full-precision
+    // point for the fact, its house, and the aspect grid. Emit sect/formula metadata.
+    // Day (Sun in houses 7-12): ASC + Moon - Sun
+    // Night (Sun in houses 1-6): ASC + Sun - Moon
+    const sunHouse = chart.sun.house;
+    const isDay = sunHouse !== null && sunHouse >= 7 && sunHouse <= 12;
+    const sect: 'day' | 'night' = isDay ? 'day' : 'night';
+    const formula = isDay ? 'day:ASC+MOON-SUN' : 'night:ASC+SUN-MOON';
+    pofLong = normalizePublishedLongitude(isDay
+      ? ascLong + moonLong - sunLong
+      : ascLong + sunLong - moonLong);
+    const pofHouse = houseForLongitude(pofLong, chart.cusps);
+    const pofFact = positionFact('natal.partoffortune.position', 'partoffortune', 'Part of Fortune', pofLong, pofHouse, false, 'derived-deterministic', ['natal.ascendant.position', 'natal.moon.position', 'natal.sun.position']);
+    // Inject sect/formula metadata into the POF value (F4-4)
+    (pofFact.value as any).sect = sect;
+    (pofFact.value as any).formula = formula;
+    partOfFortune = pofFact;
+    positions.push(partOfFortune);
+    byKey['natal.partoffortune.position'] = partOfFortune;
+
+    const ascSign = getSign(chart.ascendant.sign)!;
+    const rulerKey = ascSign.ruler.toLowerCase();
+    const rulerPlanet = chart.planets.find((p) => p.key === rulerKey)!;
+    const rulerDignity = dignityFor(rulerKey, rulerPlanet.sign);
+    const rulerCondition = rulerDignity ? DIGNITY_LABEL[rulerDignity] : 'in no special dignity';
+    chartRuler = {
+      id: 'common.chartRuler', kind: 'point', source: 'derived-deterministic',
+      display: `Chart ruler ${getPlanet(rulerKey)!.label} at ${rulerPlanet.degreeInSign.toFixed(2)}° ${rulerPlanet.signLabel}, ${rulerCondition}`,
+      value: { planet: rulerKey, label: getPlanet(rulerKey)!.label, sign: rulerPlanet.sign, condition: rulerCondition },
+      provenance: ['natal.ascendant.position', `natal.${rulerKey}.position`],
+    };
+
+    // House cusps (R2-B6) — 12 cusps surfaced as HouseCusp facts.
+    houses = chart.cusps.slice(1, 13).map((c, i) => {
+      const num = i + 1;
+      const { sign } = signFromLongitude(c);
+      return { num, cuspLongitude: round2(c), sign: sign.key, signLabel: sign.label };
+    });
+    const cuspFacts = houses.map((h) => ({ id: `common.cusp.${h.num}`, fact: h }));
+    for (const cf of cuspFacts) byKey[cf.id] = { id: cf.id, kind: 'point', source: 'derived-deterministic', display: `House ${cf.fact.num} cusp at ${signFromLongitude(cf.fact.cuspLongitude).degreeInSign.toFixed(2)}° ${cf.fact.signLabel}`, value: cf.fact, provenance: [] } as VerifiedFact;
+
+    // Rulers: 7th (DSC), 2nd, 6th, 10th (MC).
+    const dscCusp = houses[6]; // house 7
+    const secondCusp = houses[1];
+    const sixthCusp = houses[5];
+    const tenthCusp = houses[9];
+    rulers = {
+      dsc: houseRuler(dscCusp, 7, `common.cusp.7`, chart),
+      second: houseRuler(secondCusp, 2, `common.cusp.2`, chart),
+      sixth: houseRuler(sixthCusp, 6, `common.cusp.6`, chart),
+      tenth: houseRuler(tenthCusp, 10, `common.cusp.10`, chart),
+    };
+
+    // Occupants: bodies in each house.
+    occupants = houses.map((h) => ({
+      house: h.num,
+      occupants: chart.planets
+        .filter((p) => p.house === h.num)
+        .map((p) => ({ body: p.key, label: p.label, positionId: `natal.${p.key}.position` })),
+    }));
+
+    // F4-1: nodal rulers resolved from the ACTUAL ruler planet position (not node sign).
+    const nRk = rulerKeyForSign(northNode.sign);
+    const sRk = rulerKeyForSign(southNode.sign);
+    const nRulerPlanet = chart.planets.find(p => p.key === nRk);
+    const sRulerPlanet = chart.planets.find(p => p.key === sRk);
+    if (!nRulerPlanet || !sRulerPlanet) throw new Error('nodal ruler planet position not found');
+    const nRulerSign = signFromLongitude(nRulerPlanet.longitude);
+    const sRulerSign = signFromLongitude(sRulerPlanet.longitude);
+    const nCond = dignityFor(nRk, nRulerSign.sign.key) as Dignity;
+    const sCond = dignityFor(sRk, sRulerSign.sign.key) as Dignity;
+    nodalRulers = {
+      north: {
+        house: 0, ruler: nRk, rulerLabel: getPlanet(nRk)!.label,
+        sign: nRulerSign.sign.key,
+        degreeInSign: round2(nRulerSign.degreeInSign),
+        house_of_ruler: nRulerPlanet.house ?? null,
+        retrograde: nRulerPlanet.retrograde,
+        dignity: nCond,
+        condition: nCond ? DIGNITY_LABEL[nCond] : `in ${nRulerSign.sign.label}`,
+        provenance: ['natal.northnode.position', `natal.${nRk}.position`],
+      },
+      south: {
+        house: 0, ruler: sRk, rulerLabel: getPlanet(sRk)!.label,
+        sign: sRulerSign.sign.key,
+        degreeInSign: round2(sRulerSign.degreeInSign),
+        house_of_ruler: sRulerPlanet.house ?? null,
+        retrograde: sRulerPlanet.retrograde,
+        dignity: sCond,
+        condition: sCond ? DIGNITY_LABEL[sCond] : `in ${sRulerSign.sign.label}`,
+        provenance: ['natal.southnode.position', `natal.${sRk}.position`],
+      },
+    };
+  }
+
+  let moonPhase: VerifiedFact | undefined;
+  if (!unknownTime) {
+    const elong = normDeg(chart.moon.longitude - chart.sun.longitude);
+    const phase = round2(elong / 360);
+    moonPhase = {
+      id: 'common.moonPhase', kind: 'phase', source: 'derived-deterministic',
+      display: `Moon phase ${moonPhaseLabel(phase)} (${phase.toFixed(2)} of cycle)`,
+      value: { phase, label: moonPhaseLabel(phase) },
+      provenance: ['natal.moon.position', 'natal.sun.position'],
+    };
+  }
+
+  // Aspects: FULL-precision longitudes, major + minor set (R2-B7). Under known-time,
+  // include the four angles so MC/ascendant aspects resolve (R2-B6). Under
+  // unknown-time, drop Moon-involving aspects and angles (absent).
+  const aspectBodies = bodies.filter((b) => !(unknownTime && timeSensitiveKeys.has(b.key)));
+  if (!unknownTime && ascendant && descendant && midheaven && icumcoeli) {
+    // Include the angles AND the derived points (South Node, Part of Fortune) in
+    // the aspect computation (R2-B13) so MC/nodal/POF aspects can actually exist
+    // for vocation (MC aspects) and karmic (South-Node aspects) evidence.
+    const southLong = normDeg(northNode.longitude + 180);
+    // F4-3: reuse the IDENTICAL full-precision pofLong computed above (no recompute)
+    const extra: BodyLong[] = [
+      { id: 'natal.ascendant.position', key: 'ascendant', label: 'Ascendant', longitude: chart.ascendant.longitude, full: chart.planets[0] },
+      { id: 'natal.descendant.position', key: 'descendant', label: 'Descendant', longitude: normDeg(chart.ascendant.longitude + 180), full: chart.planets[0] },
+      { id: 'natal.midheaven.position', key: 'midheaven', label: 'Midheaven', longitude: chart.midheaven.longitude, full: chart.planets[0] },
+      { id: 'natal.icumcoeli.position', key: 'icumcoeli', label: 'Imum Coeli', longitude: normDeg(chart.midheaven.longitude + 180), full: chart.planets[0] },
+      { id: 'natal.southnode.position', key: 'southnode', label: 'South Node', longitude: southLong, full: chart.planets[0] },
+      // F5-6: reuse the SAME full-precision pofLong variable (no rounding) for aspect math
+      { id: 'natal.partoffortune.position', key: 'partoffortune', label: 'Part of Fortune', longitude: pofLong!, full: chart.planets[0] },
+    ];
+    aspectBodies.push(...extra);
+  }
+  const aspects: AspectFact[] = buildAspects(aspectBodies);
+
+  // Correct minimum-orb top aspect per body (R2-B2): track current min directly.
+  const topMap: Record<string, string> = {};
+  const topOrb: Record<string, number> = {};
+  for (const a of aspects) {
+    for (const k of [a.value.bodyA, a.value.bodyB]) {
+      const cur = topMap[k];
+      if (!cur || a.value.orb < topOrb[cur]) { topMap[k] = a.id; topOrb[topMap[k]] = a.value.orb; }
+    }
+  }
+  // Surface as a single stable citable VerifiedFact (R2-B10) — not a raw alias map.
+  const topValue = Object.entries(topMap).map(([body, aspectId]) => ({ body, aspectId, orb: topOrb[aspectId] }));
+  const topAspectByBody: VerifiedFact = {
+    id: 'common.topAspectByBody', kind: 'meta', source: 'derived-deterministic',
+    display: `Top aspect per body (${topValue.length} bodies)`,
+    value: topValue, provenance: Object.values(topMap),
+  };
+
+  // Element / modality tallies. Under unknown-time the Moon (noon) is excluded
+  // (R2-B5): tally only the nine non-time-sensitive planets.
+  const TEN = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+  const tallyKeys = unknownTime ? TEN.filter((k) => k !== 'moon') : TEN;
+  const elements: Record<string, number> = { Fire: 0, Earth: 0, Air: 0, Water: 0 };
+  const modalities: Record<string, number> = { Cardinal: 0, Fixed: 0, Mutable: 0 };
+  for (const key of tallyKeys) {
+    const p = chart.planets.find((x) => x.key === key);
+    if (!p) continue;
+    const sign = getSign(p.sign)!;
+    elements[sign.element] += 1;
+    modalities[sign.modality] += 1;
+  }
+  const presentPlanetIds = positions.filter((f) => f.kind === 'position' && tallyKeys.includes((f.value as any).key)).map((f) => f.id);
+  const elementsFact: VerifiedFact = { id: 'common.elements', kind: 'tally', source: 'derived-deterministic', display: `Element tally — Fire ${elements.Fire}, Earth ${elements.Earth}, Air ${elements.Air}, Water ${elements.Water}`, value: elements, provenance: presentPlanetIds };
+  const modalitiesFact: VerifiedFact = { id: 'common.modalities', kind: 'tally', source: 'derived-deterministic', display: `Modality tally — Cardinal ${modalities.Cardinal}, Fixed ${modalities.Fixed}, Mutable ${modalities.Mutable}`, value: modalities, provenance: presentPlanetIds };
+
+  const presentIds = new Set(positions.map((f) => f.id));
+  const patterns = buildPatterns(chart, aspects, presentIds);
+
+  // Unique-ID invariant across all collections (R2-B1).
+  assertUniqueIds(positions, aspects, patterns, [chartRuler, moonPhase, elementsFact, modalitiesFact].filter(Boolean) as VerifiedFact[]);
+
+  const ret: CommonDerived = {
+    positions, northNode, southNode, juno: junoNode, isSolarFallback: unknownTime,
+    moonPhase: moonPhase!, elements: elementsFact, modalities: modalitiesFact,
+    houses, rulers, occupants, nodalRulers,
+    aspects, topAspectByBody, patterns,
+  };
+  if (!unknownTime) {
+    ret.ascendant = ascendant; ret.descendant = descendant; ret.midheaven = midheaven; ret.icumcoeli = icumcoeli;
+    ret.chartRuler = chartRuler; ret.partOfFortune = partOfFortune;
+  } else {
+    // Solar fallback: only expose the Moon sign if it is INVARIANT across the whole
+    // local birth date (R2-B5). Otherwise omit it (do not fabricate a noon sign).
+    const sunP = chart.planets.find((p) => p.key === 'sun')!;
+    const moon = await moonSignInvariant(chart);
+    ret.solarSign = { sun: sunP.sign, sunLabel: sunP.signLabel };
+    if (moon) ret.solarSign.moon = { sign: moon.sign, signLabel: moon.signLabel, invariant: true };
+  }
+  return ret;
+}
+
+// Compute Moon sign at start and end of the local birth date; return the sign only
+// if identical (invariant). Otherwise returns null so the caller omits the Moon sign.
+async function moonSignInvariant(chart: ChartData): Promise<{ sign: string; signLabel: string } | null> {
+  try {
+    const start = await computeChart({ date: chart.birth.date, time: '00:00', location: chart.birth.location });
+    const end = await computeChart({ date: chart.birth.date, time: '23:59', location: chart.birth.location });
+    if (start.moon.sign === end.moon.sign) return { sign: start.moon.sign, signLabel: start.moon.signLabel };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function moonPhaseLabel(phase: number): string {
+  if (phase < 0.03 || phase > 0.97) return 'New Moon';
+  if (phase < 0.22) return 'Waxing Crescent';
+  if (phase < 0.28) return 'First Quarter';
+  if (phase < 0.47) return 'Waxing Gibbous';
+  if (phase < 0.53) return 'Full Moon';
+  if (phase < 0.72) return 'Waning Gibbous';
+  if (phase < 0.78) return 'Last Quarter';
+  return 'Waning Crescent';
+}
+
+// F4-11/F5-7: named thresholds for aspect determination (full-precision error)
+export const EXACT_ASPECT_EPSILON = 0.1; // degrees; exact aspect threshold
+export const TIGHT_ASPECT_THRESHOLD = 1.0; // degrees; tight aspect threshold
+// F6-11: exact/tight predicates use strict < so equality at the threshold is FALSE.
+export function isExactAspect(errorDeg: number): boolean { return errorDeg < EXACT_ASPECT_EPSILON; }
+export function isTightAspect(errorDeg: number): boolean { return errorDeg < TIGHT_ASPECT_THRESHOLD; }
+
+// F12-4: one shared comparator defines the published raw aspect order and the
+// validator's independently derived expected order.
+export function compareAspectFacts(a: AspectFact, b: AspectFact): number {
+  if (a.value.orb !== b.value.orb) return a.value.orb - b.value.orb;
+  if (a.value.aspectType !== b.value.aspectType) return a.value.aspectType.localeCompare(b.value.aspectType);
+  if (a.value.bodyA !== b.value.bodyA) return a.value.bodyA.localeCompare(b.value.bodyA);
+  return a.value.bodyB.localeCompare(b.value.bodyB);
+}
+
+// Aspects from the published 2dp longitude basis, locked major + minor set (T3-3).
+// Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
+// Output sorted by the canonical comparator above.
+export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
+  const out: AspectFact[] = [];
+  for (let i = 0; i < bodyList.length; i++) {
+    for (let j = i + 1; j < bodyList.length; j++) {
+      const a = bodyList[i]; const b = bodyList[j];
+      if (a.key === b.key) continue;
+      // F11-1: generation and validation share ONE authoritative precision basis. Position
+      // facts publish round2(longitude), so the aspect grid is computed from those SAME
+      // published longitudes. A validator recomputing from published endpoint positions then
+      // reproduces orb/weight/exact/tight exactly, so no acceptance band is needed.
+      const lonA = round2(a.longitude);
+      const lonB = round2(b.longitude);
+      for (const def of ASPECT_ORBS) {
+        const dist = angularDistance(lonA, lonB);
+        const error = Math.min(Math.abs(dist - def.angle), Math.abs(dist - (360 - def.angle)));
+        const orbLimit = getOrbForBodies(def, a.key, b.key);
+        if (error <= orbLimit) {
+          // F4-11/F5-7: exact + tight from named full-precision thresholds (strict <)
+          const exact = isExactAspect(error);
+          const tight = isTightAspect(error);
+          const orb = round2(error);
+          // F5-8: canonicalize endpoints (sorted by key) for stable id/provenance/values
+          const [first, second] = a.key <= b.key ? [a, b] : [b, a];
+          const id = `natal.aspect.${first.key}-${second.key}-${def.type}`;
+          out.push({
+            id, kind: 'aspect', source: 'derived-deterministic',
+            display: `${first.label} ${def.type} ${second.label} (orb ${orb}°)`,
+            // F5-8: bodyA/bodyB canonicalized (first.key <= second.key)
+            value: { bodyA: first.key, bodyB: second.key, aspectType: def.type, orb, tight, exact, bodyALabel: first.label, bodyBLabel: second.label, weight: aspectWeight(def.type, orb), minor: def.minor },
+            // F5-2/F5-8: provenance = exact endpoint position ids, canonical order
+            provenance: [first.id, second.id],
+          });
+        }
+      }
+    }
+  }
+  // T3-3 / F12-4: canonical raw serialization order.
+  return out.sort(compareAspectFacts);
+}
+
+export function aspectWeight(type: string, orb: number): number {
+  const base: Record<string, number> = { trine: 1, sextile: 0.6, conjunction: 0, square: -1, opposition: -0.8, 'semi-sextile': 0.2, 'semi-square': -0.4, sesquisquare: -0.4, quincunx: -0.3 };
+  const b = base[type] ?? 0;
+  const orbFactor = Math.max(0, 1 - orb / 8);
+  return Math.round(b * orbFactor * 100) / 100;
+}
+
+// Locked pattern engine (R2-B11): stellium, grand trine, T-square, yod.
+// Tightness semantics are explicit per type (see types.ts PatternValue):
+//  - stellium: angular span (max-min degreeInSign across participants).
+//  - grandTrine / tSquare / yod: max orb among the constituent aspects.
+// Bodies considered: all chart planets (nodes/POF/angles omitted from patterns,
+// which is the standard convention; aspects among them are still computed above).
+export function buildPatterns(chart: ChartData, aspects: AspectFact[], presentIds: Set<string>): PatternFact[] {
+  const out: PatternFact[] = [];
+  const planets = chart.planets.filter((p) => !['northnode', 'southnode', 'juno'].includes(p.key));
+  const longOf = (key: string) => planets.find((p) => p.key === key)?.longitude ?? null;
+  const labelOf = (key: string) => planets.find((p) => p.key === key)?.label ?? key;
+  const aspectBetween = (a: string, b: string, type: string) =>
+    aspects.find((x) => x.value.aspectType === type &&
+      ((x.value.bodyA === a && x.value.bodyB === b) || (x.value.bodyA === b && x.value.bodyB === a)));
+
+  // --- Stellium: 3+ planets in the same sign ---
+  const bySign: Record<string, string[]> = {};
+  for (const p of planets) (bySign[p.sign] ||= []).push(p.key);
+  for (const sign of Object.keys(bySign)) {
+    if (bySign[sign].length >= 3) {
+      // F6-10/F8-4: canonicalize participants (sorted by body key) AND build the ID from
+      // the sign plus the canonical participant keys (no traversal counter). This makes the
+      // fact identical across all chart-input permutations, including multiple Stelliums.
+      const sortedKeys = [...bySign[sign]].sort();
+      const canonical = sortedKeys.join('-');
+      const sortedLabels = sortedKeys.map((k) => labelOf(k));
+      const ids = sortedKeys.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
+      const degs = sortedKeys.map((k) => (planets.find((x) => x.key === k)!.degreeInSign));
+      const tightness = round2(Math.max(...degs) - Math.min(...degs));
+      out.push({
+        id: `natal.pattern.stellium-${sign}-${canonical}`, kind: 'pattern', source: 'derived-deterministic',
+        display: `Stellium in ${getSign(sign as any)!.label}: ${sortedLabels.join(', ')} (span ${tightness}°)`,
+        value: { name: 'Stellium', participants: sortedLabels, tightness, tightnessSemantics: 'angular-span' }, provenance: ids,
+      });
+    }
+  }
+
+  // --- Grand Trine: 3 bodies mutually trine (each pair within trine orb) ---
+  // --- T-square: 2 opposite + a third square to BOTH ---
+  // --- Yod: 2 sextile + a third quincunx (150°) to BOTH ---
+  const keys = planets.map((p) => p.key);
+  // F4-12: canonicalize participant keys (sorted) for stable ID across all permutations,
+  // while preserving semantic roles (base/apex) in the structured value.
+  // F5-8: canonicalize participants (sorted keys) for stable id + value + display.
+  // Semantic roles (base pair + apex) are preserved as typed fields, not injection.
+  const pushPattern = (name: 'GrandTrine' | 'TSquare' | 'Yod', trio: string[], orbs: number[], roles?: { base: string[]; apex: string }) => {
+    const sorted = [...trio].sort();
+    const labels = sorted.map(labelOf);
+    const ids = sorted.map((k) => `natal.${k}.position`).filter((id) => presentIds.has(id));
+    const tightness = round2(Math.max(...orbs));
+    const canonical = sorted.join('-');
+    const value: PatternValue = {
+      name, participants: labels, tightness, tightnessSemantics: 'max-orb',
+      roles: roles ? { base: [...roles.base].sort(), apex: roles.apex } : undefined,
+    };
+    out.push({
+      id: `natal.pattern.${name.toLowerCase()}-${canonical}`,
+      kind: 'pattern', source: 'derived-deterministic',
+      display: `${name}: ${labels.join(', ')} (max orb ${tightness}°)`,
+      value, provenance: ids,
+    });
+  };
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      for (let k = j + 1; k < keys.length; k++) {
+        const trio = [keys[i], keys[j], keys[k]];
+        // Grand trine: all three pairs trine.
+        const g = [aspectBetween(trio[0], trio[1], 'trine'), aspectBetween(trio[1], trio[2], 'trine'), aspectBetween(trio[0], trio[2], 'trine')];
+        if (g.every(Boolean)) pushPattern('GrandTrine', trio, g.map((x) => (x!.value as any).orb));
+        // T3-2: T-square and Yod detection must be role-order independent.
+        // Check all three pairs for the base aspect, not just trio[0]-trio[1].
+
+        // T-square: find opposition pair, third body squares both
+        const pairs = [[0,1,2], [0,2,1], [1,2,0]]; // [baseA, baseB, apex]
+        for (const [a, b, apex] of pairs) {
+          const op = aspectBetween(trio[a], trio[b], 'opposition');
+          const sq1 = aspectBetween(trio[apex], trio[a], 'square');
+          const sq2 = aspectBetween(trio[apex], trio[b], 'square');
+          if (op && sq1 && sq2) {
+            pushPattern('TSquare', trio, [op.value.orb, sq1.value.orb, sq2.value.orb], { base: [trio[a], trio[b]], apex: trio[apex] });
+            break;
+          }
+        }
+
+        // Yod: find sextile base, third body quincunx to both
+        for (const [a, b, apex] of pairs) {
+          const sext = aspectBetween(trio[a], trio[b], 'sextile');
+          const q1 = aspectBetween(trio[apex], trio[a], 'quincunx') || aspectBetween(trio[apex], trio[a], 'inconjunct');
+          const q2 = aspectBetween(trio[apex], trio[b], 'quincunx') || aspectBetween(trio[apex], trio[b], 'inconjunct');
+          if (sext && q1 && q2) {
+            pushPattern('Yod', trio, [sext.value.orb, q1.value.orb, q2.value.orb], { base: [trio[a], trio[b]], apex: trio[apex] });
+            break;
+          }
+        }
+      }
+    }
+  }
+  // F9-10: canonicalize the final pattern array order (by id) so raw serialized output is
+  // stable across all chart-input permutations, including multiple Stelliums. Tests compare
+  // the complete raw arrays without reviewer-side sorting.
+  out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return out;
+}
+
+// Enforce unique fact IDs across every collection (R2-B1).
+function assertUniqueIds(...collections: VerifiedFact[][]): void {
+  const seen = new Set<string>();
+  for (const col of collections) {
+    for (const f of col) {
+      if (seen.has(f.id)) throw new Error(`duplicate fact id: ${f.id}`);
+      seen.add(f.id);
+    }
+  }
+}
+
+export async function computeVerifiedCommon(birth: { date: string; time?: string; location: string; timezone?: string; latitude?: number; longitude?: number; unknownTime?: boolean; name?: string }): Promise<CommonDerived> {
+  const chart = await computeChart({ ...birth, unknownTime: !!birth.unknownTime, requireAllBodies: true });
+  return buildCommonDerived(chart, !!birth.unknownTime);
+}

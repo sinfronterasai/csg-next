@@ -12,3 +12,6 @@ pnpm-debug.log*
 *.pem
 .vercel
 .netlify
+# Licensed research/build input; provision explicitly, never commit binary data.
+.local-ephemeris/
+data/ephemeris/*.se1
