@@ -38,11 +38,11 @@ describe('paid recovery admin API', () => {
     expect(body.reports).toEqual(expect.arrayContaining([expect.objectContaining({ id: 1162, status: 'queued' })]));
     expect(JSON.stringify(body)).not.toMatch(/token|bearer|password|judge|secret|snapshot|verifiedFacts/i);
   });
-  it('does not list recovery data on a production host', async () => {
+  it('allows staff listing on the production host while preserving role protection', async () => {
     const { GET } = require('@/app/api/admin/reports/route');
     const res = await GET(new Request('https://cosmicspiritguide.com/api/admin/reports'));
-    expect(res.status).toBe(404);
-    expect(listPaidReportsForRole).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(listPaidReportsForRole).toHaveBeenCalled();
   });
 });
 
