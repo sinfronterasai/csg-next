@@ -1,0 +1,28 @@
+{
+  "generatedBy": "scripts/generate_navigator_reference_fixtures.mjs",
+  "tool": "@fusionstrings/swiss-eph 0.1.1 / Swiss Ephemeris 2.10.03 plus independent ECMAScript tangent-plane arithmetic",
+  "julianDayUt": 2444308.5145833334,
+  "epochIso": "1980-03-10T00:21:00.000Z",
+  "swissFlags": 138850,
+  "planet": {
+    "body": "Sun",
+    "swissBodyId": 0,
+    "rightAscensionDeg": 350.69215033744996,
+    "declinationDeg": -4.011209192843736,
+    "vector": {
+      "x": 0.984416203927005,
+      "y": -0.06995163316688348,
+      "z": 0.16134282278189938
+    }
+  },
+  "star": {
+    "catalogId": "HIP 32349",
+    "rightAscensionDeg": 101.29029285176432,
+    "declinationDeg": -16.7093846911866,
+    "vector": {
+      "x": -0.18751327444041718,
+      "y": -0.28751740134261133,
+      "z": -0.939240392995225
+    }
+  }
+}

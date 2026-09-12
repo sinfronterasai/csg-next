@@ -2,8 +2,18 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from './db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+const DEVELOPMENT_JWT_SECRET = 'dev-insecure-secret-change-me';
 const TOKEN_TTL = '7d';
+
+export function hasSecureJwtConfiguration(): boolean {
+  return process.env.NODE_ENV !== 'production' || Boolean(process.env.JWT_SECRET);
+}
+
+function jwtSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV !== 'production') return DEVELOPMENT_JWT_SECRET;
+  throw new Error('JWT_SECRET is required in production');
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -14,12 +24,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: TOKEN_TTL as any });
+  return jwt.sign({ userId }, jwtSecret(), { expiresIn: TOKEN_TTL as any });
 }
 
 export function verifyToken(token: string): { userId: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string };
+    return jwt.verify(token, jwtSecret()) as { userId: string };
   } catch {
     return null;
   }

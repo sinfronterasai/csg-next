@@ -1,271 +1,416 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import {
+  assertMatchingFrames,
+  NAVIGATOR_FRAME_BASE,
+  raDecToSceneVector,
+  VECTOR_UNIT_TOLERANCE,
+  type NavigatorFrame,
+} from '@/lib/constellations/coordinates';
+import { getNamedStarsAtEpoch } from '@/lib/constellations/starCatalog';
 
 type Vector3 = { x: number; y: number; z: number };
+type Body = {
+  key: string; label: string; glyph: string; category: 'primary' | 'additional'; status: 'available' | 'unavailable';
+  rightAscensionDeg?: number; declinationDeg?: number; vector?: Vector3; longitude?: number; sign?: string; signLabel?: string;
+  degreeInSign?: number; house?: number | null; retrograde?: boolean; source: 'swiss-ephemeris';
+  reason?: 'ephemeris-unavailable' | 'saved-placement-unavailable';
+};
+type NamedStar = {
+  key: string; name: string; status: 'available'; rightAscensionDeg: number; declinationDeg: number;
+  vector: Vector3; catalogId: string; catalogEpoch: string; catalogFrame: string; source: string; frame: NavigatorFrame;
+};
+type NatalResponse = {
+  schemaVersion: 'csg-natal-navigator-v1';
+  frame: NavigatorFrame;
+  birthAnchor: { utc: string; timezone: string; source: 'saved-natal-chart' };
+  bodies: Body[];
+  namedStars: NamedStar[];
+  source: {
+    engine: 'swiss-ephemeris'; package: '@fusionstrings/swiss-eph'; flags: number;
+    calculationTime: 'UTC-derived Julian day supplied as tjd_ut';
+  };
+  availability: { primary: 'available'; optionalUnavailable: string[] };
+};
+type PersonalizationState = 'loading' | 'signed-out' | 'no-chart' | 'unknown-time' | 'unavailable' | 'invalid' | 'known';
+type Label = { name: string; x: number; y: number };
+type SceneRuntime = {
+  THREE: any; scene: any; camera: any; renderer: any; controls: any;
+  verifiedStarGroup: any; natalMarkerGroup: any; astronomicalGroup: any; constellationLines: any;
+  starMeshes: Array<{ name: string; mesh: any }>;
+  markerMeshes: Map<string, any>;
+};
 
-const STAR_CATALOG: { name: string; position: Vector3; color?: string }[] = [
-  { name: 'Sirius', position: { x: 3.2, y: 1.1, z: -2.4 }, color: '#a3d1ff' },
-  { name: 'Betelgeuse', position: { x: -3.8, y: 2.6, z: -1.2 }, color: '#ffaa77' },
-  { name: 'Rigel', position: { x: -3.1, y: -2.4, z: -0.8 }, color: '#c8e4ff' },
-  { name: 'Aldebaran', position: { x: 2.4, y: -3.0, z: -1.6 }, color: '#ffb382' },
-  { name: 'Polaris', position: { x: 0.05, y: 4.0, z: -0.9 }, color: '#e8f2ff' },
-  { name: 'Vega', position: { x: 1.8, y: 3.4, z: -2.0 }, color: '#c9e4ff' },
-  { name: 'Antares', position: { x: -1.9, y: -3.3, z: -1.4 }, color: '#ff9e75' },
-  { name: 'Capella', position: { x: 4.1, y: 2.8, z: -1.1 }, color: '#fff0d0' },
-];
+const PRIMARY_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'] as const;
+const ADDITIONAL_KEYS = ['chiron', 'juno', 'northnode'] as const;
+const BODY_KEYS = [...PRIMARY_KEYS, ...ADDITIONAL_KEYS];
+const PUBLIC_CATALOG_EPOCH = '2000-01-01T12:00:00.000Z';
+const STAR_COLORS: Record<string, string> = { Sirius: '#a3d1ff', Betelgeuse: '#ffaa77', Rigel: '#c8e4ff', Aldebaran: '#ffb382', Polaris: '#e8f2ff', Vega: '#c9e4ff', Antares: '#ff9e75', Capella: '#fff0d0' };
+const FALLBACK_STARS = getNamedStarsAtEpoch(2451545, PUBLIC_CATALOG_EPOCH);
+const POSITION_FIELDS = ['rightAscensionDeg', 'declinationDeg', 'vector', 'longitude', 'sign', 'signLabel', 'degreeInSign', 'house', 'retrograde'] as const;
 
-function waitForSize(container: HTMLDivElement) {
-  return new Promise<{ width: number; height: number }>((resolve) => {
-    const measure = () => {
-      const width = container.clientWidth || 800;
-      const height = container.clientHeight || 500;
-      if (width > 0 && height > 0) resolve({ width, height });
-      else requestAnimationFrame(measure);
-    };
-    measure();
-  });
+const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const vectorMatches = (actual: Vector3, expected: Vector3) =>
+  Math.abs(actual.x - expected.x) <= VECTOR_UNIT_TOLERANCE &&
+  Math.abs(actual.y - expected.y) <= VECTOR_UNIT_TOLERANCE &&
+  Math.abs(actual.z - expected.z) <= VECTOR_UNIT_TOLERANCE;
+
+function validPosition(item: { status: string; rightAscensionDeg?: number; declinationDeg?: number; vector?: Vector3 }) {
+  if (item.status !== 'available' || !finite(item.rightAscensionDeg) || item.rightAscensionDeg < 0 || item.rightAscensionDeg >= 360 ||
+      !finite(item.declinationDeg) || item.declinationDeg < -90 || item.declinationDeg > 90 || !item.vector) return false;
+  const { x, y, z } = item.vector;
+  if (![x, y, z].every(finite)) return false;
+  return vectorMatches(item.vector, raDecToSceneVector(item.rightAscensionDeg, item.declinationDeg));
 }
 
-export default function Constellations() {
+function validAvailableBody(item: Body) {
+  return validPosition(item) && typeof item.label === 'string' && !!item.label && typeof item.glyph === 'string' && !!item.glyph &&
+    finite(item.longitude) && item.longitude >= 0 && item.longitude < 360 && finite(item.degreeInSign) &&
+    item.degreeInSign >= 0 && item.degreeInSign < 30 && typeof item.sign === 'string' && !!item.sign &&
+    typeof item.signLabel === 'string' && !!item.signLabel &&
+    (item.house === null || (finite(item.house) && Number.isInteger(item.house) && item.house >= 1 && item.house <= 12)) &&
+    typeof item.retrograde === 'boolean' && item.source === 'swiss-ephemeris';
+}
+
+function validUnavailableBody(item: Body) {
+  return item.status === 'unavailable' && item.source === 'swiss-ephemeris' &&
+    (item.reason === 'ephemeris-unavailable' || item.reason === 'saved-placement-unavailable') &&
+    typeof item.label === 'string' && !!item.label && typeof item.glyph === 'string' && !!item.glyph &&
+    POSITION_FIELDS.every((field) => !(field in item)) &&
+    Object.keys(item).sort().join('|') === ['category', 'glyph', 'key', 'label', 'reason', 'source', 'status'].join('|');
+}
+
+function parsePayload(value: unknown): NatalResponse | null {
+  if (!value || typeof value !== 'object') return null;
+  const data = value as Partial<NatalResponse>;
+  const utc = data.birthAnchor?.utc;
+  if (data.schemaVersion !== 'csg-natal-navigator-v1' || typeof utc !== 'string' ||
+      !finite(Date.parse(utc)) || new Date(Date.parse(utc)).toISOString() !== utc ||
+      data.birthAnchor?.source !== 'saved-natal-chart' || typeof data.birthAnchor.timezone !== 'string' || !data.birthAnchor.timezone ||
+      !Array.isArray(data.bodies) || !Array.isArray(data.namedStars) ||
+      data.source?.engine !== 'swiss-ephemeris' || data.source.package !== '@fusionstrings/swiss-eph' ||
+      data.source.flags !== NAVIGATOR_FRAME_BASE.swissFlags ||
+      data.source.calculationTime !== 'UTC-derived Julian day supplied as tjd_ut' ||
+      data.availability?.primary !== 'available' || !Array.isArray(data.availability.optionalUnavailable)) return null;
+  try {
+    assertMatchingFrames({ ...NAVIGATOR_FRAME_BASE, epoch: utc }, data.frame as NavigatorFrame);
+  } catch { return null; }
+
+  if (data.bodies.length !== BODY_KEYS.length || data.bodies.some((item, index) => {
+    const expectedKey = BODY_KEYS[index];
+    const expectedCategory = index < PRIMARY_KEYS.length ? 'primary' : 'additional';
+    return item.key !== expectedKey || item.category !== expectedCategory ||
+      (expectedCategory === 'primary' ? item.status !== 'available' || !validAvailableBody(item) :
+        item.status === 'available' ? !validAvailableBody(item) : !validUnavailableBody(item));
+  })) return null;
+
+  const unavailable = data.bodies.filter((item) => item.category === 'additional' && item.status === 'unavailable').map((item) => item.key);
+  if (data.availability.optionalUnavailable.length !== unavailable.length ||
+      data.availability.optionalUnavailable.some((key, index) => key !== unavailable[index])) return null;
+
+  const julianDay = Date.parse(utc) / 86_400_000 + 2_440_587.5;
+  let expectedStars: ReturnType<typeof getNamedStarsAtEpoch>;
+  try { expectedStars = getNamedStarsAtEpoch(julianDay, utc); } catch { return null; }
+  if (data.namedStars.length !== expectedStars.length || data.namedStars.some((item, index) => {
+    const expected = expectedStars[index];
+    if (!validPosition(item)) return true;
+    try { assertMatchingFrames(data.frame as NavigatorFrame, item.frame); } catch { return true; }
+    return item.key !== expected.key || item.name !== expected.name || item.status !== expected.status ||
+      item.catalogId !== expected.catalogId || item.catalogEpoch !== expected.catalogEpoch ||
+      item.catalogFrame !== expected.catalogFrame || item.source !== expected.source ||
+      Math.abs(item.rightAscensionDeg - expected.rightAscensionDeg) > VECTOR_UNIT_TOLERANCE ||
+      Math.abs(item.declinationDeg - expected.declinationDeg) > VECTOR_UNIT_TOLERANCE ||
+      !vectorMatches(item.vector, expected.vector);
+  })) return null;
+  return data as NatalResponse;
+}
+
+function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null, additional: boolean, disposables: any[]) {
+  if (!data) return;
+  data.namedStars.forEach((star, index) => {
+    const entry = runtime.starMeshes[index];
+    entry.name = star.name;
+    entry.mesh.position.set(star.vector.x * 4.5, star.vector.y * 4.5, star.vector.z * 4.5);
+    entry.mesh.material.color?.set?.(STAR_COLORS[star.name]);
+  });
+
+  const desired = data.bodies.filter((body) => body.status === 'available' && (body.category === 'primary' || additional));
+  const desiredKeys = new Set(desired.map((body) => body.key));
+  for (const [key, mesh] of runtime.markerMeshes) {
+    if (!desiredKeys.has(key)) {
+      runtime.natalMarkerGroup.remove(mesh);
+      runtime.markerMeshes.delete(key);
+      mesh.geometry?.dispose?.(); mesh.material?.dispose?.();
+    }
+  }
+  for (const body of desired) {
+    let mesh = runtime.markerMeshes.get(body.key);
+    if (!mesh) {
+      const geometry = new runtime.THREE.SphereGeometry(.14, 16, 16);
+      const material = new runtime.THREE.MeshBasicMaterial({ color: '#DFB76C' });
+      mesh = new runtime.THREE.Mesh(geometry, material);
+      mesh.userData = { bodyKey: body.key };
+      runtime.markerMeshes.set(body.key, mesh);
+      runtime.natalMarkerGroup.add(mesh);
+      disposables.push(geometry, material);
+    }
+    mesh.position.set(body.vector!.x * 4.15, body.vector!.y * 4.15, body.vector!.z * 4.15);
+  }
+}
+
+function statusMessage(state: PersonalizationState) {
+  if (state === 'loading') return 'Checking for your natal sky…';
+  if (state === 'signed-out') return 'Sign in to place your natal sky among the stars.';
+  if (state === 'no-chart') return 'Create your birth chart to reveal your natal sky.';
+  if (state === 'unknown-time') return 'Add your exact birth time to place planets accurately.';
+  if (state === 'unavailable') return 'Your natal sky is temporarily unavailable. The public map still works.';
+  if (state === 'invalid') return 'Natal sky data could not be verified, so no personalized markers were shown.';
+  return '';
+}
+
+export default function ConstellationsView() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [labels, setLabels] = useState<Array<{ name: string; x: number; y: number }>>([]);
+  const [mapState, setMapState] = useState<'loading' | 'ready' | 'webgl' | 'cdn'>('loading');
+  const [personalization, setPersonalization] = useState<PersonalizationState>('loading');
+  const [data, setData] = useState<NatalResponse | null>(null);
+  const [additional, setAdditional] = useState(false);
+  const [linesVisible, setLinesVisible] = useState(true);
+  const [labelsVisible, setLabelsVisible] = useState(true);
+  const [speed, setSpeed] = useState(20);
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const closeDetailsRef = useRef<HTMLButtonElement>(null);
+  const additionalToggleRef = useRef<HTMLButtonElement>(null);
+  const selectionTriggerRef = useRef<HTMLElement | null>(null);
+  const restoreSelectionFocusRef = useRef(false);
+  const selectedKeyRef = useRef<string | null>(null);
+  const hoveredKeyRef = useRef<string | null>(null);
+  selectedKeyRef.current = selectedKey;
+  hoveredKeyRef.current = hoveredKey;
+  const sceneControls = useRef({ speed, linesVisible, labelsVisible });
+  const runtimeRef = useRef<SceneRuntime | null>(null);
+  const sceneDisposablesRef = useRef<any[]>([]);
+  const dataRef = useRef<NatalResponse | null>(data);
+  const additionalRef = useRef(additional);
+  dataRef.current = data;
+  additionalRef.current = additional;
+  sceneControls.current = { speed, linesVisible, labelsVisible };
+
+  const selectBody = (key: string, trigger: HTMLElement | null) => {
+    selectionTriggerRef.current = trigger;
+    setSelectedKey(key);
+  };
+  const closeDetails = () => {
+    restoreSelectionFocusRef.current = true;
+    setSelectedKey(null);
+  };
+
+  useEffect(() => {
+    if (selectedKey) {
+      closeDetailsRef.current?.focus();
+    } else if (restoreSelectionFocusRef.current) {
+      restoreSelectionFocusRef.current = false;
+      selectionTriggerRef.current?.focus();
+    }
+  }, [selectedKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/constellations/natal', { method: 'GET', credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' } })
+      .then(async (result) => {
+        if (result.status === 401) return setPersonalization('signed-out');
+        if (result.status === 404) return setPersonalization('no-chart');
+        if (result.status === 409) return setPersonalization('unknown-time');
+        if (result.status === 503 || !result.ok) return setPersonalization('unavailable');
+        const parsed = parsePayload(await result.json());
+        if (!parsed) return setPersonalization('invalid');
+        setData(parsed); setPersonalization('known');
+      })
+      .catch((error) => { if (error?.name !== 'AbortError') setPersonalization('unavailable'); });
+    return () => controller.abort();
+  }, []);
+
+  const visibleBodies = data?.bodies.filter((body) => body.status === 'available' && (body.category === 'primary' || additional)) ?? [];
+  const selected = data?.bodies.find((body) => body.key === selectedKey && (body.category === 'primary' || additional)) ?? null;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     let cancelled = false;
+    let raf = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
+    let resizeObserver: ResizeObserver | undefined;
+    let renderer: any;
+    let controls: any;
+    const disposables: any[] = [];
+    const listeners: Array<[string, EventListener]> = [];
 
-    const boot = async () => {
-      const THREE_CDN = (window as any).THREE;
-      const OrbitControls = (window as any).THREE?.OrbitControls;
-      if (!THREE_CDN || !OrbitControls) {
-        setTimeout(boot, 50);
-        return;
-      }
-
-      const { width, height } = await waitForSize(container);
+    const boot = () => {
       if (cancelled) return;
-
-      let renderer: any;
-      let resizeObserver: ResizeObserver | undefined;
+      const THREE = (window as any).THREE;
+      const OrbitControls = THREE?.OrbitControls;
+      if (!THREE || !OrbitControls) { retryTimer = setTimeout(boot, 50); return; }
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      const width = container.clientWidth || 800;
+      const height = container.clientHeight || 500;
       try {
-      const scene = new THREE_CDN.Scene();
-      const camera = new THREE_CDN.PerspectiveCamera(45, width / height, 0.1, 1000);
-      camera.position.z = 10;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.z = 10;
+        try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+        catch { setMapState('webgl'); return; }
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        container.appendChild(renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05; controls.enableZoom = true; controls.maxDistance = 20; controls.minDistance = 4;
 
-      try {
-        renderer = new THREE_CDN.WebGLRenderer({ antialias: true, alpha: true });
-      } catch (err) {
-        if (!cancelled) setFailed(true);
-        return;
-      }
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      container.appendChild(renderer.domElement);
+        const decorativeBackgroundGroup = new THREE.Group(); decorativeBackgroundGroup.name = 'decorativeBackgroundGroup';
+        const decorativeConstellationGroup = new THREE.Group(); decorativeConstellationGroup.name = 'decorativeConstellationGroup';
+        const astronomicalGroup = new THREE.Group(); astronomicalGroup.name = 'astronomicalGroup';
+        const verifiedStarGroup = new THREE.Group(); verifiedStarGroup.name = 'verifiedStarGroup';
+        const natalMarkerGroup = new THREE.Group(); natalMarkerGroup.name = 'natalMarkerGroup';
+        astronomicalGroup.add(verifiedStarGroup, natalMarkerGroup);
+        scene.add(decorativeBackgroundGroup, decorativeConstellationGroup, astronomicalGroup);
 
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.enableZoom = true;
-      controls.maxDistance = 20;
-      controls.minDistance = 4;
+        const bgPositions: number[] = [];
+        for (let i = 0; i < 800; i++) bgPositions.push((Math.random() - .5) * 50, (Math.random() - .5) * 50, (Math.random() - .5) * 50);
+        const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.Float32BufferAttribute(bgPositions, 3));
+        const bgMat = new THREE.PointsMaterial({ color: 0xffffff, size: .03, transparent: true, opacity: .4 });
+        decorativeBackgroundGroup.add(new THREE.Points(bgGeo, bgMat)); disposables.push(bgGeo, bgMat);
 
-      const numNodes = 120;
-      const nodePos: number[] = [];
-      const nodeGeo = new THREE_CDN.BufferGeometry();
-      for (let i = 0; i < numNodes; i++) {
-        const u = Math.random();
-        const v = Math.random();
-        const theta = u * 2.0 * Math.PI;
-        const phi = Math.acos(2.0 * v - 1);
-        const r = 4.5;
-        nodePos.push(
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.sin(phi) * Math.sin(theta),
-          r * Math.cos(phi)
-        );
-      }
-      const nodePosArray = new Float32Array(nodePos);
-      nodeGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
+        const nodePositions: number[] = [];
+        for (let i = 0; i < 120; i++) { const theta = Math.random() * Math.PI * 2; const phi = Math.acos(2 * Math.random() - 1); nodePositions.push(4.5 * Math.sin(phi) * Math.cos(theta), 4.5 * Math.sin(phi) * Math.sin(theta), 4.5 * Math.cos(phi)); }
+        const nodeArray = new Float32Array(nodePositions);
+        const nodeGeo = new THREE.BufferGeometry(); nodeGeo.setAttribute('position', new THREE.BufferAttribute(nodeArray, 3));
+        const nodeMat = new THREE.PointsMaterial({ color: 0xDFB76C, size: .12, transparent: true, opacity: .9 });
+        const starNodes = new THREE.Points(nodeGeo, nodeMat); decorativeConstellationGroup.add(starNodes); disposables.push(nodeGeo, nodeMat);
+        const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.BufferAttribute(nodeArray, 3));
+        const indices: number[] = [];
+        for (let i = 0; i < 120; i++) for (let j = i + 1; j < 120; j++) { const a = new THREE.Vector3(nodeArray[i*3], nodeArray[i*3+1], nodeArray[i*3+2]); const b = new THREE.Vector3(nodeArray[j*3], nodeArray[j*3+1], nodeArray[j*3+2]); if (a.distanceTo(b) < 1.6 && Math.random() > .4) indices.push(i, j); }
+        lineGeo.setIndex(indices); const lineMat = new THREE.LineBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: .25 });
+        const constellationLines = new THREE.LineSegments(lineGeo, lineMat); decorativeConstellationGroup.add(constellationLines); disposables.push(lineGeo, lineMat);
 
-      const nodeMat = new THREE_CDN.PointsMaterial({ color: 0xDFB76C, size: 0.12, transparent: true, opacity: 0.9 });
-      const starNodes = new THREE_CDN.Points(nodeGeo, nodeMat);
-      scene.add(starNodes);
-
-      const lineGeo = new THREE_CDN.BufferGeometry();
-      const lineIndices: number[] = [];
-      for (let i = 0; i < numNodes; i++) {
-        const p1 = new THREE_CDN.Vector3(nodePosArray[i * 3], nodePosArray[i * 3 + 1], nodePosArray[i * 3 + 2]);
-        for (let j = i + 1; j < numNodes; j++) {
-          const p2 = new THREE_CDN.Vector3(nodePosArray[j * 3], nodePosArray[j * 3 + 1], nodePosArray[j * 3 + 2]);
-          const dist = p1.distanceTo(p2);
-          if (dist < 1.6 && Math.random() > 0.4) lineIndices.push(i, j);
-        }
-      }
-      lineGeo.setAttribute('position', new THREE_CDN.BufferAttribute(nodePosArray, 3));
-      lineGeo.setIndex(lineIndices);
-      const lineMat = new THREE_CDN.LineBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.25 });
-      const constellationLines = new THREE_CDN.LineSegments(lineGeo, lineMat);
-      scene.add(constellationLines);
-
-      const bgStarGeo = new THREE_CDN.BufferGeometry();
-      const bgStars = 800;
-      const bgStarPos: number[] = [];
-      for (let i = 0; i < bgStars; i++) {
-        bgStarPos.push((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50);
-      }
-      bgStarGeo.setAttribute('position', new THREE_CDN.Float32BufferAttribute(bgStarPos, 3));
-      const bgStarMat = new THREE_CDN.PointsMaterial({ color: 0xffffff, size: 0.03, transparent: true, opacity: 0.4 });
-      const bgPoints = new THREE_CDN.Points(bgStarGeo, bgStarMat);
-      scene.add(bgPoints);
-
-      const namedStarGroup = new THREE_CDN.Group();
-      scene.add(namedStarGroup);
-
-      const namedStars = STAR_CATALOG.map((star) => {
-        const geometry = new THREE_CDN.SphereGeometry(0.08, 16, 16);
-        const material = new THREE_CDN.MeshBasicMaterial({ color: star.color || '#ffffff' });
-        const mesh = new THREE_CDN.Mesh(geometry, material);
-        mesh.position.set(star.position.x, star.position.y, star.position.z);
-        namedStarGroup.add(mesh);
-        return { name: star.name, mesh };
-      });
-
-      const tempV = new THREE_CDN.Vector3();
-      const updateLabels = () => {
-        const rect = container.getBoundingClientRect();
-        const next = namedStars.map((star) => {
-          tempV.set(star.mesh.position.x, star.mesh.position.y, star.mesh.position.z);
-          tempV.project(camera);
-          const x = (tempV.x * 0.5 + 0.5) * rect.width;
-          const y = (-(tempV.y * 0.5) + 0.5) * rect.height;
-          return { name: star.name, x, y };
+        const stars = FALLBACK_STARS;
+        const starMeshes = stars.map((star) => {
+          const geometry = new THREE.SphereGeometry(.08, 16, 16); const material = new THREE.MeshBasicMaterial({ color: STAR_COLORS[star.name] });
+          const mesh = new THREE.Mesh(geometry, material); const scale = 4.5;
+          mesh.position.set(star.vector.x * scale, star.vector.y * scale, star.vector.z * scale); verifiedStarGroup.add(mesh); disposables.push(geometry, material);
+          return { name: star.name, mesh };
         });
-        setLabels(next);
-      };
+        const markerMeshes = new Map<string, any>();
+        const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
+        const hit = (event: PointerEvent) => {
+          const rect = renderer.domElement.getBoundingClientRect();
+          pointer.x = ((event.clientX - rect.left) / (rect.width || width)) * 2 - 1; pointer.y = -((event.clientY - rect.top) / (rect.height || height)) * 2 + 1;
+          raycaster.setFromCamera(pointer, camera);
+          return raycaster.intersectObjects([...markerMeshes.values()], false)[0]?.object?.userData?.bodyKey ?? null;
+        };
+        const onMove = ((event: PointerEvent) => setHoveredKey(hit(event))) as EventListener;
+        const onLeave = (() => setHoveredKey(null)) as EventListener;
+        let pointerStart: { x: number; y: number; key: string | null; pointerId: number | undefined } | null = null;
+        const onDown = ((event: PointerEvent) => {
+          if (event.button !== 0 || event.isPrimary === false) { pointerStart = null; return; }
+          pointerStart = { x: event.clientX, y: event.clientY, key: hit(event), pointerId: event.pointerId };
+        }) as EventListener;
+        const onUp = ((event: PointerEvent) => {
+          const start = pointerStart; pointerStart = null;
+          if (!start || event.button !== 0 || event.isPrimary === false || event.pointerId !== start.pointerId ||
+              Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return;
+          const key = hit(event);
+          if (key && key === start.key) selectBody(key, renderer.domElement);
+        }) as EventListener;
+        const onCancel = (() => { pointerStart = null; }) as EventListener;
+        renderer.domElement.addEventListener('pointermove', onMove); renderer.domElement.addEventListener('pointerleave', onLeave);
+        renderer.domElement.addEventListener('pointerdown', onDown); renderer.domElement.addEventListener('pointerup', onUp);
+        renderer.domElement.addEventListener('pointercancel', onCancel);
+        listeners.push(['pointermove', onMove], ['pointerleave', onLeave], ['pointerdown', onDown], ['pointerup', onUp], ['pointercancel', onCancel]);
+        const runtime = {
+          THREE, scene, camera, renderer, controls, verifiedStarGroup, natalMarkerGroup,
+          astronomicalGroup, constellationLines, starMeshes, markerMeshes,
+        };
+        runtimeRef.current = runtime;
+        sceneDisposablesRef.current = disposables;
+        syncAstronomicalData(runtime, dataRef.current, additionalRef.current, disposables);
 
-      let rotationSpeed = 0.002;
-      const speedSlider = document.getElementById('star-speed') as HTMLInputElement | null;
-      const toggleBtn = document.getElementById('toggle-lines') as HTMLButtonElement | null;
-
-      speedSlider?.addEventListener('input', (e) => {
-        rotationSpeed = ((e.target as HTMLInputElement).valueAsNumber / 100) * 0.01;
-      });
-      toggleBtn?.addEventListener('click', () => {
-        constellationLines.visible = !constellationLines.visible;
-        if (toggleBtn) toggleBtn.innerText = constellationLines.visible ? 'Hide Lines' : 'Show Lines';
-      });
-
-      function animate() {
-        requestAnimationFrame(animate);
-        starNodes.rotation.y += rotationSpeed;
-        constellationLines.rotation.y += rotationSpeed;
-        namedStarGroup.rotation.y += rotationSpeed;
-        controls.update();
-        renderer.render(scene, camera);
-        updateLabels();
-      }
-      animate();
-
-      resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        const w = entry.contentRect.width || width;
-        const h = entry.contentRect.height || height;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      });
-      resizeObserver.observe(container);
-
-      setReady(true);
-      } catch (err) {
-        if (!cancelled) setFailed(true);
-        return;
-      }
-
-      return () => {
-        cancelled = true;
-        resizeObserver.disconnect();
-        if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
-        renderer.dispose();
-        setReady(false);
-      };
+        const temp = new THREE.Vector3(); let lastLabelUpdate = 0;
+        const animate = (time = 0) => {
+          if (cancelled) return;
+          raf = requestAnimationFrame(animate);
+          const increment = (sceneControls.current.speed / 100) * .01;
+          decorativeConstellationGroup.rotation.y += increment; astronomicalGroup.rotation.y += increment;
+          constellationLines.visible = sceneControls.current.linesVisible;
+          markerMeshes.forEach((mesh: any) => mesh.scale.setScalar(mesh.userData.bodyKey === hoveredKeyRef.current || mesh.userData.bodyKey === selectedKeyRef.current ? 1.5 : 1));
+          controls.update(); renderer.render(scene, camera);
+          if (time - lastLabelUpdate > 80 && sceneControls.current.labelsVisible) {
+            lastLabelUpdate = time; const rect = container.getBoundingClientRect();
+            setLabels(starMeshes.map((star) => { star.mesh.getWorldPosition(temp).project(camera); return { name: star.name, x: (temp.x*.5+.5)*rect.width, y: (-temp.y*.5+.5)*rect.height }; }));
+          }
+        };
+        animate();
+        resizeObserver = new ResizeObserver((entries) => { const rect = entries[0]?.contentRect; const w = rect?.width || container.clientWidth || width; const h = rect?.height || container.clientHeight || height; camera.aspect = w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); renderer.setPixelRatio(window.devicePixelRatio || 1); });
+        resizeObserver.observe(container); setMapState('ready');
+      } catch { setMapState('webgl'); }
     };
-
-    let cleanup: (() => void) | undefined;
-    const maybeCleanup = async () => {
-      if (cleanup) cleanup();
-      cleanup = await boot();
+    timeoutTimer = setTimeout(() => { const three = (window as any).THREE; if ((!three || !three.OrbitControls) && !cancelled) { if (retryTimer) clearTimeout(retryTimer); setMapState('cdn'); } }, 5000);
+    boot();
+    return () => {
+      cancelled = true; if (retryTimer) clearTimeout(retryTimer); if (timeoutTimer) clearTimeout(timeoutTimer); if (raf) cancelAnimationFrame(raf);
+      resizeObserver?.disconnect(); controls?.dispose?.();
+      if (renderer) { listeners.forEach(([name, fn]) => renderer.domElement.removeEventListener(name, fn)); if (renderer.domElement.parentNode === container) container.removeChild(renderer.domElement); renderer.dispose?.(); }
+      runtimeRef.current = null; sceneDisposablesRef.current = [];
+      disposables.forEach((item) => item.dispose?.()); setLabels([]);
     };
-
-    maybeCleanup();
   }, []);
+
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    if (runtime) syncAstronomicalData(runtime, data, additional, sceneDisposablesRef.current);
+  }, [data, additional]);
+
+  useEffect(() => {
+    if (additional) return;
+    if (selectedKey && ADDITIONAL_KEYS.includes(selectedKey as typeof ADDITIONAL_KEYS[number])) {
+      selectionTriggerRef.current = additionalToggleRef.current;
+      restoreSelectionFocusRef.current = true;
+      setSelectedKey(null);
+    }
+    if (hoveredKey && ADDITIONAL_KEYS.includes(hoveredKey as typeof ADDITIONAL_KEYS[number])) setHoveredKey(null);
+  }, [additional, hoveredKey, selectedKey]);
 
   return (
     <section className="py-24 relative z-10 constellation-map">
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           <div className="lg:col-span-5 space-y-6">
             <span className="text-xs uppercase tracking-[0.4em] text-gold block">Cosmic Navigator</span>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">Interactive <br />Celestial Map</h2>
-            <p className="text-gray-300 text-sm font-light leading-relaxed">
-              Drag to orbit the celestial vault, scroll to zoom deep into nebulae, and hover over stellar nodes. Interact with the cosmic geometry to realign the stars.
-            </p>
-
-            <div className="space-y-4 pt-4">
-              <div className="flex items-center space-x-4 glass-panel p-4 rounded-2xl border-white/5 hover:border-gold/20 transition-all">
-                <div className="w-10 h-10 rounded-full bg-cosmic-primary/20 flex items-center justify-center text-cosmic-primary"><i className="fa-solid fa-arrows-spin"></i></div>
-                <div>
-                  <span className="block text-sm font-semibold text-white">Celestial Speed</span>
-                  <input type="range" id="star-speed" min="0" max="100" defaultValue={20} className="w-32 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold" />
-                </div>
-              </div>
-              <div className="flex items-center space-x-4 glass-panel p-4 rounded-2xl border-white/5 hover:border-gold/20 transition-all">
-                <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold"><i className="fa-solid fa-wand-magic-sparkles"></i></div>
-                <div>
-                  <span className="block text-sm font-semibold text-white">Constellation Lines</span>
-                  <button id="toggle-lines" className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold tracking-wider mt-1 uppercase">Hide Lines</button>
-                </div>
-              </div>
+            <p className="text-gray-300 text-sm font-light leading-relaxed">Drag to orbit the celestial vault, scroll to zoom, and explore the named stars. Your verified natal sky shares their astronomical frame.</p>
+            <div className="space-y-4 pt-2">
+              <div className="glass-panel p-4 rounded-2xl"><label htmlFor="star-speed" className="block text-sm font-semibold text-white">Celestial Speed</label><input aria-label="Celestial speed" type="range" id="star-speed" min="0" max="100" value={speed} onChange={(event) => setSpeed(event.currentTarget.valueAsNumber)} className="w-32 accent-gold" /></div>
+              <div className="glass-panel p-4 rounded-2xl"><span className="block text-sm font-semibold text-white">Constellation Lines</span><button aria-label={`${linesVisible ? 'Hide' : 'Show'} constellation lines`} aria-pressed={linesVisible} onClick={() => setLinesVisible((value) => !value)} className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold mt-1 uppercase">{linesVisible ? 'Hide Lines' : 'Show Lines'}</button></div>
+              <div className="glass-panel p-4 rounded-2xl"><span className="block text-sm font-semibold text-white">Named-star Labels</span><button aria-label={`${labelsVisible ? 'Hide' : 'Show'} named star labels`} aria-pressed={labelsVisible} onClick={() => setLabelsVisible((value) => !value)} className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold mt-1 uppercase">{labelsVisible ? 'Hide Labels' : 'Show Labels'}</button></div>
             </div>
+            {personalization !== 'known' && <div role="status" className="glass-panel p-4 rounded-2xl text-sm text-gray-200"><p>{statusMessage(personalization)}</p>{personalization === 'signed-out' && <a href="/login" className="text-gold">Sign in</a>}{personalization === 'no-chart' && <a href="/birth-chart" className="text-gold">Create chart</a>}{personalization === 'unknown-time' && <a href="/profile" className="text-gold">Update chart</a>}</div>}
+            {personalization === 'known' && data && <>
+              {(mapState === 'webgl' || mapState === 'cdn') && <p role="status" className="text-sm text-amber-200">Your verified natal data is available below, but personalized markers could not be rendered in the 3D view.</p>}
+              <button ref={additionalToggleRef} onClick={() => setAdditional((value) => !value)} aria-expanded={additional} className="text-sm border border-gold/40 px-4 py-2 rounded-full text-gold">{additional ? 'Hide Additional bodies' : 'Show Additional bodies'}</button>
+              {data.bodies.filter((body) => body.category === 'additional' && body.status === 'unavailable').map((body) => <p role="status" key={body.key} className="text-xs text-gray-400">{body.label} is unavailable for this chart.</p>)}
+              <div role="region" aria-label="Natal body legend" className="grid grid-cols-2 gap-2">
+                {visibleBodies.map((body) => { const highlighted = hoveredKey === body.key || selectedKey === body.key; return <button key={body.key} aria-label={`${body.label}, select for details`} aria-pressed={selectedKey === body.key} data-highlighted={highlighted ? 'true' : 'false'} onPointerEnter={() => setHoveredKey(body.key)} onPointerLeave={() => setHoveredKey(null)} onFocus={() => setHoveredKey(body.key)} onBlur={() => setHoveredKey(null)} onClick={(event) => selectBody(body.key, event.currentTarget)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectBody(body.key, event.currentTarget); } }} className={`text-left px-3 py-2 rounded-lg border ${highlighted ? 'border-gold bg-gold/20' : 'border-white/10'}`}><span aria-hidden="true">{body.glyph} </span>{body.label}</button>; })}
+              </div>
+            </>}
           </div>
-
-          <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple group interactive-canvas-container">
-            <div ref={containerRef} id="interactive-canvas-container" className="w-full h-full" />
-            {!ready && !failed && (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">Loading celestial view…</div>
-            )}
-            {failed && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 space-y-3">
-                <i className="fa-solid fa-meteor text-gold text-2xl"></i>
-                <p className="text-sm text-gray-300">The interactive 3D map needs WebGL. Your browser or device has it disabled.</p>
-                <p className="text-xs text-gray-400">The named stars of the celestial vault are listed below.</p>
-                <div className="flex flex-wrap gap-2 justify-center mt-2">
-                  {STAR_CATALOG.map((star) => (
-                    <span key={star.name} className="glass-panel-light px-3 py-1 rounded-full text-[11px] text-white/90">{star.name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {labels.map((label) => (
-                <span
-                  key={label.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium text-white/90"
-                  style={{ left: `${label.x}px`, top: `${label.y}px`, textShadow: '0 0 6px rgba(0,0,0,0.75)' }}
-                >
-                  {label.name}
-                </span>
-              ))}
-            </div>
-            <div className="absolute bottom-6 left-6 pointer-events-none glass-panel px-4 py-2.5 rounded-full border-white/5 flex items-center space-x-3 text-xs tracking-wider">
-              <i className="fa-solid fa-hand-pointer text-gold animate-bounce"></i>
-              <span className="text-gray-300">Left Click + Drag to rotate celestial sphere</span>
-            </div>
+          <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple">
+            <div ref={containerRef} id="interactive-canvas-container" role="img" aria-label="Interactive celestial map" className="w-full h-full touch-none" />
+            {mapState === 'loading' && <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300 pointer-events-none">Loading celestial view…</div>}
+            {(mapState === 'webgl' || mapState === 'cdn') && <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 space-y-3"><p className="text-sm text-gray-300">{mapState === 'webgl' ? 'The interactive 3D map needs WebGL. Your browser or device has it disabled.' : 'We could not load the 3D map from Three.js. Please try again.'}</p><p className="text-xs text-gray-400">The named stars of the celestial vault are listed below.</p><div className="flex flex-wrap gap-2 justify-center">{FALLBACK_STARS.map((star) => <span key={star.name} className="px-3 py-1 text-[11px] text-white/90">{star.name}</span>)}</div></div>}
+            {labelsVisible && mapState === 'ready' && <div className="absolute inset-0 pointer-events-none overflow-hidden">{labels.map((label) => <span key={label.name} className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] text-white/90" style={{ left: label.x, top: label.y, textShadow: '0 0 6px #000' }}>{label.name}</span>)}</div>}
+            {mapState === 'ready' && <div className="absolute bottom-6 left-6 pointer-events-none glass-panel px-4 py-2.5 rounded-full text-xs text-gray-300">Left Click + Drag to rotate celestial sphere</div>}
+            {selected && <div role="dialog" aria-label={`${selected.label} details`} onKeyDown={(event) => { if (event.key === 'Escape') closeDetails(); }} className="absolute right-4 top-4 w-64 glass-panel bg-cosmic-950/95 border border-gold/40 rounded-2xl p-4 text-sm text-white"><button ref={closeDetailsRef} aria-label="Close details" onClick={closeDetails} className="absolute right-3 top-2 text-xl">×</button><h3 className="text-lg font-semibold text-gold"><span aria-hidden="true">{selected.glyph} </span>{selected.label}</h3><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><dt>Right ascension</dt><dd>{selected.rightAscensionDeg!.toFixed(2)}°</dd><dt>Declination</dt><dd>{selected.declinationDeg! < 0 ? '−' : ''}{Math.abs(selected.declinationDeg!).toFixed(2)}°</dd><dt>Zodiac</dt><dd>{selected.signLabel} {selected.degreeInSign!.toFixed(2)}°</dd><dt>House</dt><dd>{selected.house == null ? 'Unavailable' : `House ${selected.house}`}</dd><dt>Motion</dt><dd>{selected.retrograde ? 'Retrograde' : 'Direct'}</dd></dl></div>}
           </div>
         </div>
       </div>

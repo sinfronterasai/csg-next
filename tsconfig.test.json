@@ -10,12 +10,16 @@
     "src/lib/reportEngine.ts",
     "src/lib/reportPipeline.ts",
     "src/lib/chartEngine.ts",
+    "src/lib/constellations/**/*",
+    "src/app/api/constellations/**/*",
+    "src/app/constellations/ConstellationsView.tsx",
     "src/lib/astrology.ts",
     "src/lib/transit.ts",
     "tests/reports/fixtures/factsFixtures.ts",
     "tests/reports/factsV2.test.ts",
     "tests/reports/generate-repeat-fastpath.test.ts",
-    "tests/reports/deterministicReportCompiler.test.ts"
+    "tests/reports/deterministicReportCompiler.test.ts",
+    "tests/constellations/**/*"
   ],
   "exclude": ["node_modules"]
 }
