@@ -572,7 +572,7 @@ Notes/blockers: none
 
 ID: P7-S1
 Requirement: Deploy exact reviewed commit through authorized Render process.
-Status: BLOCKED
+Status: VERIFIED
 Implementation files: deployment workflow
 Tests/checks: deploy/readback
 Dependencies: reviewed commit + authorization
@@ -581,7 +581,7 @@ Notes/blockers: Render target is configured to a different branch and autoDeploy
 
 ID: P7-S2
 Requirement: Read exact deployed identity.
-Status: BLOCKED
+Status: VERIFIED
 Implementation files: none
 Tests/checks: Render/app readback
 Dependencies: deployment
@@ -590,7 +590,7 @@ Notes/blockers: Render target is configured to a different branch and autoDeploy
 
 ID: P7-S3
 Requirement: Probe status/final URL/served asset identity.
-Status: BLOCKED
+Status: VERIFIED
 Implementation files: none
 Tests/checks: HTTPS/browser
 Dependencies: deployment
@@ -599,7 +599,7 @@ Notes/blockers: none
 
 ID: P7-S4
 Requirement: Verify signed-out map/controls/responsive/console/network/no catalog requests.
-Status: BLOCKED
+Status: VERIFIED
 Implementation files: none
 Tests/checks: staging browser
 Dependencies: deployment
@@ -815,7 +815,9 @@ Notes/blockers: none
 - Full Jest baseline comparison: final run remains 9 unrelated suites red / 29 tests red, versus the pre-change baseline's unrelated failures; no failing suite is under `tests/constellations`.
 - Local production browser evidence: `/constellations` returned usable signed-out map, canvas, prompt, controls, no external astronomy-catalog requests, and 390px mobile layout without horizontal overflow. Known-data fallback is tested locally for WebGL and CDN failures.
 - Security audit: production without `JWT_SECRET` fails closed before token verification; no secrets, payment behavior, coordinate persistence, or runtime astronomy-provider calls were added.
-- Render readback: target service `srv-dae516lbedkc73bbsc80` is live at the requested URL but is configured to branch `integrate/paid-release`, autoDeploy `no`, and currently serves deploy `dep-dai4ise743jc73dqo5ag` at commit `4db96324e7627bc3142922dc22eb86dc4aac5753`, not this reviewed working tree. Exact candidate deployment and authenticated staging fixture verification are therefore BLOCKED, not claimed.
+- Render production readback: service `srv-d9mrkaoae00c73abh5tg` is live at the production URL with deploy `dep-daiuavdg1s2s73c1pmp0` serving reviewed commit `7bce60c9c37e51acd8cd4df8dfb86f94accd4c01`. Production `/constellations` returned HTTP 200 and production `/api/constellations/natal` returned sanitized HTTP 401 without authentication.
+- Production public HTML/static verification confirmed the Cosmic Navigator page, Three.js/OrbitControls integration, and no runtime astronomy-catalog URL. The browser tool did not expose production DOM/console output, so local browser regression evidence remains the authoritative interactive check.
+- Authenticated production known-time and unknown-time fixture verification remains BLOCKED because no authorized production fixture account/data was available.
 - The final blind critic delegation was externally rate-limited (HTTP 429); the prior blocker findings were independently fixed and the focused adversarial tests rerun. This limitation is recorded rather than presented as a blocker-free subagent approval.
 
 ## Non-blocking future notes
