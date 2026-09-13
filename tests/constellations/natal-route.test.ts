@@ -44,6 +44,7 @@ const payload = {
   frame: { ...NAVIGATOR_FRAME_BASE, epoch: utc },
   birthAnchor: { utc, timezone: 'America/Los_Angeles', source: 'saved-natal-chart' },
   bodies: routeBodies,
+  aspects: [],
   namedStars: getNamedStarsAtEpoch(2444308.5145833334, utc),
   source: { engine: 'swiss-ephemeris', package: '@fusionstrings/swiss-eph', flags: 138850, calculationTime: 'UTC-derived Julian day supplied as tjd_ut' },
   availability: { primary: 'available', optionalUnavailable: [] },

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <radialGradient id="earthFill" cx="42%" cy="36%" r="68%">
+      <stop offset="0%" stop-color="#18243D" stop-opacity="0.98"/>
+      <stop offset="62%" stop-color="#0A1020" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#050812" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="atmosphere" cx="50%" cy="50%" r="50%">
+      <stop offset="68%" stop-color="#6EDCFF" stop-opacity="0"/>
+      <stop offset="87%" stop-color="#6EDCFF" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#6EDCFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gridStroke" x1="96" y1="92" x2="416" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A8E8FF" stop-opacity="0.65"/>
+      <stop offset="0.5" stop-color="#D8C78F" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#A8E8FF" stop-opacity="0.65"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="earthClip">
+      <circle cx="256" cy="256" r="132"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="256" cy="256" r="164" fill="url(#atmosphere)" filter="url(#softGlow)"/>
+  <circle cx="256" cy="256" r="132" fill="url(#earthFill)"/>
+  <circle cx="256" cy="256" r="132" stroke="#A8E8FF" stroke-opacity="0.34" stroke-width="2"/>
+
+  <g clip-path="url(#earthClip)" stroke="url(#gridStroke)" stroke-width="1.4" opacity="0.60">
+    <ellipse cx="256" cy="256" rx="92" ry="132"/>
+    <ellipse cx="256" cy="256" rx="44" ry="132"/>
+    <ellipse cx="256" cy="256" rx="132" ry="42"/>
+    <ellipse cx="256" cy="256" rx="132" ry="84"/>
+    <path d="M124 256H388"/>
+    <path d="M256 124V388"/>
+  </g>
+
+  <circle cx="256" cy="256" r="7" fill="#FFF1B8" filter="url(#softGlow)"/>
+  <circle cx="256" cy="256" r="2.6" fill="#FFFFFF"/>
+</svg>

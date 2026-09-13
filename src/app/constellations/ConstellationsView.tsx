@@ -21,11 +21,17 @@ type NamedStar = {
   key: string; name: string; status: 'available'; rightAscensionDeg: number; declinationDeg: number;
   vector: Vector3; catalogId: string; catalogEpoch: string; catalogFrame: string; source: string; frame: NavigatorFrame;
 };
+type NatalAspect = {
+  bodyA: string; bodyB: string;
+  aspectType: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  angle: 0 | 60 | 90 | 120 | 180; orb: number;
+};
 type NatalResponse = {
   schemaVersion: 'csg-natal-navigator-v1';
   frame: NavigatorFrame;
   birthAnchor: { utc: string; timezone: string; source: 'saved-natal-chart' };
   bodies: Body[];
+  aspects: NatalAspect[];
   namedStars: NamedStar[];
   source: {
     engine: 'swiss-ephemeris'; package: '@fusionstrings/swiss-eph'; flags: number;
@@ -37,9 +43,11 @@ type PersonalizationState = 'loading' | 'signed-out' | 'no-chart' | 'unknown-tim
 type Label = { name: string; x: number; y: number };
 type SceneRuntime = {
   THREE: any; scene: any; camera: any; renderer: any; controls: any;
-  verifiedStarGroup: any; natalMarkerGroup: any; astronomicalGroup: any; constellationLines: any;
+  verifiedStarGroup: any; natalMarkerGroup: any; natalAspectGroup: any; astronomicalGroup: any; constellationLines: any;
+  earthMarker: any;
   starMeshes: Array<{ name: string; mesh: any }>;
   markerMeshes: Map<string, any>;
+  aspectLines: Array<{ line: any; bodyA: string; bodyB: string; baseOpacity: number }>;
   selectionRings: Map<string, any>;
   textureLoader: any;
   textureCache: Map<string, any>;
@@ -53,6 +61,16 @@ const STAR_COLORS: Record<string, string> = { Sirius: '#a3d1ff', Betelgeuse: '#f
 const FALLBACK_STARS = getNamedStarsAtEpoch(2451545, PUBLIC_CATALOG_EPOCH);
 const POSITION_FIELDS = ['rightAscensionDeg', 'declinationDeg', 'vector', 'longitude', 'sign', 'signLabel', 'degreeInSign', 'house', 'retrograde'] as const;
 const MARKER_SCALE = 0.68;
+const EARTH_ASSET = '/cosmic-navigator/markers/earth-observer.svg';
+const EARTH_SCALE = 0.4;
+const EARTH_OPACITY = 0.72;
+const ASPECT_STYLES: Record<NatalAspect['aspectType'], { color: number; opacity: number }> = {
+  conjunction: { color: 0xF6D38A, opacity: .32 },
+  sextile: { color: 0x7DD3FC, opacity: .28 },
+  square: { color: 0xFB7185, opacity: .3 },
+  trine: { color: 0xA7F3D0, opacity: .3 },
+  opposition: { color: 0xC4B5FD, opacity: .34 },
+};
 const MARKER_ASSETS: Record<string, string> = {
   sun: '/cosmic-navigator/markers/sun.svg', moon: '/cosmic-navigator/markers/moon.svg',
   mercury: '/cosmic-navigator/markers/mercury.svg', venus: '/cosmic-navigator/markers/venus.svg',
@@ -119,6 +137,13 @@ function parsePayload(value: unknown): NatalResponse | null {
         item.status === 'available' ? !validAvailableBody(item) : !validUnavailableBody(item));
   })) return null;
 
+  const availableBodyKeys = new Set(data.bodies.filter((item) => item.status === 'available').map((item) => item.key));
+  const aspectAngles = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 } as const;
+  if (!Array.isArray(data.aspects) || data.aspects.some((aspect) =>
+    !aspect || !availableBodyKeys.has(aspect.bodyA) || !availableBodyKeys.has(aspect.bodyB) || aspect.bodyA >= aspect.bodyB ||
+    !(aspect.aspectType in aspectAngles) || aspect.angle !== aspectAngles[aspect.aspectType] ||
+    !finite(aspect.orb) || aspect.orb < 0 || aspect.orb > 10 || Object.keys(aspect).sort().join('|') !== 'angle|aspectType|bodyA|bodyB|orb')) return null;
+
   const unavailable = data.bodies.filter((item) => item.category === 'additional' && item.status === 'unavailable').map((item) => item.key);
   if (data.availability.optionalUnavailable.length !== unavailable.length ||
       data.availability.optionalUnavailable.some((key, index) => key !== unavailable[index])) return null;
@@ -143,6 +168,34 @@ function parsePayload(value: unknown): NatalResponse | null {
 function disposeMarker(marker: any) {
   marker.geometry?.dispose?.();
   marker.material?.dispose?.();
+}
+
+function syncAspectGeometry(runtime: SceneRuntime, data: NatalResponse | null, additional: boolean) {
+  runtime.natalAspectGroup.children.slice().forEach((line: any) => {
+    runtime.natalAspectGroup.remove(line);
+    disposeMarker(line);
+  });
+  runtime.aspectLines.length = 0;
+  if (!data) return;
+
+  const visibleKeys = new Set(data.bodies
+    .filter((body) => body.status === 'available' && (body.category === 'primary' || additional))
+    .map((body) => body.key));
+  const positions = new Map([...runtime.markerMeshes.entries()].map(([key, mesh]) => [key, mesh.position]));
+  for (const aspect of data.aspects) {
+    const a = positions.get(aspect.bodyA); const b = positions.get(aspect.bodyB);
+    if (!visibleKeys.has(aspect.bodyA) || !visibleKeys.has(aspect.bodyB) || !a || !b) continue;
+    const geometry = new runtime.THREE.BufferGeometry();
+    geometry.setAttribute('position', new runtime.THREE.Float32BufferAttribute([
+      a.x, a.y, a.z, b.x, b.y, b.z,
+    ], 3));
+    const style = ASPECT_STYLES[aspect.aspectType];
+    const material = new runtime.THREE.LineBasicMaterial({ color: style.color, transparent: true, opacity: style.opacity, depthWrite: false });
+    const line = new runtime.THREE.Line(geometry, material);
+    line.userData = { natalAspect: true, bodyA: aspect.bodyA, bodyB: aspect.bodyB, aspectType: aspect.aspectType, orb: aspect.orb };
+    runtime.natalAspectGroup.add(line);
+    runtime.aspectLines.push({ line, bodyA: aspect.bodyA, bodyB: aspect.bodyB, baseOpacity: style.opacity });
+  }
 }
 
 function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null, additional: boolean, disposables: any[]) {
@@ -210,6 +263,15 @@ function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null,
     const ring = runtime.selectionRings.get(body.key);
     if (ring) ring.position.copy(mesh.position);
   }
+  syncAspectGeometry(runtime, data, additional);
+}
+
+function updateAspectPresentation(runtime: SceneRuntime, selectedKey: string | null, hoveredKey: string | null) {
+  runtime.aspectLines.forEach(({ line, bodyA, bodyB, baseOpacity }) => {
+    const connected = bodyA === selectedKey || bodyB === selectedKey;
+    const hovered = bodyA === hoveredKey || bodyB === hoveredKey;
+    line.material.opacity = selectedKey ? (connected ? .78 : .1) : hovered ? .52 : baseOpacity;
+  });
 }
 
 function statusMessage(state: PersonalizationState) {
@@ -229,6 +291,7 @@ export default function ConstellationsView() {
   const [data, setData] = useState<NatalResponse | null>(null);
   const [additional, setAdditional] = useState(false);
   const [linesVisible, setLinesVisible] = useState(true);
+  const [geometryVisible, setGeometryVisible] = useState(true);
   const [labelsVisible, setLabelsVisible] = useState(true);
   const [speed, setSpeed] = useState(20);
   const [labels, setLabels] = useState<Label[]>([]);
@@ -242,14 +305,14 @@ export default function ConstellationsView() {
   const hoveredKeyRef = useRef<string | null>(null);
   selectedKeyRef.current = selectedKey;
   hoveredKeyRef.current = hoveredKey;
-  const sceneControls = useRef({ speed, linesVisible, labelsVisible });
+  const sceneControls = useRef({ speed, linesVisible, geometryVisible, labelsVisible });
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const sceneDisposablesRef = useRef<any[]>([]);
   const dataRef = useRef<NatalResponse | null>(data);
   const additionalRef = useRef(additional);
   dataRef.current = data;
   additionalRef.current = additional;
-  sceneControls.current = { speed, linesVisible, labelsVisible };
+  sceneControls.current = { speed, linesVisible, geometryVisible, labelsVisible };
 
   const selectBody = (key: string, trigger: HTMLElement | null) => {
     selectionTriggerRef.current = trigger;
@@ -326,7 +389,8 @@ export default function ConstellationsView() {
         const astronomicalGroup = new THREE.Group(); astronomicalGroup.name = 'astronomicalGroup';
         const verifiedStarGroup = new THREE.Group(); verifiedStarGroup.name = 'verifiedStarGroup';
         const natalMarkerGroup = new THREE.Group(); natalMarkerGroup.name = 'natalMarkerGroup';
-        astronomicalGroup.add(verifiedStarGroup, natalMarkerGroup);
+        const natalAspectGroup = new THREE.Group(); natalAspectGroup.name = 'natalAspectGroup';
+        astronomicalGroup.add(verifiedStarGroup, natalAspectGroup, natalMarkerGroup);
         scene.add(decorativeBackgroundGroup, decorativeConstellationGroup, astronomicalGroup);
 
         const bgPositions: number[] = [];
@@ -355,10 +419,37 @@ export default function ConstellationsView() {
           return { name: star.name, mesh };
         });
         const markerMeshes = new Map<string, any>();
+        const aspectLines: Array<{ line: any; bodyA: string; bodyB: string; baseOpacity: number }> = [];
         const selectionRings = new Map<string, any>();
         const supportsSprites = !!(THREE.TextureLoader && THREE.Sprite && THREE.SpriteMaterial);
         const textureLoader = supportsSprites ? new THREE.TextureLoader() : null;
         const textureCache = new Map<string, any>();
+        let earthMarker: any = null;
+        if (supportsSprites) {
+          earthMarker = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, opacity: EARTH_OPACITY, depthWrite: false }));
+          earthMarker.position.set(0, 0, 0);
+          earthMarker.scale.setScalar(EARTH_SCALE);
+          earthMarker.userData = { observerMarker: true, decorative: true };
+          scene.add(earthMarker);
+          textureCache.set(EARTH_ASSET, null);
+          textureLoader.load(EARTH_ASSET, (texture: any) => {
+            if (cancelled || !earthMarker || !earthMarker.material) { texture?.dispose?.(); return; }
+            earthMarker.material.map = texture;
+            earthMarker.material.needsUpdate = true;
+            textureCache.set(EARTH_ASSET, texture);
+          }, undefined, () => {
+            // The map remains usable if the optional observer artwork is unavailable.
+            textureCache.set(EARTH_ASSET, false);
+          });
+        } else {
+          // Keep degraded Three.js test/runtime doubles usable without sprite support.
+          const earthGeometry = new THREE.SphereGeometry(.025, 8, 8);
+          const earthMaterial = new THREE.MeshBasicMaterial({ color: 0xA8E8FF, transparent: true, opacity: EARTH_OPACITY });
+          earthMarker = new THREE.Mesh(earthGeometry, earthMaterial);
+          earthMarker.position.set(0, 0, 0);
+          earthMarker.userData = { observerMarker: true, decorative: true };
+          scene.add(earthMarker);
+        }
         textureLoader?.load(SELECTION_RING_ASSET, (texture: any) => {
           textureCache.set(SELECTION_RING_ASSET, texture);
           markerMeshes.forEach((mesh: any, key: string) => {
@@ -373,6 +464,7 @@ export default function ConstellationsView() {
           const rect = renderer.domElement.getBoundingClientRect();
           pointer.x = ((event.clientX - rect.left) / (rect.width || width)) * 2 - 1; pointer.y = -((event.clientY - rect.top) / (rect.height || height)) * 2 + 1;
           raycaster.setFromCamera(pointer, camera);
+          // Earth is a fixed decorative reference point, never a selectable body.
           return raycaster.intersectObjects([...markerMeshes.values()], false)[0]?.object?.userData?.bodyKey ?? null;
         };
         const onMove = ((event: PointerEvent) => setHoveredKey(hit(event))) as EventListener;
@@ -395,8 +487,8 @@ export default function ConstellationsView() {
         renderer.domElement.addEventListener('pointercancel', onCancel);
         listeners.push(['pointermove', onMove], ['pointerleave', onLeave], ['pointerdown', onDown], ['pointerup', onUp], ['pointercancel', onCancel]);
         const runtime = {
-          THREE, scene, camera, renderer, controls, verifiedStarGroup, natalMarkerGroup,
-          astronomicalGroup, constellationLines, starMeshes, markerMeshes, selectionRings, textureLoader, textureCache,
+          THREE, scene, camera, renderer, controls, verifiedStarGroup, natalMarkerGroup, natalAspectGroup,
+          astronomicalGroup, constellationLines, earthMarker, starMeshes, markerMeshes, aspectLines, selectionRings, textureLoader, textureCache,
         };
         runtimeRef.current = runtime;
         sceneDisposablesRef.current = disposables;
@@ -409,6 +501,7 @@ export default function ConstellationsView() {
           const increment = (sceneControls.current.speed / 100) * .01;
           decorativeConstellationGroup.rotation.y += increment; astronomicalGroup.rotation.y += increment;
           constellationLines.visible = sceneControls.current.linesVisible;
+          natalAspectGroup.visible = sceneControls.current.geometryVisible;
           markerMeshes.forEach((mesh: any) => {
             const key = mesh.userData.bodyKey;
             const selectedMarker = key === selectedKeyRef.current;
@@ -422,6 +515,7 @@ export default function ConstellationsView() {
               ring.material.opacity = selectedMarker ? .72 + Math.sin(time * .0012) * .08 : 0;
             }
           });
+          updateAspectPresentation(runtime, selectedKeyRef.current, hoveredKeyRef.current);
           controls.update(); renderer.render(scene, camera);
           if (time - lastLabelUpdate > 80 && sceneControls.current.labelsVisible) {
             lastLabelUpdate = time; const rect = container.getBoundingClientRect();
@@ -444,6 +538,7 @@ export default function ConstellationsView() {
       disposables.forEach((item) => item.dispose?.());
       runtime?.markerMeshes.forEach((mesh: any) => disposeMarker(mesh));
       runtime?.selectionRings.forEach((ring: any) => disposeMarker(ring));
+      if (runtime?.earthMarker) disposeMarker(runtime.earthMarker);
       runtime?.textureCache.forEach((texture: any) => texture?.dispose?.());
       setLabels([]);
     };
@@ -453,6 +548,14 @@ export default function ConstellationsView() {
     const runtime = runtimeRef.current;
     if (runtime) syncAstronomicalData(runtime, data, additional, sceneDisposablesRef.current);
   }, [data, additional]);
+
+  useEffect(() => {
+    if (runtimeRef.current) runtimeRef.current.natalAspectGroup.visible = geometryVisible;
+  }, [geometryVisible]);
+
+  useEffect(() => {
+    if (runtimeRef.current) updateAspectPresentation(runtimeRef.current, selectedKey, hoveredKey);
+  }, [selectedKey, hoveredKey]);
 
   useEffect(() => {
     if (additional) return;
@@ -475,6 +578,7 @@ export default function ConstellationsView() {
             <div className="space-y-4 pt-2">
               <div className="glass-panel p-4 rounded-2xl"><label htmlFor="star-speed" className="block text-sm font-semibold text-white">Celestial Speed</label><input aria-label="Celestial speed" type="range" id="star-speed" min="0" max="100" value={speed} onChange={(event) => setSpeed(event.currentTarget.valueAsNumber)} className="w-32 accent-gold" /></div>
               <div className="glass-panel p-4 rounded-2xl"><span className="block text-sm font-semibold text-white">Constellation Lines</span><button aria-label={`${linesVisible ? 'Hide' : 'Show'} constellation lines`} aria-pressed={linesVisible} onClick={() => setLinesVisible((value) => !value)} className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold mt-1 uppercase">{linesVisible ? 'Hide Lines' : 'Show Lines'}</button></div>
+              {personalization === 'known' && data && <div className="glass-panel p-4 rounded-2xl"><span className="block text-sm font-semibold text-white">Chart Geometry</span><button aria-label={`${geometryVisible ? 'Hide' : 'Show'} chart geometry`} aria-pressed={geometryVisible} onClick={() => setGeometryVisible((value) => !value)} className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold mt-1 uppercase">{geometryVisible ? 'Hide Geometry' : 'Show Geometry'}</button></div>}
               <div className="glass-panel p-4 rounded-2xl"><span className="block text-sm font-semibold text-white">Named-star Labels</span><button aria-label={`${labelsVisible ? 'Hide' : 'Show'} named star labels`} aria-pressed={labelsVisible} onClick={() => setLabelsVisible((value) => !value)} className="text-xs bg-gold text-cosmic-950 px-3 py-1 rounded-md font-semibold mt-1 uppercase">{labelsVisible ? 'Hide Labels' : 'Show Labels'}</button></div>
             </div>
             {personalization !== 'known' && <div role="status" className="glass-panel p-4 rounded-2xl text-sm text-gray-200"><p>{statusMessage(personalization)}</p>{personalization === 'signed-out' && <a href="/login" className="text-gold">Sign in</a>}{personalization === 'no-chart' && <a href="/birth-chart" className="text-gold">Create chart</a>}{personalization === 'unknown-time' && <a href="/profile" className="text-gold">Update chart</a>}</div>}

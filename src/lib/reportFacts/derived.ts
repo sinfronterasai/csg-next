@@ -642,7 +642,7 @@ export function compareAspectFacts(a: AspectFact, b: AspectFact): number {
 // Aspects from the published 2dp longitude basis, locked major + minor set (T3-3).
 // Body-aware orb selection: luminaries 10°, planets 8°, minor 2°.
 // Output sorted by the canonical comparator above.
-export function buildAspects(bodyList: BodyLong[]): AspectFact[] {
+export function buildAspects(bodyList: ReadonlyArray<Pick<BodyLong, 'id' | 'key' | 'label' | 'longitude'>>): AspectFact[] {
   const out: AspectFact[] = [];
   for (let i = 0; i < bodyList.length; i++) {
     for (let j = i + 1; j < bodyList.length; j++) {

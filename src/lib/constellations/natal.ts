@@ -8,6 +8,7 @@ import {
   NAVIGATOR_FRAME_BASE,
 } from './coordinates';
 import { getNamedStarsAtEpoch } from './starCatalog';
+import { buildAspects } from '@/lib/reportFacts/derived';
 
 export const NAVIGATOR_SCHEMA_VERSION = 'csg-natal-navigator-v1' as const;
 export const NAVIGATOR_FLAGS = Constants.SEFLG_SWIEPH |
@@ -68,11 +69,20 @@ export type NavigatorBodyUnavailable = NavigatorBodyBase & {
 
 export type NavigatorBody = NavigatorBodyAvailable | NavigatorBodyUnavailable;
 
+export type NavigatorAspect = {
+  bodyA: string;
+  bodyB: string;
+  aspectType: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  angle: 0 | 60 | 90 | 120 | 180;
+  orb: number;
+};
+
 export type NatalNavigatorResponse = {
   schemaVersion: typeof NAVIGATOR_SCHEMA_VERSION;
   frame: typeof NAVIGATOR_FRAME_BASE & { epoch: string };
   birthAnchor: { utc: string; timezone: string; source: 'saved-natal-chart' };
   bodies: NavigatorBody[];
+  aspects: NavigatorAspect[];
   namedStars: ReturnType<typeof getNamedStarsAtEpoch>;
   source: { engine: 'swiss-ephemeris'; package: '@fusionstrings/swiss-eph'; flags: number; calculationTime: 'UTC-derived Julian day supplied as tjd_ut' };
   availability: { primary: 'available'; optionalUnavailable: string[] };
@@ -91,13 +101,13 @@ export function validateNatalNavigatorResponse(value: unknown): value is NatalNa
       !Array.isArray(payload.bodies) || !Array.isArray(payload.namedStars)) return false;
   try { assertMatchingFrames({ ...NAVIGATOR_FRAME_BASE, epoch: utc }, payload.frame ?? {}); } catch { return false; }
   const allKeys = [...PRIMARY_BODY_KEYS, ...ADDITIONAL_BODY_KEYS];
-  const availableKeys = ['category', 'declinationDeg', 'degreeInSign', 'glyph', 'house', 'key', 'label', 'longitude', 'retrograde', 'rightAscensionDeg', 'sign', 'signLabel', 'source', 'status', 'vector'];
+  const availableBodyFields = ['category', 'declinationDeg', 'degreeInSign', 'glyph', 'house', 'key', 'label', 'longitude', 'retrograde', 'rightAscensionDeg', 'sign', 'signLabel', 'source', 'status', 'vector'];
   const unavailableKeys = ['category', 'glyph', 'key', 'label', 'reason', 'source', 'status'];
   if (payload.bodies.length !== allKeys.length || payload.bodies.some((body, index) => {
     if (!body || body.key !== allKeys[index] || body.category !== (index < PRIMARY_BODY_KEYS.length ? 'primary' : 'additional') || body.source !== 'swiss-ephemeris') return true;
     if (body.status === 'unavailable') return body.category !== 'additional' || !['ephemeris-unavailable', 'saved-placement-unavailable'].includes(body.reason) ||
       Object.keys(body).sort().join('|') !== unavailableKeys.join('|');
-    if (Object.keys(body).sort().join('|') !== availableKeys.join('|')) return true;
+    if (Object.keys(body).sort().join('|') !== availableBodyFields.join('|')) return true;
     const length = Math.hypot(body.vector.x, body.vector.y, body.vector.z);
     return !Number.isFinite(body.rightAscensionDeg) || body.rightAscensionDeg < 0 || body.rightAscensionDeg >= 360 ||
       !Number.isFinite(body.declinationDeg) || body.declinationDeg < -90 || body.declinationDeg > 90 ||
@@ -111,6 +121,22 @@ export function validateNatalNavigatorResponse(value: unknown): value is NatalNa
     return star.status !== 'available' || !Number.isFinite(star.rightAscensionDeg) || !Number.isFinite(star.declinationDeg) ||
       !Number.isFinite(length) || Math.abs(length - 1) > 1e-12;
   })) return false;
+  const availableBodyKeys = new Set(payload.bodies.filter(body => body.status === 'available').map(body => body.key));
+  const angles = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 } as const;
+  if (!Array.isArray(payload.aspects) || payload.aspects.some(aspect =>
+    !aspect || !availableBodyKeys.has(aspect.bodyA) || !availableBodyKeys.has(aspect.bodyB) || aspect.bodyA >= aspect.bodyB ||
+    !(aspect.aspectType in angles) || aspect.angle !== angles[aspect.aspectType] ||
+    !Number.isFinite(aspect.orb) || aspect.orb < 0 || aspect.orb > 10 || Object.keys(aspect).sort().join('|') !== 'angle|aspectType|bodyA|bodyB|orb')) return false;
+  const expectedAspects: NavigatorAspect[] = buildAspects(payload.bodies
+    .filter((body): body is NavigatorBodyAvailable => body.status === 'available')
+    .map(body => ({ id: `natal.${body.key}.position`, key: body.key, label: body.label, longitude: body.longitude })))
+    .filter(aspect => !aspect.value.minor)
+    .map(aspect => ({
+      bodyA: aspect.value.bodyA, bodyB: aspect.value.bodyB,
+      aspectType: aspect.value.aspectType as NavigatorAspect['aspectType'],
+      angle: angles[aspect.value.aspectType as keyof typeof angles] as NavigatorAspect['angle'], orb: aspect.value.orb,
+    }));
+  if (JSON.stringify(payload.aspects) !== JSON.stringify(expectedAspects)) return false;
   return true;
 }
 
@@ -327,11 +353,25 @@ export async function buildNatalNavigator(
     }
   }
 
+  const availableAspectBodies = bodies.filter((body): body is NavigatorBodyAvailable => body.status === 'available');
+  const aspects: NavigatorAspect[] = buildAspects(availableAspectBodies.map(body => ({
+    id: `natal.${body.key}.position`, key: body.key, label: body.label, longitude: body.longitude,
+  })))
+    .filter(aspect => !aspect.value.minor)
+    .map(aspect => ({
+      bodyA: aspect.value.bodyA,
+      bodyB: aspect.value.bodyB,
+      aspectType: aspect.value.aspectType as NavigatorAspect['aspectType'],
+      angle: ({ conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 } as const)[aspect.value.aspectType] as NavigatorAspect['angle'],
+      orb: aspect.value.orb,
+    }));
+
   return {
     schemaVersion: NAVIGATOR_SCHEMA_VERSION,
     frame: { ...NAVIGATOR_FRAME_BASE, epoch: anchor.utc },
     birthAnchor: { utc: anchor.utc, timezone: anchor.timezone, source: 'saved-natal-chart' },
     bodies,
+    aspects,
     namedStars: getNamedStarsAtEpoch(anchor.julianDayUt, anchor.utc),
     source: {
       engine: 'swiss-ephemeris', package: '@fusionstrings/swiss-eph', flags: NAVIGATOR_FLAGS,

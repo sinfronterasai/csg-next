@@ -19,11 +19,14 @@ const body = (label: string, category: 'primary' | 'additional' = 'primary', sta
 });
 
 const namedStars = getNamedStarsAtEpoch(2451545, '2000-01-01T12:00:00.000Z');
+const fixtureBodyKeys = [...PRIMARY, ...ADDITIONAL].map((name) => body(name).key).sort();
+const fixtureAspects = fixtureBodyKeys.flatMap((bodyA, index) => fixtureBodyKeys.slice(index + 1).map((bodyB) => ({ bodyA, bodyB, aspectType: 'conjunction' as const, angle: 0 as const, orb: 0 })));
 const payload = {
   schemaVersion: 'csg-natal-navigator-v1',
   frame: { ...NAVIGATOR_FRAME_BASE, epoch: '2000-01-01T12:00:00.000Z' },
   birthAnchor: { utc: '2000-01-01T12:00:00.000Z', timezone: 'UTC', source: 'saved-natal-chart' },
   bodies: [...PRIMARY.map((name) => body(name)), ...ADDITIONAL.map((name) => body(name, 'additional'))],
+  aspects: fixtureAspects,
   namedStars,
   source: { engine: 'swiss-ephemeris', package: '@fusionstrings/swiss-eph', flags: NAVIGATOR_FRAME_BASE.swissFlags, calculationTime: 'UTC-derived Julian day supplied as tjd_ut' },
   availability: { primary: 'available', optionalUnavailable: [] as string[] },
@@ -60,7 +63,7 @@ function installThree() {
   class Controls { enableDamping = false; dampingFactor = 0; enableZoom = false; maxDistance = 0; minDistance = 0; update = jest.fn(); dispose = jest.fn(); constructor(..._args: any[]) { controls.push(this); } }
   class Raycaster { setFromCamera = jest.fn(); intersectObjects = jest.fn((objects: any[]) => raycastHits && objects.length ? [{ object: objects[0] }] : []); }
   (window as any).THREE = {
-    Scene, Group, Mesh, Points: Mesh, LineSegments: Mesh, BufferGeometry: Geometry, SphereGeometry: Geometry,
+    Scene, Group, Mesh, Line: Mesh, Points: Mesh, LineSegments: Mesh, BufferGeometry: Geometry, SphereGeometry: Geometry,
     BufferAttribute: class {}, Float32BufferAttribute: class {}, PointsMaterial: Material, LineBasicMaterial: Material,
     MeshBasicMaterial: Material, Vector3, Vector2: class { constructor(public x = 0, public y = 0) {} }, PerspectiveCamera: Camera,
     WebGLRenderer: Renderer, Raycaster, OrbitControls: Controls,
@@ -125,6 +128,11 @@ describe('known natal sky', () => {
     fireEvent.click(screen.getByRole('button', { name: /show additional bodies/i }));
     expect(legend.querySelectorAll('button')).toHaveLength(13);
     ADDITIONAL.forEach((name) => expect(screen.getByRole('button', { name: new RegExp(`^${name}`) })).toBeTruthy());
+    const geometryToggle = screen.getByRole('button', { name: /hide chart geometry/i });
+    expect(geometryToggle.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(geometryToggle);
+    expect(screen.getByRole('button', { name: /show chart geometry/i }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: /hide constellation lines/i }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: /hide additional bodies/i }));
     expect(legend.querySelectorAll('button')).toHaveLength(10);
   });
@@ -133,6 +141,7 @@ describe('known natal sky', () => {
     const partial = {
       ...payload,
       bodies: payload.bodies.map((item) => item.label === 'Juno' ? body('Juno', 'additional', 'unavailable') : item),
+      aspects: payload.aspects.filter((aspect) => aspect.bodyA !== 'juno' && aspect.bodyB !== 'juno'),
       availability: { primary: 'available', optionalUnavailable: ['juno'] },
     };
     await renderWith(200, partial);
@@ -261,7 +270,7 @@ describe('public Three.js behavior', () => {
     const names = activeScene.children.map((child: any) => child.name);
     expect(names).toEqual(expect.arrayContaining(['decorativeBackgroundGroup', 'decorativeConstellationGroup', 'astronomicalGroup']));
     const astro = activeScene.children.find((child: any) => child.name === 'astronomicalGroup');
-    expect(astro.children.map((child: any) => child.name)).toEqual(expect.arrayContaining(['verifiedStarGroup', 'natalMarkerGroup']));
+    expect(astro.children.map((child: any) => child.name)).toEqual(expect.arrayContaining(['verifiedStarGroup', 'natalAspectGroup', 'natalMarkerGroup']));
   });
 
   it('keeps renderer, controls, scene, decorative groups, and primary meshes across data resolution and optional toggles', async () => {
@@ -285,11 +294,19 @@ describe('public Three.js behavior', () => {
     await act(async () => { resolveFetch(await response(200, payload)); await Promise.resolve(); await Promise.resolve(); });
     await screen.findByRole('region', { name: /natal body legend/i });
     const markerGroup = astro.children.find((child: any) => child.name === 'natalMarkerGroup');
+    const aspectGroup = astro.children.find((child: any) => child.name === 'natalAspectGroup');
     const primaryMeshes = markerGroup.children.slice();
     expect(primaryMeshes).toHaveLength(10);
+    expect(aspectGroup.children).toHaveLength(45);
+    expect(aspectGroup.children.every((line: any) => line.userData.bodyA !== 'earth' && line.userData.bodyB !== 'earth')).toBe(true);
+    expect(aspectGroup.children.every((line: any) => !line.userData.bodyA.includes('Sirius') && !line.userData.bodyB.includes('Sirius'))).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: /^Sun/ }));
+    expect(aspectGroup.children.filter((line: any) => line.userData.bodyA === 'sun' || line.userData.bodyB === 'sun').every((line: any) => line.material.opacity === .78)).toBe(true);
+    expect(aspectGroup.children.filter((line: any) => line.userData.bodyA !== 'sun' && line.userData.bodyB !== 'sun').every((line: any) => line.material.opacity === .1)).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: /show additional bodies/i }));
     expect(markerGroup.children).toHaveLength(13);
+    expect(aspectGroup.children).toHaveLength(78);
     expect(markerGroup.children.slice(0, 10)).toEqual(primaryMeshes);
     fireEvent.click(screen.getByRole('button', { name: /hide additional bodies/i }));
 
@@ -301,6 +318,7 @@ describe('public Three.js behavior', () => {
     expect(scene.children).toContain(constellations);
     expect(scene.children).toContain(astro);
     expect(markerGroup.children).toEqual(primaryMeshes);
+    expect(aspectGroup.children).toHaveLength(45);
     expect(renderer.dispose).not.toHaveBeenCalled();
     expect(orbitControls.dispose).not.toHaveBeenCalled();
   });
