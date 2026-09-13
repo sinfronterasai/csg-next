@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#56D5A0" stop-opacity="0.22"/>
+      <stop offset="62%" stop-color="#56D5A0" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#56D5A0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="96" y1="88" x2="416" y2="424" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7D8"/>
+      <stop offset="0.35" stop-color="#56D5A0"/>
+      <stop offset="0.75" stop-color="#56D5A0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#FFF7D8"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.8"/>
+    </filter>
+  </defs>
+
+  <!-- Transparent canvas; subtle dark core only -->
+  <circle cx="256" cy="256" r="190" fill="#070A13" fill-opacity="0.56"/>
+  <circle cx="256" cy="256" r="190" fill="url(#core)"/>
+
+  <!-- soft aura -->
+  <circle cx="256" cy="256" r="198" stroke="#56D5A0" stroke-opacity="0.28" stroke-width="10" filter="url(#softGlow)"/>
+
+  <!-- precision rings -->
+  <circle cx="256" cy="256" r="193" stroke="url(#ring)" stroke-width="2.4"/>
+  <circle cx="256" cy="256" r="169" stroke="#56D5A0" stroke-opacity="0.72" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="149" stroke="#FFF5D0" stroke-opacity="0.20" stroke-width="1.1" stroke-dasharray="3 8"/>
+
+  <!-- cardinal markers -->
+  <g fill="#56D5A0" filter="url(#glow)">
+    <circle cx="256" cy="63" r="4.6"/>
+    <circle cx="449" cy="256" r="4.6"/>
+    <circle cx="256" cy="449" r="4.6"/>
+    <circle cx="63" cy="256" r="4.6"/>
+  </g>
+
+  <!-- canonical body glyph, converted to vector path -->
+  <path d="M234.21895620875824 293.2843431313737Q227.83203359328132 299.7258548290342 227.83203359328132 308.7876424715057Q227.83203359328132 317.8494301139772 234.21895620875824 324.2363527294541Q240.60587882423516 330.623275344931 249.66766646670666 330.623275344931Q258.72945410917816 330.623275344931 265.1163767246551 324.2363527294541Q271.50329934013195 317.8494301139772 271.50329934013195 308.7876424715057Q271.50329934013195 299.7258548290342 265.1163767246551 293.2843431313737Q258.72945410917816 286.84283143371323 249.66766646670666 286.84283143371323Q240.60587882423516 286.84283143371323 234.21895620875824 293.2843431313737ZM222.59148170365927 281.49310137972407Q230.45230953809238 273.74145170965807 240.60587882423516 271.3395320935813V165.0H259.3845230953809V198.40851829634073L291.373725254949 179.52069586082783L300.7630473905219 195.67906418716257L261.56808638272344 218.49730053989202L300.7630473905219 241.4247150569886L291.373725254949 257.58308338332336L259.3845230953809 238.58608278344332V271.55788842231556Q269.10137972405516 273.95980803839234 276.74385122975406 281.49310137972407Q288.0983803239352 292.7384523095381 288.0983803239352 308.623875224955Q288.0983803239352 324.5092981403719 276.7984403119376 335.75464907018596Q265.49850029994 347.0 249.66766646670666 347.0Q233.8368326334733 347.0 222.53689262147572 335.75464907018596Q211.2369526094781 324.5092981403719 211.2369526094781 308.623875224955Q211.2369526094781 292.7384523095381 222.59148170365927 281.49310137972407Z" fill="#FFF9EA" filter="url(#glow)"/>
+</svg>

@@ -40,6 +40,9 @@ type SceneRuntime = {
   verifiedStarGroup: any; natalMarkerGroup: any; astronomicalGroup: any; constellationLines: any;
   starMeshes: Array<{ name: string; mesh: any }>;
   markerMeshes: Map<string, any>;
+  selectionRings: Map<string, any>;
+  textureLoader: any;
+  textureCache: Map<string, any>;
 };
 
 const PRIMARY_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'] as const;
@@ -49,6 +52,17 @@ const PUBLIC_CATALOG_EPOCH = '2000-01-01T12:00:00.000Z';
 const STAR_COLORS: Record<string, string> = { Sirius: '#a3d1ff', Betelgeuse: '#ffaa77', Rigel: '#c8e4ff', Aldebaran: '#ffb382', Polaris: '#e8f2ff', Vega: '#c9e4ff', Antares: '#ff9e75', Capella: '#fff0d0' };
 const FALLBACK_STARS = getNamedStarsAtEpoch(2451545, PUBLIC_CATALOG_EPOCH);
 const POSITION_FIELDS = ['rightAscensionDeg', 'declinationDeg', 'vector', 'longitude', 'sign', 'signLabel', 'degreeInSign', 'house', 'retrograde'] as const;
+const MARKER_SCALE = 0.68;
+const MARKER_ASSETS: Record<string, string> = {
+  sun: '/cosmic-navigator/markers/sun.svg', moon: '/cosmic-navigator/markers/moon.svg',
+  mercury: '/cosmic-navigator/markers/mercury.svg', venus: '/cosmic-navigator/markers/venus.svg',
+  mars: '/cosmic-navigator/markers/mars.svg', jupiter: '/cosmic-navigator/markers/jupiter.svg',
+  saturn: '/cosmic-navigator/markers/saturn.svg', uranus: '/cosmic-navigator/markers/uranus.svg',
+  neptune: '/cosmic-navigator/markers/neptune.svg', pluto: '/cosmic-navigator/markers/pluto.svg',
+  chiron: '/cosmic-navigator/markers/chiron.svg', juno: '/cosmic-navigator/markers/juno.svg',
+  northnode: '/cosmic-navigator/markers/north-node.svg',
+};
+const SELECTION_RING_ASSET = '/cosmic-navigator/effects/selection-ring.svg';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const vectorMatches = (actual: Vector3, expected: Vector3) =>
@@ -126,6 +140,11 @@ function parsePayload(value: unknown): NatalResponse | null {
   return data as NatalResponse;
 }
 
+function disposeMarker(marker: any) {
+  marker.geometry?.dispose?.();
+  marker.material?.dispose?.();
+}
+
 function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null, additional: boolean, disposables: any[]) {
   if (!data) return;
   data.namedStars.forEach((star, index) => {
@@ -140,8 +159,10 @@ function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null,
   for (const [key, mesh] of runtime.markerMeshes) {
     if (!desiredKeys.has(key)) {
       runtime.natalMarkerGroup.remove(mesh);
+      const ring = runtime.selectionRings.get(key);
+      if (ring) { runtime.natalMarkerGroup.remove(ring); disposeMarker(ring); runtime.selectionRings.delete(key); }
       runtime.markerMeshes.delete(key);
-      mesh.geometry?.dispose?.(); mesh.material?.dispose?.();
+      disposeMarker(mesh);
     }
   }
   for (const body of desired) {
@@ -150,12 +171,44 @@ function syncAstronomicalData(runtime: SceneRuntime, data: NatalResponse | null,
       const geometry = new runtime.THREE.SphereGeometry(.14, 16, 16);
       const material = new runtime.THREE.MeshBasicMaterial({ color: '#DFB76C' });
       mesh = new runtime.THREE.Mesh(geometry, material);
-      mesh.userData = { bodyKey: body.key };
+      mesh.userData = { bodyKey: body.key, isFallback: true, baseScale: MARKER_SCALE };
       runtime.markerMeshes.set(body.key, mesh);
       runtime.natalMarkerGroup.add(mesh);
-      disposables.push(geometry, material);
+
+      const assetPath = MARKER_ASSETS[body.key];
+      const cached = assetPath ? runtime.textureCache.get(assetPath) : undefined;
+      const useTexture = (texture: any) => {
+        if (!runtime.markerMeshes.has(body.key) || !texture) return;
+        const sprite = new runtime.THREE.Sprite(new runtime.THREE.SpriteMaterial({ map: texture, transparent: true, opacity: .86, depthWrite: false }));
+        sprite.scale.setScalar(MARKER_SCALE);
+        sprite.position.copy(mesh.position);
+        sprite.userData = { bodyKey: body.key, isFallback: false, baseScale: MARKER_SCALE };
+        runtime.natalMarkerGroup.add(sprite);
+        runtime.natalMarkerGroup.remove(mesh);
+        runtime.markerMeshes.set(body.key, sprite);
+        disposeMarker(mesh);
+      };
+      if (assetPath && cached && cached !== false) useTexture(cached);
+      else if (assetPath && runtime.textureLoader && cached !== false) {
+        runtime.textureCache.set(assetPath, null);
+        runtime.textureLoader.load(assetPath, (texture: any) => {
+          runtime.textureCache.set(assetPath, texture);
+          useTexture(texture);
+        }, undefined, () => runtime.textureCache.set(assetPath, false));
+      }
+
+      const ringTexture = runtime.textureCache.get(SELECTION_RING_ASSET);
+      if (ringTexture) {
+        const ring = new runtime.THREE.Sprite(new runtime.THREE.SpriteMaterial({ map: ringTexture, transparent: true, opacity: 0, depthWrite: false }));
+        ring.scale.setScalar(MARKER_SCALE * 1.55);
+        ring.userData = { bodyKey: body.key, selectionRing: true };
+        runtime.selectionRings.set(body.key, ring);
+        runtime.natalMarkerGroup.add(ring);
+      }
     }
     mesh.position.set(body.vector!.x * 4.15, body.vector!.y * 4.15, body.vector!.z * 4.15);
+    const ring = runtime.selectionRings.get(body.key);
+    if (ring) ring.position.copy(mesh.position);
   }
 }
 
@@ -302,6 +355,19 @@ export default function ConstellationsView() {
           return { name: star.name, mesh };
         });
         const markerMeshes = new Map<string, any>();
+        const selectionRings = new Map<string, any>();
+        const supportsSprites = !!(THREE.TextureLoader && THREE.Sprite && THREE.SpriteMaterial);
+        const textureLoader = supportsSprites ? new THREE.TextureLoader() : null;
+        const textureCache = new Map<string, any>();
+        textureLoader?.load(SELECTION_RING_ASSET, (texture: any) => {
+          textureCache.set(SELECTION_RING_ASSET, texture);
+          markerMeshes.forEach((mesh: any, key: string) => {
+            if (selectionRings.has(key)) return;
+            const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0, depthWrite: false }));
+            ring.scale.setScalar(MARKER_SCALE * 1.55); ring.userData = { bodyKey: key, selectionRing: true };
+            ring.position.copy(mesh.position); selectionRings.set(key, ring); natalMarkerGroup.add(ring);
+          });
+        }, undefined, () => textureCache.set(SELECTION_RING_ASSET, false));
         const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
         const hit = (event: PointerEvent) => {
           const rect = renderer.domElement.getBoundingClientRect();
@@ -330,7 +396,7 @@ export default function ConstellationsView() {
         listeners.push(['pointermove', onMove], ['pointerleave', onLeave], ['pointerdown', onDown], ['pointerup', onUp], ['pointercancel', onCancel]);
         const runtime = {
           THREE, scene, camera, renderer, controls, verifiedStarGroup, natalMarkerGroup,
-          astronomicalGroup, constellationLines, starMeshes, markerMeshes,
+          astronomicalGroup, constellationLines, starMeshes, markerMeshes, selectionRings, textureLoader, textureCache,
         };
         runtimeRef.current = runtime;
         sceneDisposablesRef.current = disposables;
@@ -343,7 +409,19 @@ export default function ConstellationsView() {
           const increment = (sceneControls.current.speed / 100) * .01;
           decorativeConstellationGroup.rotation.y += increment; astronomicalGroup.rotation.y += increment;
           constellationLines.visible = sceneControls.current.linesVisible;
-          markerMeshes.forEach((mesh: any) => mesh.scale.setScalar(mesh.userData.bodyKey === hoveredKeyRef.current || mesh.userData.bodyKey === selectedKeyRef.current ? 1.5 : 1));
+          markerMeshes.forEach((mesh: any) => {
+            const key = mesh.userData.bodyKey;
+            const selectedMarker = key === selectedKeyRef.current;
+            const focusedMarker = key === hoveredKeyRef.current || selectedMarker;
+            const target = selectedMarker ? 1.25 + Math.sin(time * .0012) * .025 : focusedMarker ? 1.12 : 1;
+            mesh.scale.setScalar(MARKER_SCALE * target);
+            if (mesh.material) mesh.material.opacity = selectedMarker || focusedMarker ? 1 : .86;
+            const ring = selectionRings.get(key);
+            if (ring) {
+              ring.position.copy(mesh.position); ring.rotation.z += .0025;
+              ring.material.opacity = selectedMarker ? .72 + Math.sin(time * .0012) * .08 : 0;
+            }
+          });
           controls.update(); renderer.render(scene, camera);
           if (time - lastLabelUpdate > 80 && sceneControls.current.labelsVisible) {
             lastLabelUpdate = time; const rect = container.getBoundingClientRect();
@@ -361,8 +439,13 @@ export default function ConstellationsView() {
       cancelled = true; if (retryTimer) clearTimeout(retryTimer); if (timeoutTimer) clearTimeout(timeoutTimer); if (raf) cancelAnimationFrame(raf);
       resizeObserver?.disconnect(); controls?.dispose?.();
       if (renderer) { listeners.forEach(([name, fn]) => renderer.domElement.removeEventListener(name, fn)); if (renderer.domElement.parentNode === container) container.removeChild(renderer.domElement); renderer.dispose?.(); }
+      const runtime = runtimeRef.current;
       runtimeRef.current = null; sceneDisposablesRef.current = [];
-      disposables.forEach((item) => item.dispose?.()); setLabels([]);
+      disposables.forEach((item) => item.dispose?.());
+      runtime?.markerMeshes.forEach((mesh: any) => disposeMarker(mesh));
+      runtime?.selectionRings.forEach((ring: any) => disposeMarker(ring));
+      runtime?.textureCache.forEach((texture: any) => texture?.dispose?.());
+      setLabels([]);
     };
   }, []);
 
@@ -382,10 +465,10 @@ export default function ConstellationsView() {
   }, [additional, hoveredKey, selectedKey]);
 
   return (
-    <section className="py-24 relative z-10 constellation-map">
-      <div className="max-w-7xl mx-auto px-6 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-5 space-y-6">
+    <section className="py-20 lg:py-24 relative z-10 constellation-map">
+      <div className="max-w-[1650px] mx-auto px-5 sm:px-6 xl:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-start">
+          <div className="lg:col-span-3 space-y-5">
             <span className="text-xs uppercase tracking-[0.4em] text-gold block">Cosmic Navigator</span>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">Interactive <br />Celestial Map</h2>
             <p className="text-gray-300 text-sm font-light leading-relaxed">Drag to orbit the celestial vault, scroll to zoom, and explore the named stars. Your verified natal sky shares their astronomical frame.</p>
@@ -404,13 +487,13 @@ export default function ConstellationsView() {
               </div>
             </>}
           </div>
-          <div className="lg:col-span-7 h-[450px] md:h-[550px] relative rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple">
+          <div className="lg:col-span-9 h-[460px] sm:h-[500px] md:h-[620px] lg:h-[clamp(700px,72vh,820px)] relative rounded-[32px] lg:rounded-[40px] overflow-hidden glass-panel border border-gold/30 glow-border-purple">
             <div ref={containerRef} id="interactive-canvas-container" role="img" aria-label="Interactive celestial map" className="w-full h-full touch-none" />
             {mapState === 'loading' && <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300 pointer-events-none">Loading celestial view…</div>}
             {(mapState === 'webgl' || mapState === 'cdn') && <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 space-y-3"><p className="text-sm text-gray-300">{mapState === 'webgl' ? 'The interactive 3D map needs WebGL. Your browser or device has it disabled.' : 'We could not load the 3D map from Three.js. Please try again.'}</p><p className="text-xs text-gray-400">The named stars of the celestial vault are listed below.</p><div className="flex flex-wrap gap-2 justify-center">{FALLBACK_STARS.map((star) => <span key={star.name} className="px-3 py-1 text-[11px] text-white/90">{star.name}</span>)}</div></div>}
             {labelsVisible && mapState === 'ready' && <div className="absolute inset-0 pointer-events-none overflow-hidden">{labels.map((label) => <span key={label.name} className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] text-white/90" style={{ left: label.x, top: label.y, textShadow: '0 0 6px #000' }}>{label.name}</span>)}</div>}
             {mapState === 'ready' && <div className="absolute bottom-6 left-6 pointer-events-none glass-panel px-4 py-2.5 rounded-full text-xs text-gray-300">Left Click + Drag to rotate celestial sphere</div>}
-            {selected && <div role="dialog" aria-label={`${selected.label} details`} onKeyDown={(event) => { if (event.key === 'Escape') closeDetails(); }} className="absolute right-4 top-4 w-64 glass-panel bg-cosmic-950/95 border border-gold/40 rounded-2xl p-4 text-sm text-white"><button ref={closeDetailsRef} aria-label="Close details" onClick={closeDetails} className="absolute right-3 top-2 text-xl">×</button><h3 className="text-lg font-semibold text-gold"><span aria-hidden="true">{selected.glyph} </span>{selected.label}</h3><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><dt>Right ascension</dt><dd>{selected.rightAscensionDeg!.toFixed(2)}°</dd><dt>Declination</dt><dd>{selected.declinationDeg! < 0 ? '−' : ''}{Math.abs(selected.declinationDeg!).toFixed(2)}°</dd><dt>Zodiac</dt><dd>{selected.signLabel} {selected.degreeInSign!.toFixed(2)}°</dd><dt>House</dt><dd>{selected.house == null ? 'Unavailable' : `House ${selected.house}`}</dd><dt>Motion</dt><dd>{selected.retrograde ? 'Retrograde' : 'Direct'}</dd></dl></div>}
+            {selected && <div role="dialog" aria-label={`${selected.label} details`} onKeyDown={(event) => { if (event.key === 'Escape') closeDetails(); }} className="absolute right-4 top-4 w-[calc(100%-2rem)] max-w-72 glass-panel bg-cosmic-950/95 border border-gold/40 rounded-2xl p-4 text-sm text-white"><button ref={closeDetailsRef} aria-label="Close details" onClick={closeDetails} className="absolute right-3 top-2 text-xl">×</button><h3 className="text-lg font-semibold text-gold"><span aria-hidden="true">{selected.glyph} </span>{selected.label}</h3><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><dt>Right ascension</dt><dd>{selected.rightAscensionDeg!.toFixed(2)}°</dd><dt>Declination</dt><dd>{selected.declinationDeg! < 0 ? '−' : ''}{Math.abs(selected.declinationDeg!).toFixed(2)}°</dd><dt>Zodiac</dt><dd>{selected.signLabel} {selected.degreeInSign!.toFixed(2)}°</dd><dt>House</dt><dd>{selected.house == null ? 'Unavailable' : `House ${selected.house}`}</dd><dt>Motion</dt><dd>{selected.retrograde ? 'Retrograde' : 'Direct'}</dd></dl></div>}
           </div>
         </div>
       </div>
