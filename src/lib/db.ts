@@ -11,6 +11,7 @@ export const pool = new Pool({
     ? { rejectUnauthorized: false }
     : undefined,
   max: 5,
+  idleTimeoutMillis: 1_000,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10_000,
 });
@@ -30,6 +31,9 @@ async function connectHealthy() {
     let client: any;
     try {
       client = await pool.connect();
+      client.on('error', (error: unknown) => {
+        console.error('[db] client connection error; client will be discarded', error);
+      });
       await client.query('SELECT 1');
       return client;
     } catch (error) {
