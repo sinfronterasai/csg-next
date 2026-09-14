@@ -13,6 +13,15 @@ export const pool = new Pool({
   max: 5,
 });
 
+// PostgreSQL can terminate an idle pooled connection during a long-running
+// deterministic report build or a transient network event. `pg` emits that
+// failure from the pool; without a listener Node treats it as an uncaught
+// exception and the whole Render instance exits. The failed client is removed
+// by `pg`, so the next query can obtain a fresh connection.
+pool.on('error', (error) => {
+  console.error('[db] pooled connection error; discarded by pg', error);
+});
+
 export async function query(text: string, params?: any[]) {
   const client = await pool.connect();
   try {
