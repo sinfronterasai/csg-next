@@ -8,6 +8,7 @@ const MAX_BODY_BYTES = 50_000;
 const RESUMABLE_PAID_SKUS: Record<string, string> = {
   loveblueprint: 'report-loveblueprint',
   natalpremium: 'report-natalpremium',
+  transit: 'report-transit',
 };
 
 /**
@@ -23,7 +24,7 @@ const RESUMABLE_PAID_SKUS: Record<string, string> = {
  *   - authenticated user (auth_token cookie)
  *   - sessionId maps to a real purchase in our DB
  *   - the authenticated user OWNS that purchase (userId match)
- *   - the purchase is for an approved paid report SKU (Love Blueprint or Premium Natal)
+ *   - the purchase is for an approved paid report SKU
  *   - Stripe confirms payment (payment_status paid / payment_intent succeeded)
  *
  * Returns: { purchaseId, reportType } on success.
