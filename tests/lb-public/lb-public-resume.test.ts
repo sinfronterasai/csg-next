@@ -253,7 +253,7 @@ describe('LB-PUBLIC: checkout route — already-purchased buyer cannot create a 
   });
 
   it('still rejects non-paid or non-launch types (unchanged)', async () => {
-    for (const banned of ['natal', 'transit', 'relationship']) {
+    for (const banned of ['natal', 'relationship']) {
       getPurchaseByUserIdAndType.mockResolvedValue(null);
       const res = await checkoutCall({ reportType: banned });
       if (banned === 'natal') {
@@ -312,7 +312,7 @@ describe('LB-PUBLIC: ReportsView — real CTA -> checkout -> return -> one gener
     expect(VIEW).toContain('/api/billing/checkout/resume');
     expect(VIEW).toContain('purchase=success');
     expect(VIEW).toContain('sessionId');
-    expect(VIEW).toContain("generate('loveblueprint', data.purchaseId)");
+    expect(VIEW).toContain('await generate(data.reportType, data.purchaseId)');
   });
 
   it('resume flow handles unpaid (402) and ownership/mismatch (403/404) without generating', () => {
@@ -712,6 +712,7 @@ describe('LB-PUBLIC: integration — CTA -> checkout URL -> successful return ->
 
     const PURCHASE_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
     getUserById.mockResolvedValue({ id: 123, first_name: 'Test', email: 'test@example.com', role: 'customer' });
+    verifyPaid.mockResolvedValue(null);
     // Paid-looking mock but status is 'pending' — the unpaid gate must reject before generation.
     getPurchase.mockResolvedValue({
       id: 1, purchaseId: PURCHASE_ID, userId: 123, reportType: 'loveblueprint',

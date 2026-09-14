@@ -15,11 +15,15 @@
     "src/app/constellations/ConstellationsView.tsx",
     "src/lib/astrology.ts",
     "src/lib/transit.ts",
+    "src/lib/yearlyTransit/**/*",
     "tests/reports/fixtures/factsFixtures.ts",
     "tests/reports/factsV2.test.ts",
     "tests/reports/generate-repeat-fastpath.test.ts",
     "tests/reports/deterministicReportCompiler.test.ts",
-    "tests/constellations/**/*"
+    "tests/constellations/**/*",
+    "tests/yearlyTransit/**/*",
+    "tests/reports/yearly-transit-contract.test.ts",
+    "tests/billing/yearly-transit-price.test.ts"
   ],
   "exclude": ["node_modules"]
 }

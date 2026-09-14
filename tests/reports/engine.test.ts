@@ -96,7 +96,7 @@ describe('report engine: single-source determinism', () => {
     const b = await buildTransitReport({ natal: JOHN, fromDate: '2026-01-01' });
     expect(a.sections.length).toBe(12);
     expect(a.markdown).toEqual(b.markdown);
-    expect(a.pricePaid).toBe(39);
+    expect(a.pricePaid).toBe(49);
   });
   it('Synastry report yields a deterministic 0-100 score and partner scope', async () => {
     const a = await buildSynastryReport({ self: JOHN, partner: PARTNER });
@@ -180,7 +180,7 @@ describe('report engine: new premium reports (master-index catalog)', () => {
   });
   it('REPORT_META matches the master-index ladder', () => {
     expect(REPORT_META).toMatchObject({
-      natal: { price: 0 }, relationship: { price: 0 }, transit: { price: 39 },
+      natal: { price: 0 }, relationship: { price: 0 }, transit: { price: 49 },
       loveblueprint: { price: 39 }, lovetiming: { price: 29 }, synastry: { price: 49 },
       composite: { price: 29 }, couples: { price: 89 }, vocation: { price: 39 },
       karmicshadow: { price: 19 }, fullcosmic: { price: 89 },

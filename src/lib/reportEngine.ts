@@ -64,7 +64,7 @@ export const REPORT_META: Record<ReportType, { title: string; price: number }> =
   natal: { title: 'Natal Birth Chart Report', price: 0 },
   natalpremium: { title: 'Premium Natal Report', price: 39 },
   relationship: { title: 'Relationship Matrix', price: 0 },
-  transit: { title: 'Yearly Transit Forecast', price: 39 },
+  transit: { title: 'Yearly Transit Forecast', price: 49 },
   loveblueprint: { title: 'Love Blueprint', price: 39 },
   lovetiming: { title: 'Love Timing Forecast', price: 29 },
   synastry: { title: 'Synastry Love Report', price: 49 },

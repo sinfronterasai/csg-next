@@ -5,6 +5,8 @@ import {
 } from '@/lib/profile/store';
 import { verifyCallbackToken, convertCompactCallback } from '@/lib/reportPipeline';
 import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
+import { validateYearlyTransitCallback } from '@/lib/yearlyTransit/callback';
+import { aiResponseToPipelineSections } from '@/lib/yearlyTransit/aiValidator';
 
 // POST /api/reports/pipeline-complete
 // n8n calls this with the generated/approved/rejected report. The app is the
@@ -36,9 +38,10 @@ interface CallbackBody {
   skeleton?: unknown;
   tables?: unknown;
   blocks?: unknown;
+  response?: unknown;
 }
 
-const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks']);
+const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks', 'response']);
 const SECTION_KEYS = new Set(['id', 'blocks']);
 const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
 const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
@@ -103,6 +106,13 @@ export async function POST(request: Request) {
 
   if (typeof body !== 'object' || body === null || Array.isArray(body) || !hasExactKeys(body as Record<string, unknown>, BODY_KEYS)) {
     return NextResponse.json({ error: 'Invalid callback body' }, { status: 400 });
+  }
+
+  // Yearly Transit has an isolated exact {status,response} callback envelope.
+  // Legacy report callbacks continue through the compatibility path below until
+  // their live n8n producers are deliberately migrated.
+  if (Object.prototype.hasOwnProperty.call(body, 'response') || body.reportType === 'yearlytransit') {
+    return handleYearlyTransitCallback(body);
   }
 
   const { reportId, status, sections, judge, editorNote, rejectReasons, schemaVersion } = body;
@@ -212,5 +222,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Terminal state cannot regress' }, { status: 409 });
     case 'not_found':
       return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
+  }
+}
+
+async function handleYearlyTransitCallback(body: CallbackBody): Promise<NextResponse> {
+  const response = body.response as Record<string, unknown> | undefined;
+  const reportId = body.status === 'approved'
+    ? (response && typeof response.reportId === 'string' ? response.reportId : null)
+    : (typeof body.reportId === 'string' ? body.reportId : null);
+  if (!reportId) return NextResponse.json({ error: 'Missing yearly-transit reportId' }, { status: 400 });
+  const existing = await getReadingByReportId(reportId);
+  if (!existing) return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
+  const stored = typeof existing.result === 'string' ? JSON.parse(existing.result) : (existing.result ?? {});
+  const pack = stored.yearlyTransitPack ?? stored.metadata?.yearlyTransitPack ?? stored.verifiedFacts ?? stored.metadata?.verifiedFacts;
+  try {
+    const callback = validateYearlyTransitCallback(body, pack, reportId);
+    const sections = callback.status === 'approved' ? aiResponseToPipelineSections(callback.response) : [];
+    const pipelineValue = { status: callback.status, sections, yearlyTransitResponse: callback.status === 'approved' ? callback.response : null, rejectReasons: callback.status === 'rejected' ? callback.rejectReasons : [], completedAt: new Date().toISOString() };
+    const callbackHash = canonicalCallbackHash({ status: callback.status, sections, judge: { source: 'yearly-transit-ai-v1' }, editorNote: null, rejectReasons: pipelineValue.rejectReasons });
+    const outcome = await applyPipelineCallback({ reportId, status: callback.status, pipelineValue, callbackHash });
+    if (outcome === 'applied') return NextResponse.json({ success: true, status: callback.status });
+    if (outcome === 'duplicate') return NextResponse.json({ success: true, status: callback.status, duplicate: true });
+    if (outcome === 'not_found') return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
+    return NextResponse.json({ error: 'Conflicting yearly-transit callback' }, { status: 409 });
+  } catch {
+    return NextResponse.json({ error: 'Invalid yearly-transit callback' }, { status: 400 });
   }
 }

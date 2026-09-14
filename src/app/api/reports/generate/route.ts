@@ -8,12 +8,13 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
-import { geocodeLocation, geocodeCoordinates } from '@/lib/chartEngine';
+import { geocodeLocation, geocodeCoordinates, computeChart } from '@/lib/chartEngine';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
+import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const user = await getUserById(decoded.userId);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
-    const { type: rawType, partner, purchaseId } = body;
+    const { type: rawType, partner, purchaseId, fromDate } = body;
     const type = rawType as ReportType;
 
     // Launch allowlist gate (L3): server-authoritative. Rejects non-launch types.
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
       // input_incomplete we fail closed with 422 and never touch the purchase.
       let readingInput;
       try {
-        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued' });
+        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
       } catch (e) {
         if (e instanceof V2PreflightError) {
           return NextResponse.json(
@@ -312,13 +313,34 @@ async function buildBirthInfo(c: any, user: any) {
 }
 
 async function buildReadingInput(opts: {
-  decoded: any; user: any; type: ReportType; partner: any; price: number; reportId?: string; pipelineStatus: string;
+  decoded: any; user: any; type: ReportType; partner: any; price: number; reportId?: string; pipelineStatus: string; fromDate?: string;
 }): Promise<{ userId: number; type: string; title: string; question: string; pricePaid: number; resultJson: string; pipelineStatus: string }> {
-  const { decoded, user, type, partner, price, reportId, pipelineStatus } = opts;
+  const { decoded, user, type, partner, price, reportId, pipelineStatus, fromDate } = opts;
   const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [decoded.userId]);
   if (rows.length === 0) throw new Error('Create your birth chart first');
   const c = rows[0];
   const chart = await buildBirthInfo(c, user);
+  if (type === 'transit') {
+    try {
+      const chartData = await computeChart({ ...chart, requireAllBodies: true });
+      const generatedAtUtc = new Date().toISOString();
+      const yearlyTransitPack = await compileYearlyTransit({
+        chart: chartData,
+        snapshot: {
+          snapshotId: reportId || crypto.randomUUID(), generatedAtUtc,
+          birthData: { date: chart.date, time: chart.time, latitude: chart.latitude, longitude: chart.longitude, timezone: chart.timezone },
+        },
+        fromDate: fromDate || generatedAtUtc.slice(0, 10),
+      });
+      const title = REPORT_META[type].title;
+      const overview = yearlyTransitPack.windows.filter((window) => yearlyTransitPack.aiPacks.primaryWindows.some((item) => item.id === window.id)).slice(0, 8).map((window) => ({ label: `${window.mover} ${window.aspectType} ${window.target}`, value: `${window.activeWindow.startUtc} → ${window.activeWindow.endUtc}`, note: `Score ${window.importanceScore}/100 · ${window.segments[0]?.direction ?? 'indeterminate'}` }));
+      const snapshot = { birthData: { firstName: chart.name, dob: chart.date, birthTime: chart.time || null, place: chart.location, lat: chart.latitude, lon: chart.longitude, tz: chart.timezone, solarFallback: chart.unknownTime }, verifiedFacts: yearlyTransitPack, yearlyTransitPack };
+      return { userId: Number(decoded.userId), type, title, question: `${title} report`, pricePaid: price, pipelineStatus,
+        resultJson: JSON.stringify({ title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'paid', overview, verifiedFacts: yearlyTransitPack, yearlyTransitPack, pending: true, metadata: snapshot }) };
+    } catch (error) {
+      throw new V2BuildError(error instanceof Error ? error.message : 'Yearly transit facts could not be compiled');
+    }
+  }
   const contractType = mapReportType(type)!;
   const v2 = await buildVerifiedFactsForReport(contractType, chart);
   if (!v2.ok) throw new V2PreflightError(v2.preflight);

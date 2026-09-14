@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ReportType, ReportRow, ReportSection } from '@/lib/reportEngine';
-import { exportReportPdf, downloadPaidNatalPdf } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf, downloadYearlyTransitIcs } from '@/lib/reportPdf';
 import { renderMarkdown } from '@/lib/markdown';
 
 export default function ReportResult({
@@ -128,6 +128,15 @@ export default function ReportResult({
         >
           Download PDF
         </button>
+        {type === 'transit' && readingId ? (
+          <button
+            type="button"
+            onClick={() => { void downloadYearlyTransitIcs(readingId); }}
+            className="px-5 py-2.5 rounded-full border border-gold/40 text-gold font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:bg-gold/10"
+          >
+            Add to Calendar
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleShare}
