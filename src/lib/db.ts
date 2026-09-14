@@ -11,6 +11,8 @@ export const pool = new Pool({
     ? { rejectUnauthorized: false }
     : undefined,
   max: 5,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
 });
 
 // PostgreSQL can terminate an idle pooled connection during a long-running
@@ -22,8 +24,26 @@ pool.on('error', (error) => {
   console.error('[db] pooled connection error; discarded by pg', error);
 });
 
+async function connectHealthy() {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let client: any;
+    try {
+      client = await pool.connect();
+      await client.query('SELECT 1');
+      return client;
+    } catch (error) {
+      lastError = error;
+      // The health check runs before the caller's real query or transaction,
+      // so destroying and retrying this client cannot replay a write.
+      client?.release(true);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Database connection unavailable');
+}
+
 export async function query(text: string, params?: any[]) {
-  const client = await pool.connect();
+  const client = await connectHealthy();
   try {
     return await client.query(text, params);
   } finally {
@@ -40,7 +60,7 @@ export async function query(text: string, params?: any[]) {
 export async function transaction<T>(
   fn: (txQuery: (text: string, params?: any[]) => Promise<{ rows: any[]; rowCount: number | null }>) => Promise<T>,
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await connectHealthy();
   const txQuery = (text: string, params?: any[]) => client.query(text, params) as Promise<{ rows: any[]; rowCount: number | null }>;
   try {
     return await fn(txQuery);
