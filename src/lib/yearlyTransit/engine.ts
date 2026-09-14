@@ -93,6 +93,21 @@ async function refineMinimum(input: ScanInput, body: MovingBody, target: NatalAn
 export async function scanTransitWindows(input: ScanInput): Promise<ActiveWindow[]> {
   const from = Date.parse(input.fromUtc); const to = Date.parse(input.toUtc);
   if (!Number.isFinite(from) || !Number.isFinite(to) || from > to) throw new Error('invalid UTC forecast interval');
+  // The moving-body position is independent of target and aspect. Cache each
+  // body/time ephemeris call so the default 14-target × 5-aspect scan does not
+  // recompute the same Swiss position dozens of times.
+  const evaluationCache = new Map<string, Promise<EnginePoint>>();
+  const cachedEvaluator: TransitEvaluator = {
+    evaluate(body, utcMs) {
+      const key = `${body}:${utcMs}`;
+      const cached = evaluationCache.get(key);
+      if (cached) return cached;
+      const result = input.evaluator.evaluate(body, utcMs);
+      evaluationCache.set(key, result);
+      return result;
+    },
+  };
+  const scanInput = { ...input, evaluator: cachedEvaluator };
   const movers = input.movingBodies ?? DEFAULT_MOVING_BODIES;
   const targets = input.natalTargets ?? DEFAULT_NATAL_TARGETS;
   const anchors = input.natal.filter((n) => targets.includes(n.key));
@@ -100,8 +115,8 @@ export async function scanTransitWindows(input: ScanInput): Promise<ActiveWindow
   for (const body of movers) for (const target of anchors) for (const aspect of Object.keys(ACTIVE_ORBS) as AspectType[]) {
     const orb = ACTIVE_ORBS[aspect]; const step = (FAST_BODIES.has(body) ? 6 : 24) * 60 * MINUTE_MS;
     const samples: Sample[] = [];
-    for (let t = from; t < to; t += step) samples.push(await sample(input, body, target, aspect, t));
-    samples.push(await sample(input, body, target, aspect, to));
+    for (let t = from; t < to; t += step) samples.push(await sample(scanInput, body, target, aspect, t));
+    samples.push(await sample(scanInput, body, target, aspect, to));
     const groups: Sample[][] = [];
     for (const s of samples) {
       if (s.error <= orb) {
@@ -113,9 +128,9 @@ export async function scanTransitWindows(input: ScanInput): Promise<ActiveWindow
     for (const active of groups) {
       const first = samples.indexOf(active[0]); const last = samples.indexOf(active[active.length - 1]);
       const start = first > 0 && samples[first - 1].error > orb
-        ? await refineBoundary(input, body, target, aspect, samples[first - 1], samples[first], orb) : active[0].utcMs;
+        ? await refineBoundary(scanInput, body, target, aspect, samples[first - 1], samples[first], orb) : active[0].utcMs;
       const end = last < samples.length - 1 && samples[last + 1].error > orb
-        ? await refineBoundary(input, body, target, aspect, samples[last], samples[last + 1], orb) : active[active.length - 1].utcMs;
+        ? await refineBoundary(scanInput, body, target, aspect, samples[last], samples[last + 1], orb) : active[active.length - 1].utcMs;
       const candidateMinima: Sample[] = [];
       for (let i = first; i <= last; i++) {
         if (i > 0 && i < samples.length - 1 && samples[i].error <= samples[i - 1].error && samples[i].error <= samples[i + 1].error) candidateMinima.push(samples[i]);
@@ -123,9 +138,9 @@ export async function scanTransitWindows(input: ScanInput): Promise<ActiveWindow
       const exactHits = [];
       for (const minimum of candidateMinima) {
         const i = samples.indexOf(minimum);
-        const refined = await refineMinimum(input, body, target, aspect, samples[i - 1], minimum, samples[i + 1]);
+        const refined = await refineMinimum(scanInput, body, target, aspect, samples[i - 1], minimum, samples[i + 1]);
         if (refined.error < 0.1 && refined.utcMs >= from && refined.utcMs <= to) {
-          const neighborhood = [await sample(input, body, target, aspect, refined.utcMs - MINUTE_MS), refined, await sample(input, body, target, aspect, refined.utcMs + MINUTE_MS)];
+          const neighborhood = [await sample(scanInput, body, target, aspect, refined.utcMs - MINUTE_MS), refined, await sample(scanInput, body, target, aspect, refined.utcMs + MINUTE_MS)];
           exactHits.push({ id: '', exactUtc: canonicalInstant(refined.utcMs), exactError: refined.error, direction: directionFrom(neighborhood), retrograde: refined.point.retrograde, factId: '' });
         }
       }

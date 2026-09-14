@@ -32,6 +32,23 @@ describe('yearly transit deterministic scan/refinement', () => {
     expect(windows[0].house).toBe(5);
   });
 
+  it('reuses each body/time ephemeris evaluation across targets and aspects', async () => {
+    const calls = new Map<string, number>();
+    const evaluator: TransitEvaluator = {
+      async evaluate(body, utcMs) {
+        const key = `${body}:${utcMs}`;
+        calls.set(key, (calls.get(key) ?? 0) + 1);
+        return { longitude: 100, retrograde: false };
+      },
+    };
+    await scanTransitWindows({
+      fromUtc: '2027-01-01T00:00:00.000Z', toUtc: '2027-01-01T12:00:00.000Z', evaluator,
+      natal: [{ key: 'sun', longitude: 100, house: 5 }, { key: 'moon', longitude: 100, house: 6 }],
+      movingBodies: ['sun'], natalTargets: ['sun', 'moon'],
+    });
+    expect(Math.max(...calls.values())).toBe(1);
+  });
+
   it('rejects invalid ranges and non-finite ephemeris values', async () => {
     const evaluator: TransitEvaluator = { async evaluate() { return { longitude: Number.NaN, retrograde: false }; } };
     await expect(scanTransitWindows({ fromUtc: '2027-01-02T00:00:00Z', toUtc: '2027-01-01T00:00:00Z', evaluator, natal: [] })).rejects.toThrow(/invalid UTC/);
