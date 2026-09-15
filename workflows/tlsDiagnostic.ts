@@ -1,13 +1,30 @@
 import tls from 'node:tls';
 import { query } from '../src/lib/db';
 
-export async function diagnoseDatabaseTls() {
+export async function diagnoseDatabaseTls(readingId?: number) {
   const raw = process.env.DATABASE_URL;
   if (!raw) return { ok: false, error: 'DATABASE_URL missing' };
   const url = new URL(raw);
   try {
     await query('SELECT 1');
-    return { ok: true, hostname: url.hostname, port: Number(url.port || 5432), sslmode: url.searchParams.get('sslmode') || null };
+    const state = readingId ? await query(
+      `SELECT r.id, r.user_id, r.pipeline_status, r.result->>'reportId' AS report_id,
+              o.status AS order_status, o.report_id AS order_report_id
+         FROM readings r LEFT JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    ) : null;
+    const row = state?.rows[0];
+    return {
+      ok: true,
+      hostname: url.hostname,
+      port: Number(url.port || 5432),
+      sslmode: url.searchParams.get('sslmode') || null,
+      reading: row ? {
+        id: Number(row.id), userId: Number(row.user_id), status: row.pipeline_status,
+        reportId: row.report_id, orderStatus: row.order_status, orderReportId: row.order_report_id,
+      } : null,
+    };
   } catch (error) {
     return {
       ok: false,

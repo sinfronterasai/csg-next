@@ -23,9 +23,9 @@ export const diagnoseN8nTlsTask = task(
 
 export const diagnoseDatabaseTlsTask = task(
   { name: 'diagnoseDatabaseTls', timeoutSeconds: 30, plan: 'flex' },
-  async function diagnoseDatabaseTlsTask() {
+  async function diagnoseDatabaseTlsTask(_ctx: TaskContext, readingId?: unknown) {
     const { diagnoseDatabaseTls } = await import('./tlsDiagnostic');
-    return diagnoseDatabaseTls();
+    return diagnoseDatabaseTls(Number.isInteger(readingId) ? Number(readingId) : undefined);
   },
 );
 
