@@ -67,6 +67,63 @@ export async function resumeYearlyTransitTask(readingId: number, expectedReportI
   });
 }
 
+export async function redispatchPersistedYearlyTransit(readingId: number, expectedReportId: string) {
+  if (!process.env.DATABASE_URL) throw new Error('Database configuration is missing');
+  const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
+  await client.connect();
+  let row: any;
+  try {
+    const state = await client.query(
+      `SELECT r.pipeline_status, r.result, o.status AS order_status
+         FROM readings r JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    );
+    row = state.rows[0];
+  } finally {
+    await client.end();
+  }
+  const result = row?.result as Record<string, any> | undefined;
+  const metadata = result?.metadata as Record<string, any> | undefined;
+  const pack = result?.yearlyTransitPack ?? result?.verifiedFacts ?? metadata?.yearlyTransitPack;
+  if (!row || row.order_status !== 'consumed' || !['queued', 'processing'].includes(row.pipeline_status) ||
+      result?.reportId !== expectedReportId || !metadata?.birthData ||
+      pack?.schemaVersion !== 'csg-yearly-transit-fact-pack-v1') {
+    throw new Error('Persisted Yearly transit report cannot be safely redispatched');
+  }
+  const payload = buildDispatchPayload({
+    reportId: expectedReportId,
+    reportType: 'transit',
+    tier: 'paid',
+    birthData: metadata.birthData,
+    verifiedFacts: pack,
+    callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
+    promptSlug: '08-yearly-transit',
+  });
+  const responseStatus = await postYearlyPayload(payload);
+  if (responseStatus < 200 || responseStatus >= 300) throw new Error(`Yearly transit redispatch failed with status ${responseStatus}`);
+  return { readingId, reportId: expectedReportId, status: 'queued', reusedPersistedPack: true };
+}
+
+async function postYearlyPayload(payload: unknown): Promise<number> {
+  const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
+  const token = process.env.REPORT_PIPELINE_TOKEN;
+  if (!webhookUrl || !token) throw new Error('Yearly transit dispatch configuration is missing');
+  return new Promise<number>((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const request = https.request(webhookUrl, {
+      method: 'POST',
+      rejectUnauthorized: true,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Authorization: `Bearer ${token}` },
+    }, (response) => {
+      response.resume();
+      response.once('end', () => resolve(response.statusCode ?? 0));
+    });
+    request.once('error', reject);
+    request.end(body);
+  });
+}
+
 async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
   const chart = await computeChart({
     name: job.birthData.firstName,
@@ -131,22 +188,7 @@ async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
     callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     promptSlug: '08-yearly-transit',
   });
-  const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
-  const token = process.env.REPORT_PIPELINE_TOKEN;
-  if (!webhookUrl || !token) throw new Error('Yearly transit dispatch configuration is missing');
-  const responseStatus = await new Promise<number>((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const request = https.request(webhookUrl, {
-      method: 'POST',
-      rejectUnauthorized: true,
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Authorization: `Bearer ${token}` },
-    }, (response) => {
-      response.resume();
-      response.once('end', () => resolve(response.statusCode ?? 0));
-    });
-    request.once('error', reject);
-    request.end(body);
-  });
+  const responseStatus = await postYearlyPayload(payload);
   if (responseStatus < 200 || responseStatus >= 300) {
     await query(`UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1 AND pipeline_status = 'queued'`, [job.readingId]);
     throw new Error(`Yearly transit dispatch failed with status ${responseStatus}`);

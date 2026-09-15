@@ -54,3 +54,14 @@ export const resumeYearlyTransitWorkflowTask = task(
     return resumeYearlyTransitTask(Number(readingId), expectedReportId);
   },
 );
+
+export const redispatchPersistedYearlyTransitTask = task(
+  { name: 'redispatchPersistedYearlyTransit', timeoutSeconds: 120, plan: 'flex' },
+  async function redispatchPersistedYearlyTransitTask(_ctx: TaskContext, readingId: unknown, expectedReportId: unknown) {
+    if (!Number.isInteger(readingId) || Number(readingId) <= 0 || typeof expectedReportId !== 'string') {
+      throw new Error('Invalid Yearly transit redispatch input');
+    }
+    const { redispatchPersistedYearlyTransit } = await import('./yearlyTransitTask');
+    return redispatchPersistedYearlyTransit(Number(readingId), expectedReportId);
+  },
+);
