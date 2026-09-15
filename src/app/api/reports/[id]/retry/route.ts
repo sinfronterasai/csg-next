@@ -6,6 +6,7 @@ import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import { mapReportType, dispatchReport, isUnsupportedForPipeline } from '@/lib/reportPipeline';
 import { getReportPurchaseByReadingId, claimRetry, markReadingDispatchFailed } from '@/lib/billing/reportPurchaseStore';
 import { gateGeneration } from '@/lib/launch/allowlist';
+import { startYearlyTransitWorkflow } from '@/lib/yearlyTransit/workflow';
 import crypto from 'crypto';
 
 // POST /api/reports/[id]/retry
@@ -94,6 +95,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // #4 — reuse the IMMUTABLE snapshot stored on the reading. Never re-read the
     // user's latest natal chart (which may have changed after purchase).
     const snapshot = r.result?.metadata;
+    if (type === 'transit') {
+      if (!snapshot?.birthData) {
+        await markReadingDispatchFailed(readingId);
+        return NextResponse.json({ error: 'Missing original transit snapshot; cannot retry safely' }, { status: 409 });
+      }
+      try {
+        const started = await startYearlyTransitWorkflow({
+          readingId,
+          reportId,
+          userId: Number(decoded.userId),
+          fromDate: typeof snapshot.fromDate === 'string' ? snapshot.fromDate : undefined,
+          birthData: snapshot.birthData,
+        });
+        return NextResponse.json({ success: true, status: 'queued', readingId, reportId, taskRunId: started.taskRunId, message: 'Your report is being regenerated.' });
+      } catch (err: any) {
+        await markReadingDispatchFailed(readingId);
+        return NextResponse.json({ error: 'Report workflow unavailable. Please try again shortly.' }, { status: 502 });
+      }
+    }
     if (!snapshot || !snapshot.birthData || !snapshot.verifiedFacts) {
       await markReadingDispatchFailed(readingId);
       return NextResponse.json({ error: 'Missing original request snapshot; cannot retry safely' }, { status: 409 });
