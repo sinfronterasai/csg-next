@@ -97,12 +97,19 @@ export async function scanTransitWindows(input: ScanInput): Promise<ActiveWindow
   // body/time ephemeris call so the default 14-target × 5-aspect scan does not
   // recompute the same Swiss position dozens of times.
   const evaluationCache = new Map<string, Promise<EnginePoint>>();
+  let evaluationCount = 0;
   const cachedEvaluator: TransitEvaluator = {
     evaluate(body, utcMs) {
       const key = `${body}:${utcMs}`;
       const cached = evaluationCache.get(key);
       if (cached) return cached;
-      const result = input.evaluator.evaluate(body, utcMs);
+      const result = (async () => {
+        // Swiss calls are native/CPU-heavy. Yield periodically so Node timers,
+        // health checks, and database-pool cleanup can run during long scans.
+        evaluationCount += 1;
+        if (evaluationCount % 32 === 0) await new Promise<void>((resolve) => setImmediate(resolve));
+        return input.evaluator.evaluate(body, utcMs);
+      })();
       evaluationCache.set(key, result);
       return result;
     },
