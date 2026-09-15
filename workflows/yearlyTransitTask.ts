@@ -151,6 +151,61 @@ export async function verifyPersistedYearlyDelivery(readingId: number, expectedR
   };
 }
 
+export async function verifyAuthenticatedYearlyDelivery(readingId: number, expectedReportId: string) {
+  if (!process.env.DATABASE_URL || !process.env.CSG_REPORT_CALLBACK_URL) throw new Error('Delivery verification configuration is missing');
+  const callback = new URL(process.env.CSG_REPORT_CALLBACK_URL);
+  if (callback.protocol !== 'https:' || callback.hostname !== 'csg-lb-staging-0905.onrender.com') {
+    throw new Error('Delivery verification host is not allowlisted');
+  }
+  const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
+  await client.connect();
+  let row: any;
+  try {
+    const state = await client.query(
+      `SELECT r.user_id, r.pipeline_status, r.result->>'reportId' AS report_id, o.status AS order_status
+         FROM readings r JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    );
+    row = state.rows[0];
+  } finally {
+    await client.end();
+  }
+  if (!row || row.order_status !== 'consumed' || row.pipeline_status !== 'approved' || row.report_id !== expectedReportId) {
+    throw new Error('Approved Yearly transit route verification is not authorized');
+  }
+  const { generateToken } = await import('../src/lib/auth');
+  const token = generateToken(String(row.user_id));
+  const headers = { cookie: `auth_token=${token}` };
+  const [pdfResponse, icsResponse] = await Promise.all([
+    fetch(`${callback.origin}/api/reports/${readingId}/pdf`, { headers, redirect: 'manual' }),
+    fetch(`${callback.origin}/api/reports/${readingId}/ics`, { headers, redirect: 'manual' }),
+  ]);
+  const pdf = Buffer.from(await pdfResponse.arrayBuffer());
+  const ics = await icsResponse.text();
+  return {
+    readingId,
+    reportId: expectedReportId,
+    pdf: {
+      status: pdfResponse.status,
+      contentType: pdfResponse.headers.get('content-type'),
+      disposition: pdfResponse.headers.get('content-disposition'),
+      cacheControl: pdfResponse.headers.get('cache-control'),
+      bytes: pdf.byteLength,
+      magic: pdf.subarray(0, 5).toString('ascii'),
+    },
+    ics: {
+      status: icsResponse.status,
+      contentType: icsResponse.headers.get('content-type'),
+      disposition: icsResponse.headers.get('content-disposition'),
+      cacheControl: icsResponse.headers.get('cache-control'),
+      bytes: Buffer.byteLength(ics, 'utf8'),
+      eventCount: (ics.match(/BEGIN:VEVENT/g) || []).length,
+      validEnvelope: ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.endsWith('END:VCALENDAR\r\n'),
+    },
+  };
+}
+
 async function postYearlyPayload(payload: unknown): Promise<number> {
   const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
   const token = process.env.REPORT_PIPELINE_TOKEN;

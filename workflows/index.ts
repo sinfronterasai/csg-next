@@ -76,3 +76,14 @@ export const verifyPersistedYearlyDeliveryTask = task(
     return verifyPersistedYearlyDelivery(Number(readingId), expectedReportId);
   },
 );
+
+export const verifyAuthenticatedYearlyDeliveryTask = task(
+  { name: 'verifyAuthenticatedYearlyDelivery', timeoutSeconds: 120, plan: 'flex' },
+  async function verifyAuthenticatedYearlyDeliveryTask(_ctx: TaskContext, readingId: unknown, expectedReportId: unknown) {
+    if (!Number.isInteger(readingId) || Number(readingId) <= 0 || typeof expectedReportId !== 'string') {
+      throw new Error('Invalid authenticated Yearly delivery verification input');
+    }
+    const { verifyAuthenticatedYearlyDelivery } = await import('./yearlyTransitTask');
+    return verifyAuthenticatedYearlyDelivery(Number(readingId), expectedReportId);
+  },
+);
