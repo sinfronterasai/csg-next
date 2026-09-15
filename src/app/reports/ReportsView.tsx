@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import ReportResult from '@/components/reports/ReportResult';
+import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
 // launch slice. Free Natal is available to everyone. Love Blueprint is a paid
@@ -52,6 +53,7 @@ export default function Reports() {
     sections?: { heading: string; body: string }[];
     readingId?: number;
     shareUrl?: string | null;
+    presentation?: CustomerYearlyTransitPresentation;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
@@ -125,6 +127,7 @@ export default function Reports() {
         sections: (data as any).sections,
         readingId: data.readingId,
         shareUrl: data.shareUrl ?? null,
+        presentation: data.presentation,
       });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
@@ -368,6 +371,7 @@ export default function Reports() {
             readingId={result.readingId}
             shareUrl={shareUrl ?? undefined}
             onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
+            presentation={result.presentation}
           />
         )}
       </section>

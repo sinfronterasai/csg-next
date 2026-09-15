@@ -5,12 +5,16 @@ const MAX_BLOCK_CHARS = 2_000;
 const MAX_ACTION_CHARS = 600;
 const MAX_TOTAL_CHARS = 12_000;
 const CERTAINTY = /\b(?:you will|you are going to|this will cause|it will happen|guaranteed to)\b/i;
+const INTERNAL = /importanceScore|rawImportanceScore|\bYt Window\b|\b(?:activeWindow|evidenceIds|schemaVersion|aspectType)\b/i;
+const RAW_ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/;
 
 function fail(message: string): never { throw new Error(`invalid yearly-transit AI response: ${message}`); }
 function text(value: unknown, limit: number, label: string): string {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} must be non-empty text`);
   if (value.length > limit) fail(`${label} exceeds ${limit} characters`);
   if (CERTAINTY.test(value)) fail(`${label} contains literal-event certainty`);
+  if (INTERNAL.test(value)) fail(`${label} contains internal implementation language`);
+  if (RAW_ISO.test(value)) fail(`${label} contains raw ISO timestamp`);
   return value;
 }
 function evidence(value: unknown, allowed: Set<string>, label: string): string[] {

@@ -23,6 +23,9 @@ describe('yearly transit AI validator', () => {
     ['extra top-level key', (v: any) => { v.extra = true; }],
     ['duplicate object ID', (v: any) => { v.appendixSummary.id = v.overallTheme.id; }],
     ['literal-event certainty', (v: any) => { v.overallTheme.text = 'You will receive an external event.'; }],
+    ['internal score language', (v: any) => { v.overallTheme.text = 'importanceScore83 is not customer language.'; }],
+    ['debug window language', (v: any) => { v.overallTheme.text = 'Yt Window should never appear.'; }],
+    ['raw ISO timestamp', (v: any) => { v.overallTheme.text = 'The period begins 2027-05-04T09:42:46.000Z.'; }],
   ])('rejects %s', (_label, mutate) => {
     const value = base(); mutate(value);
     expect(() => validateYearlyTransitAiResponse(value, pack, 'report-1')).toThrow(/invalid yearly-transit AI response/);

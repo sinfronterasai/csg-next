@@ -16,6 +16,7 @@ import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
 import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
 import { startYearlyTransitWorkflow, type YearlyTransitWorkflowInput } from '@/lib/yearlyTransit/workflow';
+import { buildYearlyTransitPresentation, toCustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -590,5 +591,6 @@ async function findCorrelatedReport(purchaseId: string, userId: number) {
     mode: 'repeat', success: true, status: 'approved', pending: false, retryAvailable: false,
     readingId: Number(row.reading_id), reportId: row.report_id,
     title, overview, sections,
+    ...(result.reportType === 'transit' && result.yearlyTransitPack ? { presentation: toCustomerYearlyTransitPresentation(buildYearlyTransitPresentation(result.yearlyTransitPack)) } : {}),
   });
 }

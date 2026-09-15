@@ -8,8 +8,24 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ReportType, ReportRow, ReportSection } from '@/lib/reportEngine';
-import { exportReportPdf, downloadPaidNatalPdf, downloadYearlyTransitIcs } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf, downloadYearlyTransitPdf, downloadYearlyTransitIcs } from '@/lib/reportPdf';
 import { renderMarkdown } from '@/lib/markdown';
+import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
+
+function customerSectionHeading(value: string): string {
+  const match = value.match(/^Month (\d{4}) (\d{2})$/i);
+  if (match) return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 15)));
+  if (/^theme$/i.test(value)) return 'The arc of your year';
+  return value;
+}
+
+function TransitSummary({ presentation }: { presentation: CustomerYearlyTransitPresentation }) {
+  return <div className="space-y-8">
+    <section className="rounded-2xl border border-gold/20 bg-gold/5 p-5"><p className="text-xs uppercase tracking-[0.24em] text-gold/70 mb-2">Forecast period</p><p className="font-serif text-xl text-gray-100">{presentation.periodLabel}</p></section>
+    <section><h4 className="font-serif text-2xl text-gold mb-4">Major transit windows</h4><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b border-gold/20 text-xs uppercase tracking-wider text-gold/70"><th className="py-3 pr-4">Transit</th><th className="py-3 pr-4">Active period</th><th className="py-3">Importance</th></tr></thead><tbody>{presentation.groupedTransits.slice(0, 8).map((item) => <tr key={item.id} className="border-b border-white/5"><td className="py-3 pr-4 font-serif text-gray-100">{item.heading}</td><td className="py-3 pr-4 text-gray-300">{item.activePeriod}</td><td className="py-3 text-gold">{item.importance}</td></tr>)}</tbody></table></div></section>
+    <section><h4 className="font-serif text-2xl text-gold mb-4">Month by month</h4><div className="grid gap-3 sm:grid-cols-2">{presentation.monthly.map((month) => <div key={month.key} className="rounded-xl border border-white/10 p-4"><h5 className="font-serif text-lg text-gray-100">{month.label}</h5><p className="text-sm text-gray-400 mt-1">{month.summary}</p>{month.transitNames.length ? <p className="text-sm text-gray-200 mt-2">{month.transitNames.join('; ')}</p> : <p className="text-sm text-gray-400 mt-2">A quieter month for integration and consolidation.</p>}</div>)}</div></section>
+  </div>;
+}
 
 export default function ReportResult({
   type,
@@ -20,6 +36,7 @@ export default function ReportResult({
   readingId,
   onShare,
   paid = false,
+  presentation,
 }: {
   type: ReportType;
   title?: string;
@@ -29,6 +46,7 @@ export default function ReportResult({
   readingId?: number;
   onShare?: () => void;
   paid?: boolean;
+  presentation?: CustomerYearlyTransitPresentation;
 }) {
   const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied'>('idle');
 
@@ -70,8 +88,10 @@ export default function ReportResult({
       <h3 className="text-2xl font-serif text-gold mb-1 capitalize">{heading}</h3>
       <p className="text-xs uppercase tracking-[0.3em] text-gold/60 mb-6">Your Celestial Dossier</p>
 
-      {/* Layer 1: overview table — always visible */}
-      <div className="overflow-x-auto">
+      {type === 'transit' && presentation ? <TransitSummary presentation={presentation} /> : null}
+
+      {/* Layer 1: overview table — always visible for non-transit reports */}
+      {type !== 'transit' || !presentation ? <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="text-gold/70 text-xs uppercase tracking-wider border-b border-white/10">
@@ -93,7 +113,7 @@ export default function ReportResult({
             ))}
           </tbody>
         </table>
-      </div>
+      </div> : null}
 
       {/* Layer 2: expandable detail sections */}
       <div className="mt-6 space-y-3">
@@ -103,7 +123,7 @@ export default function ReportResult({
             className="group rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
           >
             <summary className="cursor-pointer select-none px-5 py-4 text-gold font-serif text-lg list-none flex items-center justify-between">
-              <span>{s.heading}</span>
+              <span>{type === 'transit' && presentation ? customerSectionHeading(s.heading) : s.heading}</span>
               <span className="text-gold/50 text-sm group-open:rotate-45 transition-transform">+</span>
             </summary>
             <div className="px-5 pb-5 text-gray-200 leading-relaxed prose-invert max-w-none">
@@ -118,7 +138,9 @@ export default function ReportResult({
         <button
           type="button"
           onClick={() => {
-            if (paid && (type === 'natal' || type === 'natalpremium') && readingId) {
+            if (type === 'transit' && readingId) {
+              void downloadYearlyTransitPdf(readingId);
+            } else if (paid && (type === 'natal' || type === 'natalpremium') && readingId) {
               void downloadPaidNatalPdf(readingId);
             } else {
               exportReportPdf({ type, title: heading, overview, sections });
