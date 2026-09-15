@@ -203,15 +203,33 @@ export async function verifyAuthenticatedYearlyDelivery(readingId: number, expec
     if ((restored.rowCount ?? 0) !== 1) throw new Error('Temporary staging login was not safely restored');
   }
   const headers = { cookie: sessionCookie };
-  const [pdfResponse, icsResponse] = await Promise.all([
+  const [pdfResponse, icsResponse, reportsResponse, pageResponse] = await Promise.all([
     fetch(`${callback.origin}/api/reports/${readingId}/pdf`, { headers, redirect: 'manual' }),
     fetch(`${callback.origin}/api/reports/${readingId}/ics`, { headers, redirect: 'manual' }),
+    fetch(`${callback.origin}/api/profile/reports`, { headers, redirect: 'manual' }),
+    fetch(`${callback.origin}/reports`, { headers, redirect: 'manual' }),
   ]);
   const pdf = Buffer.from(await pdfResponse.arrayBuffer());
   const ics = await icsResponse.text();
+  const reportsPayload = await reportsResponse.json().catch(() => ({})) as { reports?: any[] };
+  const publicReport = Array.isArray(reportsPayload.reports)
+    ? reportsPayload.reports.find((report) => Number(report?.id) === readingId)
+    : undefined;
+  await pageResponse.arrayBuffer();
   return {
     readingId,
     reportId: expectedReportId,
+    reportView: {
+      apiStatus: reportsResponse.status,
+      pageStatus: pageResponse.status,
+      pageContentType: pageResponse.headers.get('content-type'),
+      present: Boolean(publicReport),
+      status: publicReport?.status ?? null,
+      type: publicReport?.type ?? null,
+      sectionCount: Array.isArray(publicReport?.sections) ? publicReport.sections.length : 0,
+      overviewCount: Array.isArray(publicReport?.overview) ? publicReport.overview.length : 0,
+      pending: publicReport?.pending === true,
+    },
     pdf: {
       status: pdfResponse.status,
       contentType: pdfResponse.headers.get('content-type'),
