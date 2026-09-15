@@ -20,3 +20,11 @@ export const diagnoseN8nTlsTask = task(
     return diagnoseN8nTls();
   },
 );
+
+export const diagnoseDatabaseTlsTask = task(
+  { name: 'diagnoseDatabaseTls', timeoutSeconds: 30, plan: 'flex' },
+  async function diagnoseDatabaseTlsTask() {
+    const { diagnoseDatabaseTls } = await import('./tlsDiagnostic');
+    return diagnoseDatabaseTls();
+  },
+);

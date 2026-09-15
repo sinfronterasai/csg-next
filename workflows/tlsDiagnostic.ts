@@ -1,4 +1,24 @@
 import tls from 'node:tls';
+import { query } from '../src/lib/db';
+
+export async function diagnoseDatabaseTls() {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return { ok: false, error: 'DATABASE_URL missing' };
+  const url = new URL(raw);
+  try {
+    await query('SELECT 1');
+    return { ok: true, hostname: url.hostname, port: Number(url.port || 5432), sslmode: url.searchParams.get('sslmode') || null };
+  } catch (error) {
+    return {
+      ok: false,
+      hostname: url.hostname,
+      port: Number(url.port || 5432),
+      sslmode: url.searchParams.get('sslmode') || null,
+      error: error instanceof Error ? error.message : String(error),
+      code: error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null,
+    };
+  }
+}
 
 export async function diagnoseN8nTls() {
   const raw = process.env.N8N_REPORT_WEBHOOK_URL;
