@@ -119,6 +119,7 @@ export async function POST(request: Request) {
       // This is evaluated BEFORE the paid-only gate so a consumed correlated
       // report can be retrieved without a second consumption or generation.
       if (purchase.status === 'consumed') {
+        if (type === 'transit') await resumePendingYearlyTransitWorkflow({ purchaseId, user, decoded });
         const response = await findCorrelatedReport(purchaseId, Number(decoded.userId));
         if (response) return response;
       }
@@ -365,6 +366,37 @@ async function buildPendingYearlyTransitInput(opts: {
     },
     workflow: { reportId: opts.reportId, userId: Number(opts.decoded.userId), fromDate: opts.fromDate, birthData },
   };
+}
+
+async function resumePendingYearlyTransitWorkflow(opts: { purchaseId: string; user: any; decoded: any }) {
+  const pending = await query(
+    `SELECT r.id AS reading_id, o.report_id, r.pipeline_status, r.result
+       FROM report_orders o JOIN readings r ON r.id = o.reading_id
+      WHERE o.purchase_id = $1 AND o.user_id = $2 LIMIT 1`,
+    [opts.purchaseId, Number(opts.decoded.userId)],
+  );
+  const row = pending.rows[0];
+  if (!row || row.pipeline_status !== 'queued') return;
+  const result = typeof row.result === 'string' ? JSON.parse(row.result) : (row.result ?? {});
+  const birthData = result.metadata?.birthData;
+  if (!result.yearlyTransitPending || !birthData || typeof row.report_id !== 'string') return;
+  const claimed = await query(
+    `UPDATE readings SET pipeline_status = 'processing' WHERE id = $1 AND pipeline_status = 'queued' RETURNING id`,
+    [Number(row.reading_id)],
+  );
+  if ((claimed.rowCount ?? 0) !== 1) return;
+  try {
+    await startYearlyTransitWorkflow({
+      readingId: Number(row.reading_id),
+      reportId: row.report_id,
+      userId: Number(opts.decoded.userId),
+      fromDate: typeof result.metadata.fromDate === 'string' ? result.metadata.fromDate : undefined,
+      birthData,
+    });
+  } catch (error) {
+    console.error('[yearly-transit] workflow recovery failed:', error instanceof Error ? error.message : error);
+    await markReadingFailed(Number(row.reading_id)).catch(() => undefined);
+  }
 }
 
 async function buildReadingInput(opts: {
