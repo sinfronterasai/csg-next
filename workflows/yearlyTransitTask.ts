@@ -105,6 +105,52 @@ export async function redispatchPersistedYearlyTransit(readingId: number, expect
   return { readingId, reportId: expectedReportId, status: 'queued', reusedPersistedPack: true };
 }
 
+export async function verifyPersistedYearlyDelivery(readingId: number, expectedReportId: string) {
+  if (!process.env.DATABASE_URL) throw new Error('Database configuration is missing');
+  const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
+  await client.connect();
+  let row: any;
+  try {
+    const state = await client.query(
+      `SELECT r.pipeline_status, r.result, o.status AS order_status
+         FROM readings r JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    );
+    row = state.rows[0];
+  } finally {
+    await client.end();
+  }
+  const result = row?.result as Record<string, any> | undefined;
+  const metadata = result?.metadata as Record<string, any> | undefined;
+  const pack = result?.yearlyTransitPack ?? metadata?.yearlyTransitPack;
+  const sections = Array.isArray(result?.pipeline?.sections) ? result.pipeline.sections : [];
+  if (!row || row.order_status !== 'consumed' || row.pipeline_status !== 'approved' ||
+      result?.reportId !== expectedReportId || pack?.schemaVersion !== 'csg-yearly-transit-fact-pack-v1' || !sections.length) {
+    throw new Error('Approved Yearly transit delivery is incomplete');
+  }
+  const { buildYearlyTransitPdf } = await import('../src/lib/yearlyTransit/pdf');
+  const { buildYearlyTransitIcs } = await import('../src/lib/yearlyTransit/ics');
+  const pdf = await buildYearlyTransitPdf(
+    pack,
+    String(result.title || 'Yearly Transit Forecast'),
+    String(metadata?.birthData?.firstName || 'Seeker'),
+    sections.map((section: any) => ({ heading: String(section.id || 'Section'), body: String(section.prose || '') })),
+  );
+  const ics = buildYearlyTransitIcs(pack, expectedReportId);
+  return {
+    readingId,
+    reportId: expectedReportId,
+    status: row.pipeline_status,
+    sectionCount: sections.length,
+    pdfBytes: pdf.byteLength,
+    pdfMagic: Buffer.from(pdf).subarray(0, 5).toString('ascii'),
+    icsBytes: Buffer.byteLength(ics, 'utf8'),
+    icsEventCount: (ics.match(/BEGIN:VEVENT/g) || []).length,
+    icsValidEnvelope: ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.endsWith('END:VCALENDAR\r\n'),
+  };
+}
+
 async function postYearlyPayload(payload: unknown): Promise<number> {
   const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
   const token = process.env.REPORT_PIPELINE_TOKEN;

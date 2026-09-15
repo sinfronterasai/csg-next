@@ -65,3 +65,14 @@ export const redispatchPersistedYearlyTransitTask = task(
     return redispatchPersistedYearlyTransit(Number(readingId), expectedReportId);
   },
 );
+
+export const verifyPersistedYearlyDeliveryTask = task(
+  { name: 'verifyPersistedYearlyDelivery', timeoutSeconds: 120, plan: 'flex' },
+  async function verifyPersistedYearlyDeliveryTask(_ctx: TaskContext, readingId: unknown, expectedReportId: unknown) {
+    if (!Number.isInteger(readingId) || Number(readingId) <= 0 || typeof expectedReportId !== 'string') {
+      throw new Error('Invalid Yearly transit delivery verification input');
+    }
+    const { verifyPersistedYearlyDelivery } = await import('./yearlyTransitTask');
+    return verifyPersistedYearlyDelivery(Number(readingId), expectedReportId);
+  },
+);
