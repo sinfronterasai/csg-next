@@ -43,3 +43,14 @@ export const recoverYearlyTransitTask = task(
     return runYearlyTransitTask({ ...typedJob, reportId: claim.reportId });
   },
 );
+
+export const resumeYearlyTransitWorkflowTask = task(
+  { name: 'resumeYearlyTransit', timeoutSeconds: 1800, plan: 'starter' },
+  async function resumeYearlyTransitWorkflowTask(_ctx: TaskContext, readingId: unknown, expectedReportId: unknown) {
+    if (!Number.isInteger(readingId) || Number(readingId) <= 0 || typeof expectedReportId !== 'string') {
+      throw new Error('Invalid Yearly transit resume input');
+    }
+    const { resumeYearlyTransitTask } = await import('./yearlyTransitTask');
+    return resumeYearlyTransitTask(Number(readingId), expectedReportId);
+  },
+);

@@ -34,6 +34,29 @@ export async function runYearlyTransitTask(job: YearlyTransitJob) {
   }
 }
 
+export async function resumeYearlyTransitTask(readingId: number, expectedReportId: string) {
+  const { rows } = await query(
+    `SELECT r.user_id, r.pipeline_status, r.result, o.status AS order_status
+       FROM readings r JOIN report_orders o ON o.reading_id = r.id
+      WHERE r.id = $1`,
+    [readingId],
+  );
+  const row = rows[0];
+  const result = row?.result as Record<string, any> | undefined;
+  const metadata = result?.metadata as Record<string, any> | undefined;
+  if (!row || row.order_status !== 'consumed' || !['queued', 'processing'].includes(row.pipeline_status) ||
+      result?.reportId !== expectedReportId || !metadata?.birthData) {
+    throw new Error('Yearly transit reading cannot be safely resumed');
+  }
+  return runYearlyTransitTask({
+    readingId,
+    reportId: expectedReportId,
+    userId: Number(row.user_id),
+    fromDate: typeof metadata.fromDate === 'string' ? metadata.fromDate : undefined,
+    birthData: metadata.birthData as YearlyTransitJob['birthData'],
+  });
+}
+
 async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
   const chart = await computeChart({
     name: job.birthData.firstName,
