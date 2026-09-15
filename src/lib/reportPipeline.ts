@@ -207,7 +207,6 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
     });
     return { ok: res.ok, status: res.status, reportId: input.reportId };
   } catch (error) {
@@ -255,7 +254,6 @@ export async function sendEditorDecision(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
     });
     return { ok: res.ok, status: res.status };
   } finally {
