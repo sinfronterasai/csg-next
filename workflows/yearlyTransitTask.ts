@@ -5,7 +5,7 @@ import { compileYearlyTransit } from '../src/lib/yearlyTransit/compiler';
 import { buildDispatchPayload } from '../src/lib/reportPipeline';
 import { REPORT_META } from '../src/lib/reportEngine';
 
-type YearlyTransitJob = {
+export type YearlyTransitJob = {
   readingId: number;
   reportId: string;
   userId: number;

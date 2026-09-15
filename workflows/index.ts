@@ -28,3 +28,18 @@ export const diagnoseDatabaseTlsTask = task(
     return diagnoseDatabaseTls();
   },
 );
+
+export const recoverYearlyTransitTask = task(
+  { name: 'recoverYearlyTransit', timeoutSeconds: 1800, plan: 'starter' },
+  async function recoverYearlyTransitTask(_ctx: TaskContext, job: unknown, retryReportId: unknown) {
+    if (typeof retryReportId !== 'string' || !/^[0-9a-f-]{36}$/i.test(retryReportId)) {
+      throw new Error('Invalid Yearly transit recovery correlation');
+    }
+    const { claimRetry } = await import('../src/lib/billing/reportPurchaseStore');
+    const typedJob = job as import('./yearlyTransitTask').YearlyTransitJob;
+    const claim = await claimRetry(typedJob.readingId, typedJob.userId, retryReportId);
+    if (!claim.claimed) throw new Error('Yearly transit reading is not retryable');
+    const { runYearlyTransitTask } = await import('./yearlyTransitTask');
+    return runYearlyTransitTask({ ...typedJob, reportId: claim.reportId });
+  },
+);
