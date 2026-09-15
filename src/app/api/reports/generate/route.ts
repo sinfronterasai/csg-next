@@ -192,6 +192,11 @@ export async function POST(request: Request) {
       if (type === 'transit' && consumed.outcome === 'consumed' && workflowInput) {
         try {
           const started = await startYearlyTransitWorkflow({ ...workflowInput, readingId });
+          await query(
+            `UPDATE readings SET result = jsonb_set(result, '{workflowTaskRunId}', to_jsonb($2::text), true)
+               WHERE id = $1 AND pipeline_status = 'queued'`,
+            [readingId, started.taskRunId],
+          );
           return NextResponse.json({ success: true, status: 'queued', readingId, reportId, taskRunId: started.taskRunId, pending: true });
         } catch (error) {
           await markReadingFailed(readingId);
@@ -376,23 +381,31 @@ async function resumePendingYearlyTransitWorkflow(opts: { purchaseId: string; us
     [opts.purchaseId, Number(opts.decoded.userId)],
   );
   const row = pending.rows[0];
-  if (!row || row.pipeline_status !== 'queued') return;
+  if (!row || !['queued', 'processing'].includes(row.pipeline_status)) return;
   const result = typeof row.result === 'string' ? JSON.parse(row.result) : (row.result ?? {});
   const birthData = result.metadata?.birthData;
-  if (!result.yearlyTransitPending || !birthData || typeof row.report_id !== 'string') return;
+  if (!result.yearlyTransitPending || result.workflowTaskRunId || !birthData || typeof row.report_id !== 'string') return;
   const claimed = await query(
-    `UPDATE readings SET pipeline_status = 'processing' WHERE id = $1 AND pipeline_status = 'queued' RETURNING id`,
+    `UPDATE readings SET pipeline_status = 'processing'
+       WHERE id = $1 AND pipeline_status IN ('queued', 'processing')
+         AND COALESCE(result->>'workflowTaskRunId', '') = ''
+     RETURNING id`,
     [Number(row.reading_id)],
   );
   if ((claimed.rowCount ?? 0) !== 1) return;
   try {
-    await startYearlyTransitWorkflow({
+    const started = await startYearlyTransitWorkflow({
       readingId: Number(row.reading_id),
       reportId: row.report_id,
       userId: Number(opts.decoded.userId),
       fromDate: typeof result.metadata.fromDate === 'string' ? result.metadata.fromDate : undefined,
       birthData,
     });
+    await query(
+      `UPDATE readings SET result = jsonb_set(result, '{workflowTaskRunId}', to_jsonb($2::text), true)
+         WHERE id = $1 AND pipeline_status = 'processing'`,
+      [Number(row.reading_id), started.taskRunId],
+    );
   } catch (error) {
     console.error('[yearly-transit] workflow recovery failed:', error instanceof Error ? error.message : error);
     await markReadingFailed(Number(row.reading_id)).catch(() => undefined);

@@ -22,6 +22,18 @@ type YearlyTransitJob = {
 };
 
 export async function runYearlyTransitTask(job: YearlyTransitJob) {
+  try {
+    return await runYearlyTransitTaskUnsafe(job);
+  } catch (error) {
+    await query(
+      `UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1 AND pipeline_status IN ('queued', 'processing')`,
+      [job.readingId],
+    ).catch(() => undefined);
+    throw error;
+  }
+}
+
+async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
   const chart = await computeChart({
     name: job.birthData.firstName,
     date: job.birthData.dob,
