@@ -1,4 +1,5 @@
-import { query } from '../src/lib/db';
+import { Client } from 'pg';
+import { buildDbPoolConfig, query } from '../src/lib/db';
 import https from 'node:https';
 import { computeChart } from '../src/lib/chartEngine';
 import { compileYearlyTransit } from '../src/lib/yearlyTransit/compiler';
@@ -35,12 +36,21 @@ export async function runYearlyTransitTask(job: YearlyTransitJob) {
 }
 
 export async function resumeYearlyTransitTask(readingId: number, expectedReportId: string) {
-  const { rows } = await query(
-    `SELECT r.user_id, r.pipeline_status, r.result, o.status AS order_status
-       FROM readings r JOIN report_orders o ON o.reading_id = r.id
-      WHERE r.id = $1`,
-    [readingId],
-  );
+  if (!process.env.DATABASE_URL) throw new Error('Database configuration is missing');
+  const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
+  await client.connect();
+  let rows: any[];
+  try {
+    const state = await client.query(
+      `SELECT r.user_id, r.pipeline_status, r.result, o.status AS order_status
+         FROM readings r JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    );
+    rows = state.rows;
+  } finally {
+    await client.end();
+  }
   const row = rows[0];
   const result = row?.result as Record<string, any> | undefined;
   const metadata = result?.metadata as Record<string, any> | undefined;
