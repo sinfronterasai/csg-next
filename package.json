@@ -6,6 +6,7 @@
     "dev": "next dev -H 0.0.0.0 -p 5000",
     "build": "next build",
     "start": "next start -p 10000",
+    "workflow:start": "tsx workflows/index.ts",
     "db:migrate": "node scripts/migrate.mjs",
     "verify": "bash scripts/verify-local-build.sh",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
