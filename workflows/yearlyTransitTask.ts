@@ -1,4 +1,5 @@
 import { query } from '../src/lib/db';
+import https from 'node:https';
 import { computeChart } from '../src/lib/chartEngine';
 import { compileYearlyTransit } from '../src/lib/yearlyTransit/compiler';
 import { buildDispatchPayload } from '../src/lib/reportPipeline';
@@ -100,14 +101,22 @@ async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
   const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
   const token = process.env.REPORT_PIPELINE_TOKEN;
   if (!webhookUrl || !token) throw new Error('Yearly transit dispatch configuration is missing');
-  const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload),
+  const responseStatus = await new Promise<number>((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const request = https.request(webhookUrl, {
+      method: 'POST',
+      rejectUnauthorized: true,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Authorization: `Bearer ${token}` },
+    }, (response) => {
+      response.resume();
+      response.once('end', () => resolve(response.statusCode ?? 0));
+    });
+    request.once('error', reject);
+    request.end(body);
   });
-  if (!response.ok) {
+  if (responseStatus < 200 || responseStatus >= 300) {
     await query(`UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1 AND pipeline_status = 'queued'`, [job.readingId]);
-    throw new Error(`Yearly transit dispatch failed with status ${response.status}`);
+    throw new Error(`Yearly transit dispatch failed with status ${responseStatus}`);
   }
   return { readingId: job.readingId, reportId: job.reportId, status: 'queued' };
 }
