@@ -106,7 +106,7 @@ function requireEnv(name: string): string {
 // --- Network (injectable for tests) -------------------------------------------
 
 type FetchLike = typeof fetch;
-let fetchImpl: FetchLike = fetch;
+let fetchImpl: FetchLike = (input, init) => fetch(input, init);
 export function __setFetch(fn: FetchLike) { fetchImpl = fn; }
 
 function timingSafeEqual(a: string, b: string): boolean {
