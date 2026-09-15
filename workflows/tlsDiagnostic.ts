@@ -28,5 +28,19 @@ export async function diagnoseN8nTls() {
     });
     socket.on('error', (error) => resolve({ ok: false, hostname: url.hostname, port, error: error.message }));
   });
-  return inspection;
+  if (!inspection.ok) return inspection;
+  try {
+    const response = await fetch(raw, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${process.env.REPORT_PIPELINE_TOKEN || ''}`,
+      },
+      body: JSON.stringify({ diagnostic: true }),
+    });
+    return { ...inspection, httpStatus: response.status, location: response.headers.get('location') || null };
+  } catch (error) {
+    return { ...inspection, httpStatus: null, httpError: error instanceof Error ? error.message : String(error) };
+  }
 }
