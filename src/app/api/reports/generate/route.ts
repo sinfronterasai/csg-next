@@ -10,12 +10,11 @@ import {
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
 import { geocodeLocation, geocodeCoordinates, computeChart } from '@/lib/chartEngine';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
-import { consumeReportPurchase, getReportPurchase, isValidPurchaseId, type ReadingInsert } from '@/lib/billing/reportPurchaseStore';
+import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
 import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
-import { validateKnownTimeBirth } from '@/lib/yearlyTransit/policy';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -144,15 +143,8 @@ export async function POST(request: Request) {
       // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
       // input_incomplete we fail closed with 422 and never touch the purchase.
       let readingInput;
-      let yearlyTransitJob: YearlyTransitJob | undefined;
       try {
-        if (type === 'transit') {
-          const prepared = await buildPendingYearlyTransitInput({ decoded, user, price: REPORT_META[type].price, reportId, fromDate });
-          readingInput = prepared.reading;
-          yearlyTransitJob = prepared.job;
-        } else {
-          readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
-        }
+        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
       } catch (e) {
         if (e instanceof V2PreflightError) {
           return NextResponse.json(
@@ -187,17 +179,6 @@ export async function POST(request: Request) {
       }
       const readingId = consumed.readingId;
       // reportId is the single source of truth declared above (line ~105).
-
-      if (type === 'transit' && consumed.outcome === 'consumed' && yearlyTransitJob) {
-        // Do not hold the customer request open while Swiss Ephemeris scans the
-        // rolling year. The paid reading is already durably correlated; the
-        // background task updates that same row and dispatches its stable reportId.
-        void runYearlyTransitJob({ ...yearlyTransitJob, readingId, user, decoded });
-        return NextResponse.json({
-          success: true, status: 'queued', readingId, reportId,
-          message: 'Your report is being prepared by our astrology engine. It will be ready shortly.', pending: true,
-        });
-      }
 
       // Dispatch to n8n. Fails closed: non-2xx / network error marks the reading
       // rejected and returns 502. The purchase stays 'consumed' (already paid),
@@ -329,152 +310,6 @@ async function buildBirthInfo(c: any, user: any) {
     longitude: resolved.lon,
     unknownTime: c.unknown_time,
   };
-}
-
-type YearlyTransitChartInput = {
-  name?: string;
-  date: string;
-  time: string;
-  location: string;
-  timezone: string;
-  latitude: number;
-  longitude: number;
-  unknownTime: boolean;
-};
-
-type YearlyTransitJob = {
-  reportId: string;
-  fromDate?: string;
-  chartInput: YearlyTransitChartInput;
-};
-
-async function buildPendingYearlyTransitInput(opts: {
-  decoded: any;
-  user: any;
-  price: number;
-  reportId: string;
-  fromDate?: string;
-}): Promise<{ reading: ReadingInsert; job: YearlyTransitJob }> {
-  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [opts.decoded.userId]);
-  if (rows.length === 0) throw new V2BuildError('Create your birth chart first');
-  const chart = await buildBirthInfo(rows[0], opts.user);
-  validateKnownTransitChart(chart);
-  const title = REPORT_META.transit.title;
-  const birthData = {
-    firstName: chart.name,
-    dob: chart.date,
-    birthTime: chart.time || null,
-    place: chart.location,
-    lat: chart.latitude,
-    lon: chart.longitude,
-    tz: chart.timezone,
-    solarFallback: chart.unknownTime,
-  };
-  const resultJson = JSON.stringify({
-    title,
-    reportType: 'transit',
-    generatedFor: 'self',
-    reportId: opts.reportId,
-    pricePaid: opts.price,
-    tier: 'paid',
-    pending: true,
-    yearlyTransitPending: true,
-    metadata: { birthData, fromDate: opts.fromDate ?? null },
-  });
-  return {
-    reading: { userId: Number(opts.decoded.userId), type: 'report', title, question: `${title} report`, pricePaid: opts.price, resultJson, pipelineStatus: 'queued' },
-    job: {
-      reportId: opts.reportId,
-      fromDate: opts.fromDate,
-      chartInput: {
-        name: chart.name,
-        date: chart.date,
-        time: chart.time,
-        location: chart.location,
-        timezone: chart.timezone,
-        latitude: chart.latitude,
-        longitude: chart.longitude,
-        unknownTime: chart.unknownTime,
-      },
-    },
-  };
-}
-
-function validateKnownTransitChart(chart: { time: string; unknownTime: boolean }) {
-  validateKnownTimeBirth({ date: 'saved', time: chart.time, unknownTime: chart.unknownTime });
-}
-
-async function runYearlyTransitJob(opts: YearlyTransitJob & { readingId: number; user: any; decoded: any }) {
-  try {
-    const chart = await computeChart({ ...opts.chartInput, requireAllBodies: true });
-    const generatedAtUtc = new Date().toISOString();
-    const pack = await compileYearlyTransit({
-      chart,
-      snapshot: {
-        snapshotId: opts.reportId,
-        generatedAtUtc,
-        birthData: {
-          date: opts.chartInput.date,
-          time: opts.chartInput.time,
-          latitude: opts.chartInput.latitude,
-          longitude: opts.chartInput.longitude,
-          timezone: opts.chartInput.timezone,
-        },
-      },
-      fromDate: opts.fromDate || generatedAtUtc.slice(0, 10),
-    });
-    const overview = pack.windows
-      .filter((window) => pack.aiPacks.primaryWindows.some((item) => item.id === window.id))
-      .slice(0, 8)
-      .map((window) => ({
-        label: `${window.mover} ${window.aspectType} ${window.target}`,
-        value: `${window.activeWindow.startUtc} → ${window.activeWindow.endUtc}`,
-        note: `Score ${window.importanceScore}/100 · ${window.segments[0]?.direction ?? 'indeterminate'}`,
-      }));
-    const result = {
-      title: REPORT_META.transit.title,
-      reportType: 'transit',
-      generatedFor: 'self',
-      reportId: opts.reportId,
-      pricePaid: REPORT_META.transit.price,
-      tier: 'paid',
-      overview,
-      verifiedFacts: pack,
-      yearlyTransitPack: pack,
-      pending: true,
-      metadata: {
-        birthData: {
-          firstName: opts.chartInput.name,
-          dob: opts.chartInput.date,
-          birthTime: opts.chartInput.time || null,
-          place: opts.chartInput.location,
-          lat: opts.chartInput.latitude,
-          lon: opts.chartInput.longitude,
-          tz: opts.chartInput.timezone,
-          solarFallback: opts.chartInput.unknownTime,
-        },
-        yearlyTransitPack: pack,
-      },
-    };
-    const updated = await query(
-      `UPDATE readings SET result = $1 WHERE id = $2 AND pipeline_status = 'queued'`,
-      [JSON.stringify(result), opts.readingId],
-    );
-    if ((updated.rowCount ?? 0) === 0) return;
-    const dispatchRes = await dispatchWithFailClosed({
-      reportId: opts.reportId,
-      type: 'transit',
-      price: REPORT_META.transit.price,
-      user: opts.user,
-      decoded: opts.decoded,
-      partner: undefined,
-      readingResult: result,
-    });
-    if (!dispatchRes.ok) await markReadingFailed(opts.readingId);
-  } catch (error) {
-    console.error('[yearly-transit] background job failed:', error instanceof Error ? error.message : error);
-    await markReadingFailed(opts.readingId).catch(() => undefined);
-  }
 }
 
 async function buildReadingInput(opts: {
