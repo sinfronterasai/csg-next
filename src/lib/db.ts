@@ -1,15 +1,25 @@
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
+
+export function buildDbPoolConfig(raw: string | undefined): Pick<PoolConfig, 'connectionString' | 'ssl'> {
+  if (!raw || !raw.includes('sslmode=require')) return { connectionString: raw, ssl: undefined };
+  const url = new URL(raw);
+  if (url.searchParams.get('sslmode') !== 'require') return { connectionString: raw, ssl: undefined };
+  // node-postgres lets SSL query parameters replace the explicit `ssl` object.
+  // Remove the conflicting URI option so Render's encrypted private-network
+  // connection can use the explicit certificate policy below.
+  url.searchParams.delete('sslmode');
+  return { connectionString: url.toString(), ssl: { rejectUnauthorized: false } };
+}
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   console.warn('[db] DATABASE_URL is not set — database features will be unavailable.');
 }
 
+const dbPoolConfig = buildDbPoolConfig(connectionString);
+
 export const pool = new Pool({
-  connectionString,
-  ssl: connectionString?.includes('sslmode=require')
-    ? { rejectUnauthorized: false }
-    : undefined,
+  ...dbPoolConfig,
   max: 5,
   idleTimeoutMillis: 1_000,
   keepAlive: true,
