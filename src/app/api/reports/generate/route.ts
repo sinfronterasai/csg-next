@@ -119,7 +119,6 @@ export async function POST(request: Request) {
       // This is evaluated BEFORE the paid-only gate so a consumed correlated
       // report can be retrieved without a second consumption or generation.
       if (purchase.status === 'consumed') {
-        if (type === 'transit') await resumePendingYearlyTransitJob({ purchaseId, user, decoded });
         const response = await findCorrelatedReport(purchaseId, Number(decoded.userId));
         if (response) return response;
       }
@@ -193,7 +192,7 @@ export async function POST(request: Request) {
         // Do not hold the customer request open while Swiss Ephemeris scans the
         // rolling year. The paid reading is already durably correlated; the
         // background task updates that same row and dispatches its stable reportId.
-        void claimAndRunYearlyTransitJob({ ...yearlyTransitJob, readingId, user, decoded });
+        void runYearlyTransitJob({ ...yearlyTransitJob, readingId, user, decoded });
         return NextResponse.json({
           success: true, status: 'queued', readingId, reportId,
           message: 'Your report is being prepared by our astrology engine. It will be ready shortly.', pending: true,
@@ -405,51 +404,6 @@ function validateKnownTransitChart(chart: { time: string; unknownTime: boolean }
   validateKnownTimeBirth({ date: 'saved', time: chart.time, unknownTime: chart.unknownTime });
 }
 
-async function claimAndRunYearlyTransitJob(opts: YearlyTransitJob & { readingId: number; user: any; decoded: any }) {
-  const claimed = await query(
-    `UPDATE readings SET pipeline_status = 'processing'
-       WHERE id = $1 AND pipeline_status = 'queued'
-     RETURNING id`,
-    [opts.readingId],
-  );
-  if ((claimed.rowCount ?? 0) !== 1) return;
-  await runYearlyTransitJob(opts);
-}
-
-async function resumePendingYearlyTransitJob(opts: { purchaseId: string; user: any; decoded: any }) {
-  const pending = await query(
-    `SELECT r.id AS reading_id, o.report_id, r.pipeline_status, r.result
-       FROM report_orders o JOIN readings r ON r.id = o.reading_id
-      WHERE o.purchase_id = $1 AND o.user_id = $2
-      LIMIT 1`,
-    [opts.purchaseId, Number(opts.decoded.userId)],
-  );
-  const row = pending.rows[0];
-  if (!row || row.pipeline_status !== 'queued') return;
-  const result = typeof row.result === 'string' ? JSON.parse(row.result) : (row.result ?? {});
-  const birthData = result.metadata?.birthData;
-  if (!result.yearlyTransitPending || !birthData || typeof row.report_id !== 'string') return;
-  const chartInput: YearlyTransitChartInput = {
-    name: birthData.firstName,
-    date: birthData.dob,
-    time: birthData.birthTime,
-    location: birthData.place,
-    timezone: birthData.tz,
-    latitude: Number(birthData.lat),
-    longitude: Number(birthData.lon),
-    unknownTime: Boolean(birthData.solarFallback),
-  };
-  if (!chartInput.date || !chartInput.time || !chartInput.timezone || !Number.isFinite(chartInput.latitude) || !Number.isFinite(chartInput.longitude)) return;
-  void claimAndRunYearlyTransitJob({
-    readingId: Number(row.reading_id),
-    reportId: row.report_id,
-    fromDate: typeof result.metadata.fromDate === 'string' ? result.metadata.fromDate : undefined,
-    chartInput,
-    user: opts.user,
-    decoded: opts.decoded,
-  });
-}
-
 async function runYearlyTransitJob(opts: YearlyTransitJob & { readingId: number; user: any; decoded: any }) {
   try {
     const chart = await computeChart({ ...opts.chartInput, requireAllBodies: true });
@@ -503,7 +457,7 @@ async function runYearlyTransitJob(opts: YearlyTransitJob & { readingId: number;
       },
     };
     const updated = await query(
-      `UPDATE readings SET result = $1 WHERE id = $2 AND pipeline_status = 'processing'`,
+      `UPDATE readings SET result = $1 WHERE id = $2 AND pipeline_status = 'queued'`,
       [JSON.stringify(result), opts.readingId],
     );
     if ((updated.rowCount ?? 0) === 0) return;
