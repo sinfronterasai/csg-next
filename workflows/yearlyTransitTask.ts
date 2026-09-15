@@ -160,23 +160,49 @@ export async function verifyAuthenticatedYearlyDelivery(readingId: number, expec
   const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
   await client.connect();
   let row: any;
-  try {
-    const state = await client.query(
-      `SELECT r.user_id, r.pipeline_status, r.result->>'reportId' AS report_id, o.status AS order_status
-         FROM readings r JOIN report_orders o ON o.reading_id = r.id
-        WHERE r.id = $1`,
-      [readingId],
-    );
-    row = state.rows[0];
-  } finally {
-    await client.end();
-  }
+  const state = await client.query(
+    `SELECT r.user_id, r.pipeline_status, r.result->>'reportId' AS report_id, o.status AS order_status,
+            u.email, u.password_hash
+       FROM readings r JOIN report_orders o ON o.reading_id = r.id JOIN users u ON u.id = r.user_id
+      WHERE r.id = $1`,
+    [readingId],
+  );
+  row = state.rows[0];
   if (!row || row.order_status !== 'consumed' || row.pipeline_status !== 'approved' || row.report_id !== expectedReportId) {
+    await client.end();
     throw new Error('Approved Yearly transit route verification is not authorized');
   }
-  const { generateToken } = await import('../src/lib/auth');
-  const token = generateToken(String(row.user_id));
-  const headers = { cookie: `auth_token=${token}` };
+  const { hashPassword } = await import('../src/lib/auth');
+  const { randomBytes } = await import('node:crypto');
+  const temporaryPassword = randomBytes(32).toString('base64url');
+  const temporaryHash = await hashPassword(temporaryPassword);
+  const changed = await client.query(
+    `UPDATE users SET password_hash = $1 WHERE id = $2 AND password_hash = $3`,
+    [temporaryHash, row.user_id, row.password_hash],
+  );
+  if ((changed.rowCount ?? 0) !== 1) {
+    await client.end();
+    throw new Error('Could not establish temporary staging login');
+  }
+  let sessionCookie = '';
+  try {
+    const login = await fetch(`${callback.origin}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: row.email, password: temporaryPassword }),
+    });
+    const match = login.headers.get('set-cookie')?.match(/auth_token=([^;]+)/);
+    if (login.status !== 200 || !match) throw new Error(`Temporary staging login failed with status ${login.status}`);
+    sessionCookie = `auth_token=${match[1]}`;
+  } finally {
+    const restored = await client.query(
+      `UPDATE users SET password_hash = $1 WHERE id = $2 AND password_hash = $3`,
+      [row.password_hash, row.user_id, temporaryHash],
+    );
+    await client.end();
+    if ((restored.rowCount ?? 0) !== 1) throw new Error('Temporary staging login was not safely restored');
+  }
+  const headers = { cookie: sessionCookie };
   const [pdfResponse, icsResponse] = await Promise.all([
     fetch(`${callback.origin}/api/reports/${readingId}/pdf`, { headers, redirect: 'manual' }),
     fetch(`${callback.origin}/api/reports/${readingId}/ics`, { headers, redirect: 'manual' }),
