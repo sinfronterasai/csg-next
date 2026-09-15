@@ -1,7 +1,7 @@
 import { query } from '../src/lib/db';
 import { computeChart } from '../src/lib/chartEngine';
 import { compileYearlyTransit } from '../src/lib/yearlyTransit/compiler';
-import { dispatchReport } from '../src/lib/reportPipeline';
+import { buildDispatchPayload } from '../src/lib/reportPipeline';
 import { REPORT_META } from '../src/lib/reportEngine';
 
 type YearlyTransitJob = {
@@ -88,17 +88,26 @@ async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
     [JSON.stringify(result), job.readingId],
   );
   if ((updated.rowCount ?? 0) !== 1) throw new Error('Yearly transit reading is no longer active');
-  const dispatched = await dispatchReport({
+  const payload = buildDispatchPayload({
     reportId: job.reportId,
     reportType: 'transit',
     tier: 'paid',
     birthData: job.birthData,
     verifiedFacts: pack,
     callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
+    promptSlug: '08-yearly-transit',
   });
-  if (!dispatched.ok) {
+  const webhookUrl = process.env.N8N_REPORT_WEBHOOK_URL;
+  const token = process.env.REPORT_PIPELINE_TOKEN;
+  if (!webhookUrl || !token) throw new Error('Yearly transit dispatch configuration is missing');
+  const response = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
     await query(`UPDATE readings SET pipeline_status = 'dispatch_failed' WHERE id = $1 AND pipeline_status = 'queued'`, [job.readingId]);
-    throw new Error(`Yearly transit dispatch failed with status ${dispatched.status}`);
+    throw new Error(`Yearly transit dispatch failed with status ${response.status}`);
   }
   return { readingId: job.readingId, reportId: job.reportId, status: 'queued' };
 }
