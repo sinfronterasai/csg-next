@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
 import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
+import { startYearlyTransitWorkflow, type YearlyTransitWorkflowInput } from '@/lib/yearlyTransit/workflow';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -143,8 +144,15 @@ export async function POST(request: Request) {
       // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
       // input_incomplete we fail closed with 422 and never touch the purchase.
       let readingInput;
+      let workflowInput: Omit<YearlyTransitWorkflowInput, 'readingId'> | undefined;
       try {
-        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
+        if (type === 'transit') {
+          const prepared = await buildPendingYearlyTransitInput({ decoded, user, reportId, price: REPORT_META[type].price, fromDate });
+          readingInput = prepared.reading;
+          workflowInput = prepared.workflow;
+        } else {
+          readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
+        }
       } catch (e) {
         if (e instanceof V2PreflightError) {
           return NextResponse.json(
@@ -179,6 +187,16 @@ export async function POST(request: Request) {
       }
       const readingId = consumed.readingId;
       // reportId is the single source of truth declared above (line ~105).
+
+      if (type === 'transit' && consumed.outcome === 'consumed' && workflowInput) {
+        try {
+          const started = await startYearlyTransitWorkflow({ ...workflowInput, readingId });
+          return NextResponse.json({ success: true, status: 'queued', readingId, reportId, taskRunId: started.taskRunId, pending: true });
+        } catch (error) {
+          await markReadingFailed(readingId);
+          return NextResponse.json({ error: 'Report workflow unavailable. Please try again shortly.', detail: error instanceof Error ? error.message : 'workflow-start-failed' }, { status: 502 });
+        }
+      }
 
       // Dispatch to n8n. Fails closed: non-2xx / network error marks the reading
       // rejected and returns 502. The purchase stays 'consumed' (already paid),
@@ -309,6 +327,43 @@ async function buildBirthInfo(c: any, user: any) {
     latitude: resolved.lat,
     longitude: resolved.lon,
     unknownTime: c.unknown_time,
+  };
+}
+
+async function buildPendingYearlyTransitInput(opts: {
+  decoded: any;
+  user: any;
+  reportId: string;
+  price: number;
+  fromDate?: string;
+}) {
+  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [opts.decoded.userId]);
+  if (rows.length === 0) throw new V2BuildError('Create your birth chart first');
+  const chart = await buildBirthInfo(rows[0], opts.user);
+  if (!chart.time || chart.unknownTime) throw new V2BuildError('Known birth time is required for Yearly Transit');
+  const birthData = {
+    firstName: chart.name,
+    dob: chart.date,
+    birthTime: chart.time,
+    place: chart.location,
+    lat: chart.latitude,
+    lon: chart.longitude,
+    tz: chart.timezone,
+    solarFallback: false,
+  };
+  const title = REPORT_META.transit.title;
+  return {
+    reading: {
+      userId: Number(opts.decoded.userId), type: 'report', title,
+      question: `${title} report`, pricePaid: opts.price,
+      resultJson: JSON.stringify({
+        title, reportType: 'transit', generatedFor: 'self', reportId: opts.reportId,
+        pricePaid: opts.price, tier: 'paid', pending: true, yearlyTransitPending: true,
+        metadata: { birthData, fromDate: opts.fromDate ?? null },
+      }),
+      pipelineStatus: 'queued',
+    },
+    workflow: { reportId: opts.reportId, userId: Number(opts.decoded.userId), fromDate: opts.fromDate, birthData },
   };
 }
 
