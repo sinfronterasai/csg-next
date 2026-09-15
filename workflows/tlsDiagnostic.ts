@@ -30,16 +30,25 @@ export async function diagnoseN8nTls() {
   });
   if (!inspection.ok) return inspection;
   try {
-    const response = await fetch(raw, {
-      method: 'POST',
-      redirect: 'manual',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${process.env.REPORT_PIPELINE_TOKEN || ''}`,
-      },
-      body: JSON.stringify({ diagnostic: true }),
-    });
-    return { ...inspection, httpStatus: response.status, location: response.headers.get('location') || null };
+    const sizes = [50_000, 100_000, 200_000, 500_000, 1_000_000];
+    const sizeResults = [];
+    for (const size of sizes) {
+      try {
+        const response = await fetch(raw, {
+          method: 'POST',
+          redirect: 'manual',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${process.env.REPORT_PIPELINE_TOKEN || ''}`,
+          },
+          body: JSON.stringify({ reportId: 'diagnostic-size-probe', reportType: 'yearlytransit', tier: 'paid', pad: 'x'.repeat(size) }),
+        });
+        sizeResults.push({ requestedBytes: size, httpStatus: response.status });
+      } catch (error) {
+        sizeResults.push({ requestedBytes: size, httpStatus: null, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return { ...inspection, sizeResults };
   } catch (error) {
     return { ...inspection, httpStatus: null, httpError: error instanceof Error ? error.message : String(error) };
   }
