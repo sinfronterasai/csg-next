@@ -195,6 +195,7 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
   const callbackUrl = input.callbackUrl ?? requireEnv('CSG_REPORT_CALLBACK_URL');
 
   const payload = buildDispatchPayload({ ...input, callbackUrl }, workflow);
+  const payloadBytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -209,6 +210,11 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
       signal: controller.signal,
     });
     return { ok: res.ok, status: res.status, reportId: input.reportId };
+  } catch (error) {
+    const cause = error && typeof error === 'object' && 'cause' in error ? (error as { cause?: unknown }).cause : undefined;
+    const causeCode = cause && typeof cause === 'object' && 'code' in cause ? String((cause as { code?: unknown }).code) : '';
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`n8n dispatch request failed (${payloadBytes} bytes): ${detail}${causeCode ? ` [${causeCode}]` : ''}`);
   } finally {
     clearTimeout(timeout);
   }
