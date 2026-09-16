@@ -1,7 +1,7 @@
 import { task, type TaskContext } from '@renderinc/sdk/workflows';
 
 // Forces Render to register the task bundle that forwards the v2 presentation brief.
-export const YEARLY_WORKFLOW_DEPLOYMENT_REVISION = 'yt-presentation-brief-v2';
+export const YEARLY_WORKFLOW_DEPLOYMENT_REVISION = 'yt-presentation-brief-v3';
 
 export const compileYearlyTransitTask = task(
   {
