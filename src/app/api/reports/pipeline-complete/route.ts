@@ -96,12 +96,23 @@ export async function POST(request: Request) {
   if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
-  let body: CallbackBody;
+  let body: CallbackBody | string;
   try {
     body = JSON.parse(raw);
   } catch {
     // R2.3 — malformed callback returns 400.
     return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
+  }
+
+  // n8n's HTTP Request JSON-body expression can serialize an object expression
+  // one extra time. Accept that single transport layer, then apply the normal
+  // exact callback-envelope validation below; nested/non-object values fail.
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
+    }
   }
 
   if (typeof body !== 'object' || body === null || Array.isArray(body) || !hasExactKeys(body as Record<string, unknown>, BODY_KEYS)) {
