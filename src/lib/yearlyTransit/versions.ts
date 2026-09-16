@@ -6,8 +6,8 @@ export const YEARLY_TRANSIT_VERSIONS: VersionBundle = {
   importancePolicyVersion: 'yt-importance-v1.0.0',
   eclipsePolicyVersion: 'yt-eclipse-swiss-v1.0.0',
   factPackVersion: 'yt-fact-pack-v1.0.0',
-  aiContractVersion: 'yt-ai-contract-v1.0.0',
-  reportTemplateVersion: 'yt-template-v1.0.0',
+  aiContractVersion: 'yt-ai-contract-v1.1.0',
+  reportTemplateVersion: 'yt-template-v1.1.0',
 };
 
 export const YEARLY_TRANSIT_SCAN_GRID_HOURS = {

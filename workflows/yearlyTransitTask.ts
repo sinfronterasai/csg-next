@@ -3,6 +3,7 @@ import { buildDbPoolConfig, query } from '../src/lib/db';
 import https from 'node:https';
 import { computeChart } from '../src/lib/chartEngine';
 import { compileYearlyTransit } from '../src/lib/yearlyTransit/compiler';
+import { buildYearlyTransitAiBrief } from '../src/lib/yearlyTransit/curation';
 import { buildDispatchPayload } from '../src/lib/reportPipeline';
 import { REPORT_META } from '../src/lib/reportEngine';
 
@@ -97,6 +98,7 @@ export async function redispatchPersistedYearlyTransit(readingId: number, expect
     tier: 'paid',
     birthData: metadata.birthData,
     verifiedFacts: pack,
+    presentationBrief: buildYearlyTransitAiBrief(pack),
     callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     promptSlug: '08-yearly-transit',
   });
@@ -330,6 +332,7 @@ async function runYearlyTransitTaskUnsafe(job: YearlyTransitJob) {
     tier: 'paid',
     birthData: job.birthData,
     verifiedFacts: pack,
+    presentationBrief: buildYearlyTransitAiBrief(pack),
     callbackUrl: process.env.CSG_REPORT_CALLBACK_URL,
     promptSlug: '08-yearly-transit',
   });

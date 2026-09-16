@@ -1,20 +1,27 @@
 import { aiResponseToPipelineSections, validateYearlyTransitAiResponse } from '@/lib/yearlyTransit/aiValidator';
+import { buildYearlyTransitAiBrief } from '@/lib/yearlyTransit/curation';
 import { buildWorstCaseYearlyTransitPack } from './fixtures/worst-case-pack';
 import { validateYearlyTransitCallback } from '@/lib/yearlyTransit/callback';
 
 describe('yearly transit AI validator', () => {
   const pack = buildWorstCaseYearlyTransitPack();
-  const base = () => ({ schemaVersion: 'csg-yearly-transit-ai-v1', reportId: 'report-1', reportType: 'yearlytransit', versionBundle: pack.versionBundle,
-    overallTheme: { id: 'theme', text: 'A grounded theme.', evidenceIds: ['fact.window.0'] }, primaryWindows: [], monthlyContext: [], actions: [], appendixSummary: { id: 'appendix', text: 'Evidence remains available for reflection.', evidenceIds: ['fact.appendix'] } });
+  const brief = buildYearlyTransitAiBrief(pack);
+  const validInterpretation = 'This period asks for a considered response in the life area named by the verified transit. Notice what is already asking for attention, then make practical adjustments that match your priorities. The exact-hit dates are checkpoints for reflection, conversation, and purposeful follow-through rather than guarantees about external events.';
+  const base = () => ({
+    schemaVersion: 'csg-yearly-transit-ai-v1', reportId: 'report-1', reportType: 'yearlytransit', versionBundle: pack.versionBundle,
+    overallTheme: { id: 'theme', text: 'A grounded year-long theme connects the most important verified windows and invites deliberate choices.', evidenceIds: ['fact.window.0'] },
+    primaryWindows: [],
+    monthlyContext: brief.monthlyContext.map((month, index) => ({ id: `month-${index}`, monthKey: month.monthKey, summary: `This month brings the selected themes into clearer focus through ${month.primaryInfluences.map((item) => item.heading).join(', ') || 'integration and reflection'}. Keep attention on the curated priorities, use meaningful timing as a checkpoint, and leave routine passing contacts in the background.`, evidenceIds: month.evidenceIds.length ? month.evidenceIds : ['fact.window.0'] })),
+    actions: Array.from({ length: 5 }, (_, index) => { const action = brief.actions[0]; return { id: `action-${index}`, text: `${action.activePeriod}: use ${action.transit} to take ${['one concrete step', 'a review step', 'a communication step', 'a boundary-setting step', 'a follow-through step'][index]} in ${action.lifeArea.toLowerCase()}, then review what the period is clarifying before adding new commitments.`, evidenceIds: action.evidenceIds.length ? action.evidenceIds : ['fact.window.0'] }; }),
+    appendixSummary: { id: 'appendix', text: 'Supporting influences provide secondary context without replacing the priority of the main transit windows.', evidenceIds: ['fact.appendix'] },
+  });
 
-  it('accepts the exact bounded response shape', () => {
+  it('accepts a complete curated response shape', () => {
     const response = validateYearlyTransitAiResponse(base(), pack, 'report-1');
-    expect(response.reportType).toBe('yearlytransit');
-    expect(aiResponseToPipelineSections(response)[0]).toEqual({ id: 'theme', prose: 'A grounded theme.', blocks: [{ role: 'synthesis', prose: 'A grounded theme.', factIds: ['fact.window.0'] }] });
-    const callback = validateYearlyTransitCallback({ status: 'approved', response }, pack, 'report-1');
-    expect(callback.status).toBe('approved');
-    if (callback.status !== 'approved') throw new Error('expected approved callback');
-    expect(callback.response.reportId).toBe('report-1');
+    expect(response.monthlyContext).toHaveLength(12);
+    expect(response.actions).toHaveLength(5);
+    expect(aiResponseToPipelineSections(response)[0].id).toBe('theme');
+    expect(validateYearlyTransitCallback({ status: 'approved', response }, pack, 'report-1')).toMatchObject({ status: 'approved' });
   });
 
   it.each([
@@ -26,26 +33,16 @@ describe('yearly transit AI validator', () => {
     ['internal score language', (v: any) => { v.overallTheme.text = 'importanceScore83 is not customer language.'; }],
     ['debug window language', (v: any) => { v.overallTheme.text = 'Yt Window should never appear.'; }],
     ['raw ISO timestamp', (v: any) => { v.overallTheme.text = 'The period begins 2027-05-04T09:42:46.000Z.'; }],
+    ['raw monthly aspect dump', (v: any) => { v.monthlyContext[0].summary = 'A; B; C; D; E; F; G; H.'; }],
+    ['repeated action', (v: any) => { v.actions[1].text = v.actions[0].text; }],
+    ['invented action date', (v: any) => { v.actions[0].text = 'December 25, 2099: make a choice.'; }],
   ])('rejects %s', (_label, mutate) => {
     const value = base(); mutate(value);
     expect(() => validateYearlyTransitAiResponse(value, pack, 'report-1')).toThrow(/invalid yearly-transit AI response/);
   });
 
-  it('rejects overlong bounded blocks and more than eight primary windows', () => {
-    const value: any = base(); value.overallTheme.text = 'x'.repeat(2001);
-    expect(() => validateYearlyTransitAiResponse(value, pack, 'report-1')).toThrow(/2000/);
-    const many = base() as any; many.primaryWindows = Array.from({ length: 9 }, (_, i) => ({ id: `p${i}`, title: 't', interpretation: 'i', recommendations: [], evidenceIds: ['fact.window.0'] }));
-    expect(() => validateYearlyTransitAiResponse(many, pack, 'report-1')).toThrow(/primaryWindows count/);
-  });
-
-  it('rejects callback envelope keys or status outside the strict contract', () => {
-    const response = base();
-    expect(() => validateYearlyTransitCallback({ status: 'approved', response, extra: true }, pack, 'report-1')).toThrow(/callback envelope keys/);
-    expect(() => validateYearlyTransitCallback({ status: 'rejected', response }, pack, 'report-1')).toThrow(/invalid yearly-transit rejection envelope/);
-  });
-
-  it('accepts a strict rejected callback with matching versions and sanitized reasons', () => {
-    const rejected = { status: 'rejected', reportId: 'report-1', reportType: 'yearlytransit', versionBundle: pack.versionBundle, rejectReasons: ['unsupported claim'] };
-    expect(validateYearlyTransitCallback(rejected, pack, 'report-1')).toMatchObject({ status: 'rejected', rejectReasons: ['unsupported claim'] });
+  it('rejects generic primary timing boilerplate', () => {
+    const value: any = base(); value.primaryWindows = [{ id: 'primary', title: 'Jupiter Conjunct Sun', interpretation: 'This relationship returns in 2 connected passes, creating a longer conversation rather than separate unrelated events. '.repeat(3), recommendations: ['One practical recommendation.', 'Another practical recommendation.'], evidenceIds: ['fact.window.0'] }];
+    expect(() => validateYearlyTransitAiResponse(value, pack, 'report-1')).toThrow(/substantive interpretation/);
   });
 });

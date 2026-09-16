@@ -48,6 +48,8 @@ export interface DispatchInput {
   verifiedFacts: Record<string, unknown>;
   /** Compact compiler-owned input for the writer; never includes the full ledger. */
   writerInput?: { narrativeFactPacks: unknown[]; deterministic?: { tables: unknown; skeleton: unknown } };
+  /** Customer-safe, deterministic Yearly Transit briefing for bounded AI synthesis. */
+  presentationBrief?: unknown;
   promptSlug: string;
   /** Override callback URL (tests use this). Falls back to CSG_REPORT_CALLBACK_URL. */
   callbackUrl?: string;
@@ -175,7 +177,7 @@ export function buildDispatchPayload(input: DispatchInput, workflow: PremiumNata
       deterministic: { schemaVersion: compiled.schemaVersion, skeleton: { metadata: compiled.metadata, narrativeSlots: compiled.narrativeSlots }, tables: compiled.tables },
       narrativeFactPacks: buildNarrativeFactPacks(compiled), promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
   }
-  return { reportId: input.reportId, reportType: contractType, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts, writerInput: input.writerInput, promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
+  return { reportId: input.reportId, reportType: contractType, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts, writerInput: input.writerInput, presentationBrief: input.presentationBrief, promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
 }
 
 // --- R1: dispatcher -----------------------------------------------------------
