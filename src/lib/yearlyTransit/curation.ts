@@ -1,7 +1,7 @@
 import type { ActiveWindow, YearlyTransitFactPack } from './types';
 import { displayTransit, groupTransitWindows, importanceLabel, type GroupedTransitPresentation } from './presentation';
 
-export const MAX_MONTHLY_PRIMARY = 6;
+export const MAX_MONTHLY_PRIMARY = 4;
 export const MAX_MONTHLY_SECONDARY = 3;
 export const MAX_SUPPORTING_INFLUENCES = 12;
 
@@ -56,10 +56,7 @@ export function customerMonth(key: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-US', { timeZone: timezone, month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1, 15)));
 }
 
-function monthBounds(key: string): [number, number] {
-  const [year, month] = key.split('-').map(Number);
-  return [Date.UTC(year, month - 1, 1), Date.UTC(year, month, 1)];
-}
+
 function localMonth(utc: string, timezone: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit' }).formatToParts(new Date(utc));
   return `${parts.find((part) => part.type === 'year')?.value}-${parts.find((part) => part.type === 'month')?.value}`;
@@ -129,10 +126,19 @@ export function curatedMajorInfluences(pack: YearlyTransitFactPack): CuratedInfl
     .map((group) => influence(group, pack.displayTimezone, true));
 }
 
+export function curatedSignificantInfluences(pack: YearlyTransitFactPack): CuratedInfluence[] {
+  const major = majorIds(pack);
+  return groupTransitWindows(pack)
+    .filter((group) => !major.has(group.id) && group.importanceScore >= 50)
+    .sort((a, b) => b.importanceScore - a.importanceScore || a.id.localeCompare(b.id))
+    .slice(0, 6)
+    .map((group) => influence(group, pack.displayTimezone, false));
+}
+
 export function curatedSupportingInfluences(pack: YearlyTransitFactPack): CuratedSupportingInfluence[] {
   const major = majorIds(pack);
   return groupTransitWindows(pack)
-    .filter((group) => !major.has(group.id) && group.importanceScore >= 40)
+    .filter((group) => !major.has(group.id) && group.importanceScore >= 40 && group.importanceScore < 50)
     .sort((a, b) => b.importanceScore - a.importanceScore || a.id.localeCompare(b.id))
     .slice(0, MAX_SUPPORTING_INFLUENCES)
     .map((group) => {
@@ -152,6 +158,7 @@ export function buildYearlyTransitAiBrief(pack: YearlyTransitFactPack) {
     contractVersion: 'csg-yearly-transit-presentation-v2',
     forecastPeriod: customerPeriod(pack.period.fromUtc, pack.period.toUtc, pack.displayTimezone),
     primaryWindows: groups.map((group) => ({ ...group, id: `primary.${group.id}` })),
+    significantWindows: curatedSignificantInfluences(pack).map((group) => ({ ...group, id: `significant.${group.id}` })),
     monthlyContext: curatedMonths(pack).map((month) => ({
       id: `month.${month.key}`,
       monthKey: month.key,

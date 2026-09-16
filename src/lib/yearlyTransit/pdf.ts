@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import type { YearlyTransitFactPack } from './types';
 import { buildYearlyTransitPresentation } from './presentation';
-import { curatedMajorInfluences, curatedMonths, curatedSupportingInfluences, customerDate, customerPeriod } from './curation';
+import { curatedMajorInfluences, curatedMonths, curatedSignificantInfluences, curatedSupportingInfluences, customerDate, customerPeriod } from './curation';
 
 function safe(value: string): string {
   return value.replace(/\u00a0/g, ' ').replace(/[\u2010-\u2014\u2212]/g, '-').replace(/[\u2018-\u201f]/g, "'").replace(/\u2026/g, '...').replace(/\u2022/g, '*').replace(/[^\x20-\x7e\u00a1-\u00ff]/g, '?');
@@ -17,7 +17,7 @@ export interface YearlyTransitPdfSection { heading: string; body: string }
 
 export async function buildYearlyTransitPdf(pack: YearlyTransitFactPack, title: string, name: string, sections: YearlyTransitPdfSection[] = []): Promise<Uint8Array> {
   if (!pack || pack.reportType !== 'yearlytransit' || !pack.versionBundle) throw new Error('complete yearly-transit pack required');
-  const presentation = buildYearlyTransitPresentation(pack); const major = curatedMajorInfluences(pack); const months = curatedMonths(pack); const supporting = curatedSupportingInfluences(pack);
+  const presentation = buildYearlyTransitPresentation(pack); const major = curatedMajorInfluences(pack); const significant = curatedSignificantInfluences(pack); const months = curatedMonths(pack); const supporting = curatedSupportingInfluences(pack);
   const pdf = await PDFDocument.create(); const regular = await pdf.embedFont(StandardFonts.Helvetica); const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let page = pdf.addPage([612, 792]); let y = 744; const margin = 42;
   const newPage = () => { page = pdf.addPage([612, 792]); y = 744; };
@@ -44,6 +44,17 @@ export async function buildYearlyTransitPdf(pack: YearlyTransitFactPack, title: 
     const narrative = section(`primary.${transit.id}`, transit.heading); if (narrative) { label('WHAT THIS MEANS FOR YOU'); paragraph(narrative.body); }
     else paragraph(`This is a sustained emphasis in ${transit.lifeArea.toLowerCase()}. Its practical meaning becomes clearest through the exact-hit dates and the choices you make during the active period.`);
   }
+  if (significant.length) {
+    heading('Additional significant transits');
+    for (const item of significant) {
+      const transit = presentation.groupedTransits.find((group) => group.id === item.id);
+      if (!transit) throw new Error(`missing grouped presentation for ${item.id}`);
+      draw(transit.heading.toUpperCase(), 12, bold, rgb(.29,.08,.38), 3);
+      draw(`Active: ${item.activePeriod}${item.exactHits.length ? ` · Exact: ${item.exactHits.map((hit) => hit.label).join(', ')}` : ''}`, 9, regular, rgb(.35,.32,.38), 3);
+      const narrative = section(`significant.${transit.id}`, transit.heading);
+      paragraph(narrative?.body || `${transit.heading} adds meaningful context in ${transit.lifeArea.toLowerCase()}. Work with its exact timing as a reflective checkpoint, without giving it the same weight as the forecast's defining windows.`, 9.5);
+    }
+  }
   heading('Month by month');
   for (const month of months) {
     ensure(74); draw(month.displayName, 11, bold, rgb(.29,.08,.38), 3);
@@ -54,5 +65,7 @@ export async function buildYearlyTransitPdf(pack: YearlyTransitFactPack, title: 
   }
   heading('Action plan'); const action = section('actions','action'); if (action) paragraph(action.body); else for (const transit of major.slice(0,6)) bullet(`${transit.activePeriod} - use ${transit.heading} to make a practical choice in ${transit.lifeArea.toLowerCase()}.`);
   if (supporting.length) { heading('Supporting influences'); table(['Transit','Active window','Importance','Meaning'],[145,120,75,190],true); supporting.forEach((item) => table([item.heading,item.activePeriod,item.importance,item.meaning],[145,120,75,190],false,4)); }
+  heading('How to read this forecast');
+  paragraph('Active windows describe the broader period in which a transit is relevant. Exact hits identify the moments the relationship is closest to exact, while applying, return, and separating phases describe how the emphasis develops. Use this forecast as a framework for reflection, timing, and practical decision-making rather than as a literal prediction of events.', 9.5);
   pdf.setTitle(title || 'Yearly Transit Forecast'); pdf.setAuthor('Cosmic Spirit Guide'); pdf.setSubject('Personalized Yearly Transit Forecast'); return pdf.save();
 }

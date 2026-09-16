@@ -1,4 +1,4 @@
-import { curatedMajorInfluences, curatedMonths, curatedSupportingInfluences, MAX_MONTHLY_PRIMARY, MAX_MONTHLY_SECONDARY, MAX_SUPPORTING_INFLUENCES } from '@/lib/yearlyTransit/curation';
+import { curatedMajorInfluences, curatedMonths, curatedSignificantInfluences, curatedSupportingInfluences, MAX_MONTHLY_PRIMARY, MAX_MONTHLY_SECONDARY, MAX_SUPPORTING_INFLUENCES } from '@/lib/yearlyTransit/curation';
 import { buildWorstCaseYearlyTransitPack } from './fixtures/worst-case-pack';
 
 describe('yearly transit curation', () => {
@@ -25,9 +25,11 @@ describe('yearly transit curation', () => {
     pack.aiPacks.primaryWindows = [{ id: pack.windows[2].id, evidenceIds: pack.windows[2].evidenceIds }];
     const rows = curatedSupportingInfluences(pack);
     const primary = curatedMajorInfluences(pack);
+    const significant = curatedSignificantInfluences(pack);
     expect(rows.length).toBeLessThanOrEqual(MAX_SUPPORTING_INFLUENCES);
     expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
-    expect(rows.filter((row) => row.heading === 'Saturn Trine Moon')).toHaveLength(1);
+    expect(significant.filter((row) => row.heading === 'Saturn Trine Moon')).toHaveLength(1);
+    expect(rows.some((row) => row.heading === 'Saturn Trine Moon')).toBe(false);
     expect(rows.some((row) => primary.some((major) => major.id === row.id))).toBe(false);
     expect(rows.every((row) => /\.$/.test(row.meaning) && !/perspective to$/i.test(row.meaning))).toBe(true);
   });
