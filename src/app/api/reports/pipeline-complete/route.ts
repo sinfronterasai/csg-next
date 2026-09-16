@@ -116,7 +116,10 @@ export async function POST(request: Request) {
   }
 
   if (typeof body !== 'object' || body === null || Array.isArray(body) || !hasExactKeys(body as Record<string, unknown>, BODY_KEYS)) {
-    return NextResponse.json({ error: 'Invalid callback body' }, { status: 400 });
+    return NextResponse.json({
+      error: 'Invalid callback body',
+      callbackShape: typeof body === 'object' && body !== null && !Array.isArray(body) ? Object.keys(body as Record<string, unknown>).sort() : typeof body,
+    }, { status: 400 });
   }
 
   // Yearly Transit has an isolated exact {status,response} callback envelope.
