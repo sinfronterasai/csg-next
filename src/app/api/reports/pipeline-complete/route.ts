@@ -39,9 +39,10 @@ interface CallbackBody {
   tables?: unknown;
   blocks?: unknown;
   response?: unknown;
+  versionBundle?: unknown;
 }
 
-const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks', 'response']);
+const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judge', 'editorNote', 'rejectReasons', 'schemaVersion', 'skeleton', 'tables', 'blocks', 'response', 'versionBundle']);
 const SECTION_KEYS = new Set(['id', 'blocks']);
 const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
 const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
@@ -116,10 +117,7 @@ export async function POST(request: Request) {
   }
 
   if (typeof body !== 'object' || body === null || Array.isArray(body) || !hasExactKeys(body as Record<string, unknown>, BODY_KEYS)) {
-    return NextResponse.json({
-      error: 'Invalid callback body',
-      callbackShape: typeof body === 'object' && body !== null && !Array.isArray(body) ? Object.keys(body as Record<string, unknown>).sort() : typeof body,
-    }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid callback body' }, { status: 400 });
   }
 
   // Yearly Transit has an isolated exact {status,response} callback envelope.
