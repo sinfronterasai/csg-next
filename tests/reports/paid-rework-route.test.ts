@@ -2,10 +2,12 @@ jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 jest.mock('@/lib/auth', () => ({ verifyToken: jest.fn(), getUserById: jest.fn() }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({ claimPaidRework: jest.fn(), isValidPurchaseId: (s: string) => /^[0-9a-f-]{36}$/.test(s) }));
 jest.mock('@/lib/reportPipeline', () => ({ dispatchReport: jest.fn() }));
+jest.mock('@/lib/yearlyTransit/curation', () => ({ buildYearlyTransitAiBrief: jest.fn(() => ({ curated: true })) }));
 import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { claimPaidRework } from '@/lib/billing/reportPurchaseStore';
 import { dispatchReport } from '@/lib/reportPipeline';
+import { buildYearlyTransitAiBrief } from '@/lib/yearlyTransit/curation';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,6 +26,7 @@ beforeEach(() => {
   (getUserById as jest.Mock).mockResolvedValue({ id: 9, role: 'admin' });
   (claimPaidRework as jest.Mock).mockResolvedValue({ outcome: 'claimed', reportId, reportType: 'loveblueprint', ownerId: 7, snapshot });
   (dispatchReport as jest.Mock).mockResolvedValue({ ok: true });
+  (buildYearlyTransitAiBrief as jest.Mock).mockReturnValue({ curated: true });
 });
 it('requires an authenticated session before touching entitlement or dispatch', async () => {
   (cookies as jest.Mock).mockResolvedValue({ get: () => undefined });
@@ -43,6 +46,14 @@ it.each(['admin', 'editor'])('allows %s to rework a customer-owned paid report u
   expect(claimPaidRework).toHaveBeenCalledWith(expect.objectContaining({ actorId: 9, expectedReportId: reportId, readingId: 50 }));
   expect(dispatchReport).toHaveBeenCalledWith(expect.objectContaining({ birthData: snapshot.birthData, verifiedFacts: snapshot.verifiedFacts, tier: 'paid' }));
   expect(await res.json()).not.toHaveProperty('snapshot');
+});
+it('builds the deterministic Yearly presentation brief for a Yearly Transit rework', async () => {
+  (claimPaidRework as jest.Mock).mockResolvedValue({ outcome: 'claimed', reportId, reportType: 'transit', ownerId: 7, snapshot });
+  expect((await call()).status).toBe(200);
+  expect(buildYearlyTransitAiBrief).toHaveBeenCalledWith(snapshot.verifiedFacts);
+  expect(dispatchReport).toHaveBeenCalledWith(expect.objectContaining({
+    reportType: 'transit', promptSlug: '08-yearly-transit', presentationBrief: { curated: true },
+  }));
 });
 it('rejects cross-origin session requests', async () => {
   expect((await call(undefined, 'https://evil.example')).status).toBe(403);

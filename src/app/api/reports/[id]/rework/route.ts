@@ -4,6 +4,7 @@ import { verifyToken, getUserById } from '@/lib/auth';
 import { claimPaidRework, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import { dispatchReport } from '@/lib/reportPipeline';
 import type { ReportType } from '@/lib/reportEngine';
+import { buildYearlyTransitAiBrief } from '@/lib/yearlyTransit/curation';
 import crypto from 'crypto';
 
 function requestOrigin(request: Request): string {
@@ -39,9 +40,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       reportId: crypto.randomUUID(), actorId: Number(user.id), reason: body.reason.trim() });
     if (claim.outcome !== 'claimed') return NextResponse.json({ error: claim.outcome }, { status: claim.outcome === 'not_entitled' ? 402 : 409 });
     try {
+      const isYearlyTransit = claim.reportType === 'transit';
       const dispatched = await dispatchReport({ reportId: claim.reportId, reportType: claim.reportType as ReportType,
         tier: 'paid', birthData: claim.snapshot.birthData, verifiedFacts: claim.snapshot.verifiedFacts,
-        promptSlug: '', callbackUrl: process.env.CSG_REPORT_CALLBACK_URL });
+        ...(isYearlyTransit ? {
+          promptSlug: '08-yearly-transit',
+          presentationBrief: buildYearlyTransitAiBrief(claim.snapshot.verifiedFacts),
+        } : { promptSlug: '' }),
+        callbackUrl: process.env.CSG_REPORT_CALLBACK_URL });
       if (!dispatched.ok) throw new Error('Dispatch not confirmed');
     } catch {
       // A timeout/5xx does not prove non-delivery. Keep the attempt fenced and

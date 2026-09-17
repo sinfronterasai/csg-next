@@ -86,7 +86,7 @@ export async function redispatchPersistedYearlyTransit(readingId: number, expect
   }
   const result = row?.result as Record<string, any> | undefined;
   const metadata = result?.metadata as Record<string, any> | undefined;
-  const pack = result?.yearlyTransitPack ?? result?.verifiedFacts ?? metadata?.yearlyTransitPack;
+  const pack = result?.yearlyTransitPack ?? result?.verifiedFacts ?? metadata?.yearlyTransitPack ?? metadata?.verifiedFacts;
   if (!row || row.order_status !== 'consumed' || !['queued', 'processing'].includes(row.pipeline_status) ||
       result?.reportId !== expectedReportId || !metadata?.birthData ||
       pack?.schemaVersion !== 'csg-yearly-transit-fact-pack-v1') {

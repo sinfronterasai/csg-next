@@ -8,7 +8,7 @@ export type YearlyTransitWorkflowInput = {
   birthData: {
     firstName?: string;
     dob: string;
-    birthTime: string;
+    birthTime: string | null;
     place: string;
     lat: number;
     lon: number;

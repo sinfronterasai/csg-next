@@ -23,7 +23,10 @@ const KNOWN_INVALID_REPORT_ID = '6deeb156-4f6d-40e2-988d-a714ff966c39';
 
 /** Pure, safe classification. It returns reason codes, never judge prose or facts. */
 export function classifyPaidReportActions(status: string, result: any): StaffPaidReportSummary['actions'] {
-  const snapshotPresent = Boolean(result?.metadata?.birthData && result?.metadata?.verifiedFacts);
+  const snapshotPresent = Boolean(result?.metadata?.birthData && (
+    result?.metadata?.verifiedFacts ||
+    (result?.reportType === 'transit' && result?.yearlyTransitPack?.schemaVersion === 'csg-yearly-transit-fact-pack-v1')
+  ));
   const knownInvalid = result?.reportId === KNOWN_INVALID_REPORT_ID && (() => {
     const b = result?.metadata?.birthData;
     return b?.dob === '1980-03-09' && /^(?:16:21|16:21:00)$/.test(String(b?.birthTime ?? '')) &&

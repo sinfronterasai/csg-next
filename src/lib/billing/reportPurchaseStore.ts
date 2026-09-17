@@ -598,7 +598,16 @@ export async function claimPaidRework(input: {
       if (r.result.reportId === KNOWN_INVALID_REPORT_ID) {
         return finalize(tx, { outcome: 'invalid_snapshot' });
       }
-      const snapshot = r.result.metadata;
+      const storedSnapshot = r.result.metadata;
+      // Early Yearly Transit rows persisted the immutable pack at the report root
+      // while retaining birth inputs under metadata. Normalize that established
+      // shape here; never recompute or accept client-supplied facts for a rework.
+      const snapshot = storedSnapshot?.birthData && storedSnapshot?.verifiedFacts
+        ? storedSnapshot
+        : (r.result?.reportType === 'transit' && storedSnapshot?.birthData &&
+            r.result?.yearlyTransitPack?.schemaVersion === 'csg-yearly-transit-fact-pack-v1'
+          ? { ...storedSnapshot, verifiedFacts: r.result.yearlyTransitPack }
+          : null);
       if (!snapshot?.birthData || !snapshot?.verifiedFacts) return finalize(tx, { outcome: 'missing_snapshot' });
       const { reworkHistory = [], ...previousResult } = r.result;
       const now = new Date().toISOString();
