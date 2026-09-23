@@ -104,7 +104,10 @@ export function curatedMonths(pack: YearlyTransitFactPack): CuratedMonth[] {
       .sort((a, b) => b.score - a.score || a.group.id.localeCompare(b.group.id));
     const primary = candidates.slice(0, MAX_MONTHLY_PRIMARY).map((item) => influence(item.group, pack.displayTimezone, item.major));
     const secondary = candidates.slice(MAX_MONTHLY_PRIMARY, MAX_MONTHLY_PRIMARY + MAX_MONTHLY_SECONDARY).map((item) => influence(item.group, pack.displayTimezone, item.major));
-    const keyDates = primary.flatMap((item) => item.exactHits.filter((hit) => localMonth(hit.utc, pack.displayTimezone) === key)).sort((a, b) => a.utc.localeCompare(b.utc));
+    const keyDates = [...new Map(primary
+      .flatMap((item) => item.exactHits.filter((hit) => localMonth(hit.utc, pack.displayTimezone) === key))
+      .sort((a, b) => a.utc.localeCompare(b.utc))
+      .map((date) => [date.label, date] as const)).values()];
     output.push({ key, displayName: customerMonth(key, pack.displayTimezone), primaryInfluences: primary, secondaryInfluences: secondary, keyDates, evidenceIds: [...new Set([...primary, ...secondary].flatMap((item) => item.evidenceIds))] });
   }
   return output;
@@ -168,7 +171,7 @@ export function buildYearlyTransitAiBrief(pack: YearlyTransitFactPack) {
       keyDates: month.keyDates,
       evidenceIds: month.evidenceIds,
     })),
-    actions: Array.from({ length: Math.min(6, Math.max(5, groups.length)) }, (_, index) => { const group = groups[index % groups.length]; return { id: `action.${index + 1}.${group.id}`, transit: group.heading, activePeriod: group.activePeriod, exactHits: group.exactHits, lifeArea: group.lifeArea, evidenceIds: group.evidenceIds }; }),
+    actions: groups.slice(0, 12).map((group, index) => ({ id: `action.${index + 1}.${group.id}`, transit: group.heading, activePeriod: group.activePeriod, exactHits: group.exactHits, lifeArea: group.lifeArea, evidenceIds: group.evidenceIds })),
     supportingInfluences: curatedSupportingInfluences(pack),
   };
 }

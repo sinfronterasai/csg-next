@@ -17,6 +17,7 @@ import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/determ
 import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
 import { startYearlyTransitWorkflow, type YearlyTransitWorkflowInput } from '@/lib/yearlyTransit/workflow';
 import { buildYearlyTransitPresentation, toCustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
+import { customerPeriod } from '@/lib/yearlyTransit/curation';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -431,10 +432,10 @@ async function buildReadingInput(opts: {
           snapshotId: reportId || crypto.randomUUID(), generatedAtUtc,
           birthData: { date: chart.date, time: chart.time, latitude: chart.latitude, longitude: chart.longitude, timezone: chart.timezone },
         },
-        fromDate: fromDate || generatedAtUtc.slice(0, 10),
+        fromDate: fromDate || new Intl.DateTimeFormat('en-CA', { timeZone: chart.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(generatedAtUtc)),
       });
       const title = REPORT_META[type].title;
-      const overview = yearlyTransitPack.windows.filter((window) => yearlyTransitPack.aiPacks.primaryWindows.some((item) => item.id === window.id)).slice(0, 8).map((window) => ({ label: `${window.mover} ${window.aspectType} ${window.target}`, value: `${window.activeWindow.startUtc} → ${window.activeWindow.endUtc}`, note: `Score ${window.importanceScore}/100 · ${window.segments[0]?.direction ?? 'indeterminate'}` }));
+      const overview = yearlyTransitPack.windows.filter((window) => yearlyTransitPack.aiPacks.primaryWindows.some((item) => item.id === window.id)).slice(0, 8).map((window) => ({ label: `${window.mover} ${window.aspectType} ${window.target}`, value: customerPeriod(window.activeWindow.startUtc, window.activeWindow.endUtc, yearlyTransitPack.displayTimezone), note: `Score ${window.importanceScore}/100 · ${window.segments[0]?.direction ?? 'indeterminate'}` }));
       const snapshot = { birthData: { firstName: chart.name, dob: chart.date, birthTime: chart.time || null, place: chart.location, lat: chart.latitude, lon: chart.longitude, tz: chart.timezone, solarFallback: chart.unknownTime }, verifiedFacts: yearlyTransitPack, yearlyTransitPack };
       return { userId: Number(decoded.userId), type, title, question: `${title} report`, pricePaid: price, pipelineStatus,
         resultJson: JSON.stringify({ title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'paid', overview, verifiedFacts: yearlyTransitPack, yearlyTransitPack, pending: true, metadata: snapshot }) };

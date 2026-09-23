@@ -40,4 +40,11 @@ describe('yearly transit curation', () => {
     expect(months[11].displayName).toBe('December 2027');
     expect(months.map((month) => month.displayName)).not.toContain('December 2026');
   });
+
+  it('deduplicates key dates that land on the same local calendar day', () => {
+    const pack: any = buildWorstCaseYearlyTransitPack();
+    pack.windows[1] = { ...pack.windows[1], id: 'same-day-2', target: 'moon', exactHits: [{ ...pack.windows[1].exactHits[0], id: 'same-day-hit-2' }] };
+    const month = curatedMonths(pack).find((item) => item.key === '2027-01')!;
+    expect(month.keyDates.map((date) => date.label)).toEqual([...new Set(month.keyDates.map((date) => date.label))]);
+  });
 });

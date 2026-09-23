@@ -183,14 +183,17 @@ export function buildYearlyTransitPresentation(pack: YearlyTransitFactPack): Yea
   for (let index = 0; index < 12; index += 1) {
     const key = monthKey(cursor.toISOString(), pack.displayTimezone);
     const transitIds = groupedTransits.filter((transit) => {
-      const first = Date.parse(transit.activeStartUtc); const last = Date.parse(transit.activeEndUtc); const monthStart = Date.parse(new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1)).toISOString()); const monthEnd = Date.parse(new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1)).toISOString());
-      return first < monthEnd && last >= monthStart;
+      const touched = new Set<string>();
+      for (let cursorMs = Date.parse(transit.activeStartUtc); cursorMs <= Date.parse(transit.activeEndUtc); cursorMs += 24 * 60 * 60 * 1000) touched.add(monthKey(new Date(cursorMs).toISOString(), pack.displayTimezone));
+      touched.add(monthKey(transit.activeEndUtc, pack.displayTimezone));
+      return touched.has(key);
     }).map((transit) => transit.id);
     monthly.push({ key, label: monthLabel(key, pack.displayTimezone), transitIds, summary: transitIds.length ? 'Active transit themes' : 'Integration and consolidation' });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
   const primaryIds = new Set(pack.aiPacks.primaryWindows.map((item) => item.id));
-  const appendix = pack.windows.filter((window) => !primaryIds.has(window.id) && window.importanceScore >= 40).map((window) => ({ id: window.id, transit: displayTransit(window), startUtc: window.activeWindow.startUtc, endUtc: window.activeWindow.endUtc, importance: importanceLabel(window), meaning: `${displayBody(window.mover)} brings a ${displayAspect(window.aspectType).toLowerCase()} perspective to ${displayTarget(window.target)}.`, evidenceIds: [...window.evidenceIds] }));
+  const primaryGroups = new Set(pack.windows.filter((window) => primaryIds.has(window.id)).map((window) => `${window.mover}|${window.target}|${window.aspectType}`));
+  const appendix = groupedTransits.filter((group) => !primaryGroups.has(`${group.mover}|${group.target}|${group.aspect}`) && group.importanceScore >= 40).map((group) => ({ id: group.id, transit: group.heading, startUtc: group.activeStartUtc, endUtc: group.activeEndUtc, importance: group.importance, meaning: `${displayBody(group.mover)} brings a ${displayAspect(group.aspect).toLowerCase()} perspective to ${displayTarget(group.target)}.`, evidenceIds: [...group.evidenceIds] }));
   const presentation = { periodStartUtc: pack.period.fromUtc, periodEndUtc: pack.period.toUtc, timezone: pack.displayTimezone, groupedTransits, monthly, appendix };
   validateYearlyTransitPresentation(presentation);
   return presentation;

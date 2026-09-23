@@ -36,11 +36,18 @@ export function buildYearlyTransitIcs(pack: YearlyTransitFactPack, reportId: str
   const primaryIds = new Set(pack.aiPacks.primaryWindows.map((item) => item.id));
   const primary = pack.windows.filter((window) => primaryIds.has(window.id)).sort((a, b) => a.canonicalTransitId.localeCompare(b.canonicalTransitId) || a.activeWindow.startUtc.localeCompare(b.activeWindow.startUtc)).slice(0, 8);
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cosmic Spirit Guide//Yearly Transit Forecast//EN', 'CALSCALE:GREGORIAN', ...line('X-CSG-DISPLAY-TIMEZONE', escapeText(pack.displayTimezone))];
+  const emitted = new Set<string>();
+  const emit = (window: ActiveWindow, eventType: string, instant: string, summary: string, description: string) => {
+    const key = `${window.canonicalTransitId}|${eventType}|${utcValue(instant)}`;
+    if (emitted.has(key)) return;
+    emitted.add(key);
+    lines.push(...eventLines(pack, reportId, window, eventType, instant, summary, description));
+  };
   for (const window of primary) {
     const description = `${window.mover} ${window.aspectType} ${window.target}; direction ${window.segments[0]?.direction ?? 'indeterminate'}.`;
-    lines.push(...eventLines(pack, reportId, window, 'active-start', window.activeWindow.startUtc, `${window.mover} ${window.aspectType} ${window.target} window begins`, description));
-    for (const hit of window.exactHits.sort((a, b) => a.exactUtc.localeCompare(b.exactUtc))) lines.push(...eventLines(pack, reportId, window, 'exact-hit', hit.exactUtc, `${window.mover} exact ${window.aspectType} ${window.target}`, `Exact hit; direction ${hit.direction}.`));
-    lines.push(...eventLines(pack, reportId, window, 'active-end', window.activeWindow.endUtc, `${window.mover} ${window.aspectType} ${window.target} window ends`, description));
+    emit(window, 'active-start', window.activeWindow.startUtc, `${window.mover} ${window.aspectType} ${window.target} window begins`, description);
+    for (const hit of [...window.exactHits].sort((a, b) => a.exactUtc.localeCompare(b.exactUtc))) emit(window, 'exact-hit', hit.exactUtc, `${window.mover} exact ${window.aspectType} ${window.target}`, `Exact hit; direction ${hit.direction}.`);
+    emit(window, 'active-end', window.activeWindow.endUtc, `${window.mover} ${window.aspectType} ${window.target} window ends`, description);
   }
   lines.push('END:VCALENDAR');
   return `${lines.join('\r\n')}\r\n`;

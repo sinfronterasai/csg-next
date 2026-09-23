@@ -18,4 +18,12 @@ describe('yearly transit ICS export', () => {
     expect(first).toContain('SUMMARY:jupiter conjunction sun window begins');
     expect(first).toContain('SUMMARY:jupiter exact conjunction sun');
   });
+
+  it('deduplicates repeated event tuples from duplicate primary rows', () => {
+    const pack: any = buildWorstCaseYearlyTransitPack();
+    pack.windows[1] = { ...pack.windows[0], id: 'duplicate-row', canonicalTransitId: pack.windows[0].canonicalTransitId };
+    pack.aiPacks.primaryWindows = pack.windows.map((window: any) => ({ id: window.id, evidenceIds: window.evidenceIds }));
+    const ics = buildYearlyTransitIcs(pack, 'report-1');
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(21);
+  });
 });
