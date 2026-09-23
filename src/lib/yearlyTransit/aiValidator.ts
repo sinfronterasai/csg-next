@@ -33,8 +33,15 @@ function versionsEqual(actual: VersionBundle, expected: VersionBundle): boolean 
 }
 
 function normalize(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+const DISPLAY_DATE = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}, \d{4}\b/g;
+const DISPLAY_MONTH = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}\b/g;
+const ACTION_VERB = /\b(?:review|schedule|discuss|document|try|set|write|plan|protect|name|track|choose|prepare|reduce|practice|check|create|make|clarify|allow|reserve|complete|contact|ask|organize|audit|decide)\b/i;
+function sentenceCount(value: string): number { return value.split(/(?<=[.!?])\s+/).map((part) => part.trim()).filter(Boolean).length; }
+function dateTokens(value: string): string[] { return [...(value.match(DISPLAY_DATE) || []), ...(value.match(DISPLAY_MONTH) || [])]; }
 function assertCuratedMonthly(summary: string, label: string): void {
   if (summary.length < 80) fail(`${label} is too short to be useful`);
+  const sentences = sentenceCount(summary);
+  if (sentences < 2 || sentences > 4) fail(`${label} must contain 2-4 sentences`);
   if ((summary.match(/;/g) || []).length > 3) fail(`${label} is an uncurated aspect list`);
 }
 
@@ -48,26 +55,35 @@ export function validateYearlyTransitAiResponse(value: unknown, pack: YearlyTran
   const approvedMonths = new Set(brief.monthlyContext.map((month) => month.monthKey));
   const monthlyDateLabels = new Map(brief.monthlyContext.map((month) => [month.monthKey, new Set(month.keyDates.map((date) => date.label))]));
   const actionDateLabels = new Set(brief.actions.flatMap((action) => [action.activePeriod, ...action.exactHits.map((hit) => hit.label)]));
+  const approvedDateLabels = new Set([
+    brief.forecastPeriod,
+    ...brief.primaryWindows.flatMap((item) => [item.activePeriod, ...item.exactHits.map((hit) => hit.label)]),
+    ...brief.significantWindows.flatMap((item) => [item.activePeriod, ...item.exactHits.map((hit) => hit.label)]),
+    ...brief.monthlyContext.flatMap((month) => [month.displayName, ...month.keyDates.map((date) => date.label)]),
+    ...brief.actions.flatMap((action) => [action.activePeriod, ...action.exactHits.map((hit) => hit.label)]),
+  ]);
+  const reconcileDates = (value: string, label: string) => { for (const token of dateTokens(value)) if (![...approvedDateLabels].some((approved) => approved.includes(token) || token.includes(approved))) fail(`${label} contains unsupported date ${token}`); };
   const theme = response.overallTheme as Record<string, unknown>;
   if (!exactKeys(theme, AI_THEME_KEYS)) fail('overallTheme keys');
-  const overallTheme = { id: id(theme.id, seen, 'overallTheme'), text: text(theme.text, MAX_BLOCK_CHARS, 'overallTheme.text'), evidenceIds: evidence(theme.evidenceIds, allowed, 'overallTheme') }; total += overallTheme.text.length;
+  const overallTheme = { id: id(theme.id, seen, 'overallTheme'), text: text(theme.text, MAX_BLOCK_CHARS, 'overallTheme.text'), evidenceIds: evidence(theme.evidenceIds, allowed, 'overallTheme') }; reconcileDates(overallTheme.text, 'overallTheme.text'); total += overallTheme.text.length;
   if (!Array.isArray(response.primaryWindows) || response.primaryWindows.length > 8) fail('primaryWindows count');
   const primaryWindows = (response.primaryWindows as unknown[]).map((raw, index) => {
     if (!exactKeys(raw, AI_PRIMARY_KEYS)) fail(`primaryWindows[${index}] keys`); const item = raw as Record<string, unknown>;
     if (!Array.isArray(item.recommendations) || item.recommendations.length < 2 || item.recommendations.length > 4) fail(`primaryWindows[${index}] recommendations`);
     const result = { id: id(item.id, seen, `primaryWindows[${index}]`), title: text(item.title, MAX_BLOCK_CHARS, `primaryWindows[${index}].title`), interpretation: text(item.interpretation, MAX_BLOCK_CHARS, `primaryWindows[${index}].interpretation`), recommendations: (item.recommendations as unknown[]).map((r, rIndex) => text(r, MAX_ACTION_CHARS, `primaryWindows[${index}].recommendations[${rIndex}]`)), evidenceIds: evidence(item.evidenceIds, allowed, `primaryWindows[${index}]`) };
+    reconcileDates(result.title, `primaryWindows[${index}].title`); reconcileDates(result.interpretation, `primaryWindows[${index}].interpretation`); result.recommendations.forEach((recommendation, rIndex) => reconcileDates(recommendation, `primaryWindows[${index}].recommendations[${rIndex}]`));
     if (result.interpretation.length < 240 || GENERIC_TIMING.test(result.interpretation)) fail(`primaryWindows[${index}] lacks substantive interpretation`);
     total += result.title.length + result.interpretation.length + result.recommendations.reduce((sum, r) => sum + r.length, 0); return result;
   });
   if (!Array.isArray(response.monthlyContext) || response.monthlyContext.length !== 12) fail('monthlyContext count');
-  const monthlyContext = (response.monthlyContext as unknown[]).map((raw, index) => { if (!exactKeys(raw, AI_MONTHLY_KEYS)) fail(`monthlyContext[${index}] keys`); const item = raw as Record<string, unknown>; const result = { id: id(item.id, seen, `monthlyContext[${index}]`), monthKey: text(item.monthKey, 32, `monthlyContext[${index}].monthKey`), summary: text(item.summary, MAX_BLOCK_CHARS, `monthlyContext[${index}].summary`), evidenceIds: evidence(item.evidenceIds, allowed, `monthlyContext[${index}]`) }; if (!approvedMonths.has(result.monthKey)) fail(`monthlyContext[${index}] invalid month`); assertCuratedMonthly(result.summary, `monthlyContext[${index}].summary`); const dates = result.summary.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{4}/g) || []; if (dates.some((date) => !monthlyDateLabels.get(result.monthKey)?.has(date))) fail(`monthlyContext[${index}] has inconsistent exact date`); total += result.summary.length; return result; });
+  const monthlyContext = (response.monthlyContext as unknown[]).map((raw, index) => { if (!exactKeys(raw, AI_MONTHLY_KEYS)) fail(`monthlyContext[${index}] keys`); const item = raw as Record<string, unknown>; const result = { id: id(item.id, seen, `monthlyContext[${index}]`), monthKey: text(item.monthKey, 32, `monthlyContext[${index}].monthKey`), summary: text(item.summary, MAX_BLOCK_CHARS, `monthlyContext[${index}].summary`), evidenceIds: evidence(item.evidenceIds, allowed, `monthlyContext[${index}]`) }; if (!approvedMonths.has(result.monthKey)) fail(`monthlyContext[${index}] invalid month`); assertCuratedMonthly(result.summary, `monthlyContext[${index}].summary`); reconcileDates(result.summary, `monthlyContext[${index}].summary`); const dates = result.summary.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{4}/g) || []; if (dates.some((date) => !monthlyDateLabels.get(result.monthKey)?.has(date))) fail(`monthlyContext[${index}] has inconsistent exact date`); const monthBrief = brief.monthlyContext.find((month) => month.monthKey === result.monthKey)!; const anchors = [...monthBrief.primaryInfluences, ...monthBrief.secondaryInfluences].flatMap((item) => [item.heading, item.lifeArea, item.activePeriod, ...item.exactHits.map((hit) => hit.label)]).filter((anchor) => anchor && result.summary.toLowerCase().includes(anchor.toLowerCase())); if (anchors.length === 0 && monthBrief.primaryInfluences.length > 0) fail(`monthlyContext[${index}] lacks personalized anchor`); total += result.summary.length; return result; });
   if (new Set(monthlyContext.map((item) => item.monthKey)).size !== 12) fail('monthlyContext duplicate month');
-  if (!Array.isArray(response.actions) || response.actions.length < 5 || response.actions.length > 8) fail('actions count');
-  const actions = (response.actions as unknown[]).map((raw, index) => { if (!exactKeys(raw, AI_ACTION_KEYS)) fail(`actions[${index}] keys`); const item = raw as Record<string, unknown>; const result = { id: id(item.id, seen, `actions[${index}]`), text: text(item.text, MAX_ACTION_CHARS, `actions[${index}].text`), evidenceIds: evidence(item.evidenceIds, allowed, `actions[${index}]`) }; if (![...actionDateLabels].some((date) => result.text.includes(date))) fail(`actions[${index}] lacks authoritative date`); total += result.text.length; return result; });
+  if (!Array.isArray(response.actions) || response.actions.length < 8 || response.actions.length > 12) fail('actions count');
+  const actions = (response.actions as unknown[]).map((raw, index) => { if (!exactKeys(raw, AI_ACTION_KEYS)) fail(`actions[${index}] keys`); const item = raw as Record<string, unknown>; const result = { id: id(item.id, seen, `actions[${index}]`), text: text(item.text, MAX_ACTION_CHARS, `actions[${index}].text`), evidenceIds: evidence(item.evidenceIds, allowed, `actions[${index}]`) }; reconcileDates(result.text, `actions[${index}].text`); if (![...actionDateLabels].some((date) => result.text.includes(date))) fail(`actions[${index}] lacks authoritative date`); if (!ACTION_VERB.test(result.text)) fail(`actions[${index}] lacks concrete action verb`); total += result.text.length; return result; });
   if (new Set(actions.map((item) => normalize(item.text))).size !== actions.length) fail('actions are duplicated');
   const appendix = response.appendixSummary as Record<string, unknown>;
   if (!exactKeys(appendix, AI_APPENDIX_KEYS)) fail('appendixSummary keys');
-  const appendixSummary = { id: id(appendix.id, seen, 'appendixSummary'), text: text(appendix.text, MAX_BLOCK_CHARS, 'appendixSummary.text'), evidenceIds: evidence(appendix.evidenceIds, allowed, 'appendixSummary') }; total += appendixSummary.text.length;
+  const appendixSummary = { id: id(appendix.id, seen, 'appendixSummary'), text: text(appendix.text, MAX_BLOCK_CHARS, 'appendixSummary.text'), evidenceIds: evidence(appendix.evidenceIds, allowed, 'appendixSummary') }; reconcileDates(appendixSummary.text, 'appendixSummary.text'); total += appendixSummary.text.length;
   if (total > MAX_TOTAL_CHARS) fail(`total text exceeds ${MAX_TOTAL_CHARS} characters`);
   return { schemaVersion: 'csg-yearly-transit-ai-v1', reportId, reportType: 'yearlytransit', versionBundle: response.versionBundle as VersionBundle, overallTheme, primaryWindows, monthlyContext, actions, appendixSummary };
 }

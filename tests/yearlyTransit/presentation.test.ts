@@ -33,4 +33,11 @@ describe('yearly transit customer presentation model', () => {
     expect(serialized).not.toContain('importanceScore');
     expect(publicView.periodLabel).not.toContain('T');
   });
+
+  it('does not repeat non-primary passes in the appendix', () => {
+    const pack: any = buildWorstCaseYearlyTransitPack();
+    pack.aiPacks.primaryWindows = [{ id: pack.windows[0].id, evidenceIds: pack.windows[0].evidenceIds }];
+    const presentation = buildYearlyTransitPresentation(pack);
+    expect(presentation.appendix.some((item) => item.transit === 'Jupiter Conjunct Sun')).toBe(false);
+  });
 });

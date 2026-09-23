@@ -13,6 +13,16 @@ function lines(value: string, width = 82): string[] {
     return current ? [...output, current] : output;
   });
 }
+function measuredLines(value: string, font: PDFFont, size: number, width: number): string[] {
+  return value.split(/\r?\n/).flatMap((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean); const output: string[] = []; let current = '';
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (current && font.widthOfTextAtSize(safe(candidate), size) > width) { output.push(current); current = word; } else current = candidate;
+    }
+    return current ? [...output, current] : output;
+  });
+}
 export interface YearlyTransitPdfSection { heading: string; body: string }
 
 export async function buildYearlyTransitPdf(pack: YearlyTransitFactPack, title: string, name: string, sections: YearlyTransitPdfSection[] = []): Promise<Uint8Array> {
@@ -27,7 +37,25 @@ export async function buildYearlyTransitPdf(pack: YearlyTransitFactPack, title: 
   const heading = (value: string) => { ensure(92); y -= 7; draw(value, 15, bold, rgb(.29,.08,.38), 4); page.drawLine({ start:{x:margin,y:y+1}, end:{x:570,y:y+1}, thickness:.7, color:rgb(.78,.62,.18) }); y -= 10; };
   const label = (value: string) => draw(value, 8.5, bold, rgb(.55,.38,.08), 3);
   const bullet = (value: string) => { ensure(18); draw(`- ${value}`, 9.5, regular, rgb(.15,.12,.2), 3); };
-  const table = (cells: string[], widths: number[], header = false, maxLines = 2) => { const h = header ? 24 : Math.max(36, 14 + maxLines * 10); ensure(h); let x = margin; cells.forEach((cell, i) => { lines(cell, Math.max(10, Math.floor(widths[i] / 6.4))).slice(0, maxLines).forEach((line, j) => page.drawText(safe(line), { x:x+5, y:y-13-j*10, size:header?8.5:9.2, font:header?bold:regular, color:header?rgb(.55,.38,.08):rgb(.15,.12,.2) })); x += widths[i]; }); page.drawLine({start:{x:margin,y:y-h+2},end:{x:570,y:y-h+2},thickness:.4,color:rgb(.88,.83,.7)}); y -= h; };
+  let activeTableHeader: { cells: string[]; widths: number[]; size: number } | null = null;
+  const drawTableHeader = () => {
+    if (!activeTableHeader) return;
+    let x = margin;
+    activeTableHeader.cells.forEach((cell, i) => { page.drawText(safe(cell), { x: x + 5, y: y - 13, size: activeTableHeader!.size, font: bold, color: rgb(.55,.38,.08) }); x += activeTableHeader!.widths[i]; });
+    page.drawLine({ start: { x: margin, y: y - 22 }, end: { x: 570, y: y - 22 }, thickness: .4, color: rgb(.78,.62,.18) });
+    y -= 24;
+  };
+  const table = (cells: string[], widths: number[], header = false, _maxLines = 2) => {
+    const font = header ? bold : regular; const size = header ? 8.5 : 9.2; const padding = 10;
+    if (header) { activeTableHeader = { cells, widths, size }; ensure(24); drawTableHeader(); return; }
+    const wrapped = cells.map((cell, i) => measuredLines(cell, font, size, widths[i] - padding));
+    const rowHeight = Math.max(36, 14 + Math.max(...wrapped.map((cell) => cell.length), 1) * 10);
+    if (y - rowHeight < 50) { newPage(); drawTableHeader(); }
+    let x = margin;
+    wrapped.forEach((cellLines, i) => { cellLines.forEach((line, j) => page.drawText(safe(line), { x: x + 5, y: y - 13 - j * 10, size, font, color: rgb(.15,.12,.2) })); x += widths[i]; });
+    page.drawLine({ start: { x: margin, y: y - rowHeight + 2 }, end: { x: 570, y: y - rowHeight + 2 }, thickness: .4, color: rgb(.88,.83,.7) });
+    y -= rowHeight;
+  };
   const section = (id: string, matching?: string) => sections.find((item) => item.heading === id) ?? sections.find((item) => item.heading.toLowerCase().includes((matching || id).toLowerCase()));
 
   draw('COSMIC SPIRIT GUIDE', 10, bold, rgb(.65,.52,.18), 8); draw('Yearly Transit Forecast', 25, bold, rgb(.18,.07,.28), 8); draw(`Prepared for ${name || 'You'}`, 12); draw(`Forecast period: ${customerPeriod(pack.period.fromUtc, pack.period.toUtc, pack.displayTimezone)}`, 10, regular, rgb(.35,.32,.38), 3); draw(`Generated: ${customerDate(pack.snapshot.generatedAtUtc, pack.displayTimezone).label}`, 9, regular, rgb(.35,.32,.38), 3); y -= 20;
