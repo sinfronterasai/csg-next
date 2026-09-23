@@ -5,13 +5,13 @@ import { gateGeneration, isLaunchType, LAUNCH_FREE_TYPES, LAUNCH_PAID_TYPES } fr
 // (no beta allowlist), but non-launch types remain blocked.
 describe("reports launch allowlist (C7 server gate — post-LB-PUBLIC)", () => {
   const BANNED = [
-    "relationship", "transit", "lovetiming", "vocation", "karmicshadow",
+    "relationship", "lovetiming", "vocation", "karmicshadow",
     "synastry", "composite", "fullcosmic", "couples",
   ];
 
   it("only free Natal plus Premium Natal and Love Blueprint are launch types", () => {
     expect(Array.from(LAUNCH_FREE_TYPES)).toEqual(["natal"]);
-    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["natalpremium", "loveblueprint"]);
+    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["natalpremium", "loveblueprint", "transit"]);
     for (const t of BANNED) expect(isLaunchType(t)).toBe(false);
   });
 
@@ -45,12 +45,12 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
     "utf8",
   );
   const BANNED_NAMES = [
-    "Relationship Matrix", "Yearly Transit Forecast", "Love Timing Forecast",
+    "Relationship Matrix", "Love Timing Forecast",
     "Vocation & Wealth Map", "Karmic & Shadow Work", "Synastry Love Report",
     "Composite Chart Report", "Couples Cosmic Profile", "Full Cosmic Profile",
   ];
-  // $39 is allowed for the two approved paid products. Other prices remain banned.
-  const BANNED_PRICES = ["$29", "$19", "$49", "$89", "$4.99", "$120"];
+  // $39 and $49 are allowed for the approved paid products. Other prices remain banned.
+  const BANNED_PRICES = ["$29", "$19", "$89", "$4.99", "$120"];
 
   for (const name of BANNED_NAMES) {
     it(`does not render banned SKU "${name}"`, () => {
@@ -66,6 +66,7 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
     expect(src).toContain("Birth Chart Report");
     expect(src).toContain("Premium Natal Report");
     expect(src).toContain("Love Blueprint");
+    expect(src).toContain("Yearly Transit Forecast");
   });
   it("renders Love Blueprint with its $39 price (public paid product)", () => {
     expect(src).toContain("$39");

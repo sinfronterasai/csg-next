@@ -30,7 +30,7 @@ describe('LB-PUBLIC: launch allowlist after gate removal', () => {
     // These report types are NOT in the launch set — they must stay blocked
     // even after the beta allowlist is removed. This is the "unreleased report
     // types remain blocked" requirement.
-    const banned = ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot'];
+    const banned = ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot'];
     for (const t of banned) {
       expect(isLaunchType(t)).toBe(false);
       const g = gateCheckout(t, '999');
@@ -68,8 +68,7 @@ describe('LB-PUBLIC: launch allowlist after gate removal', () => {
   });
 
   it('gateGeneration still blocks non-launch types (unchanged behavior)', () => {
-    expect(gateGeneration('transit', '1').allowed).toBe(false);
-    expect(gateGeneration('transit', '1').code).toBe('launch_unavailable');
+    expect(gateGeneration('transit', '1').allowed).toBe(true);
   });
 
   it('beta user ID env var is ignored (no allowlist check performed)', () => {
@@ -102,6 +101,7 @@ jest.mock('@/lib/auth', () => ({
 jest.mock('@/lib/billing/reportPurchase', () => ({
   createReportCheckoutSession: jest.fn(async () => ({ url: 'https://checkout.stripe.com/p/test123', purchaseId: 'pid-test-1', sessionId: 'si-test-1' })),
   isPaidReportType: (t: string) => t === 'loveblueprint' || t === 'transit' || t === 'vocation',
+  verifyPurchasePaidViaStripe: jest.fn(async () => null),
 }));
 
 const checkoutPost = require('@/app/api/billing/checkout-report/route').POST;
@@ -177,7 +177,7 @@ describe('LB-PUBLIC: checkout route — ordinary user can buy Love Blueprint', (
 
   it('non-launch report types still rejected at checkout (404, unchanged)', async () => {
     verifyToken.mockReturnValue({ userId: '123' });
-    for (const banned of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic']) {
+    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic']) {
       jest.clearAllMocks();
       createCheckout = require('@/lib/billing/reportPurchase').createReportCheckoutSession;
       const res = await checkoutCall({ reportType: banned });
@@ -333,7 +333,7 @@ describe('LB-PUBLIC: generation route — paid reports still require verified pu
   });
 
   it('unreleased report types remain blocked at generation (404)', async () => {
-    for (const banned of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
+    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       jest.clearAllMocks();
       dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
       const res = await genCall({ type: banned, purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
@@ -370,7 +370,7 @@ describe('LB-PUBLIC: ReportsView UI — Love Blueprint CTA calls checkout', () =
       'utf8',
     );
     // Natal generation must still work via /api/reports/generate
-    expect(src).toContain("generate('natal')");
+    expect(src).toContain("router.push('/birth-chart')");
     expect(src).toContain('/api/reports/generate');
   });
 });

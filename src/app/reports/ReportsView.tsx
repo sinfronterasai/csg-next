@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import ReportResult from '@/components/reports/ReportResult';
+import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
 // launch slice. Free Natal is available to everyone. Love Blueprint is a paid
-// product available to all authenticated users (the server gate enforces
+// products available to all authenticated users (the server gate enforces
 // authentication + payment/purchase entitlement; this UI calls the checkout
 // endpoint rather than attempting generation directly). Every other report/bundle/
 // tarot spread is hidden from the public UI until it is part of an approved
@@ -31,7 +32,11 @@ const ALLOWED: {
   },
   {
     id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. $39 — one-time purchase, yours forever.',
-    icon: 'fa-heart', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid',
+    icon: 'fa-heart', accent: 'gold', cta: 'GET LOVE REPORT — $39', kind: 'paid',
+  },
+  {
+    id: 'transit', name: 'Yearly Transit Forecast', blurb: 'A deterministic twelve-month map of your strongest transit windows, exact hits, eclipses, and practical timing. $49 — one-time purchase, yours forever.',
+    icon: 'fa-compass', accent: 'gold', cta: 'GET FORECAST — $49', kind: 'paid',
   },
 ];
 
@@ -48,6 +53,7 @@ export default function Reports() {
     sections?: { heading: string; body: string }[];
     readingId?: number;
     shareUrl?: string | null;
+    presentation?: CustomerYearlyTransitPresentation;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [partner, setPartner] = useState({ birthDate: '', birthTime: '', location: '' });
@@ -121,6 +127,7 @@ export default function Reports() {
         sections: (data as any).sections,
         readingId: data.readingId,
         shareUrl: data.shareUrl ?? null,
+        presentation: data.presentation,
       });
     } catch (e: any) {
       setError(e?.message || 'Generation failed');
@@ -364,6 +371,7 @@ export default function Reports() {
             readingId={result.readingId}
             shareUrl={shareUrl ?? undefined}
             onShare={result.readingId ? () => shareReport(result.readingId!) : undefined}
+            presentation={result.presentation}
           />
         )}
       </section>

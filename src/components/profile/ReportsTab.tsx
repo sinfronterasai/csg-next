@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { exportReportPdf, downloadPaidNatalPdf } from '@/lib/reportPdf';
+import { exportReportPdf, downloadPaidNatalPdf, downloadYearlyTransitPdf } from '@/lib/reportPdf';
 import {
   asyncReportToPdfInput,
   mapAsyncSectionsToPdf,
@@ -19,6 +19,54 @@ import {
 } from '@/lib/reportPdfAdapter';
 
 type PublicReport = AsyncPublicReport;
+
+function TransitApprovedBody({ report }: { report: PublicReport }) {
+  const presentation = report.presentation;
+  const sections = mapAsyncSectionsToPdf(report.sections);
+  if (!presentation) return <ApprovedBody report={report} />;
+  const theme = sections.find((section) => /theme|overview/i.test(section.heading));
+  const actions = sections.filter((section) => /action|recommend|plan/i.test(section.heading));
+  return (
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-gold/20 bg-gold/5 p-5">
+        <p className="text-xs uppercase tracking-[0.24em] text-gold/70 mb-2">Forecast period</p>
+        <p className="font-serif text-xl text-cosmic-50">{presentation.periodLabel}</p>
+        {theme ? <div className="mt-4 text-cosmic-100 leading-relaxed whitespace-pre-line">{theme.body}</div> : null}
+      </section>
+
+      <section>
+        <h5 className="font-serif text-2xl text-gold mb-4">Major transit windows</h5>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead><tr className="border-b border-gold/20 text-xs uppercase tracking-wider text-gold/70"><th className="py-3 pr-4">Transit</th><th className="py-3 pr-4">Active period</th><th className="py-3">Importance</th></tr></thead>
+            <tbody>{presentation.groupedTransits.slice(0, 8).map((transit) => <tr key={transit.id} className="border-b border-white/5"><td className="py-3 pr-4 font-serif text-cosmic-50">{transit.heading}</td><td className="py-3 pr-4 text-cosmic-200">{transit.activePeriod}</td><td className="py-3 text-gold">{transit.importance}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h5 className="font-serif text-2xl text-gold mb-4">Your most important transits</h5>
+        <div className="space-y-5">{presentation.groupedTransits.slice(0, 8).map((transit) => <article key={transit.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <h6 className="font-serif text-xl text-cosmic-50">{transit.heading}</h6>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-cosmic-200"><span><strong className="text-gold">Importance:</strong> {transit.importance}</span><span><strong className="text-gold">Active:</strong> {transit.activePeriod}</span><span><strong className="text-gold">Life area:</strong> {transit.lifeArea}</span></div>
+          {transit.exactHits.length ? <div className="mt-4"><p className="text-xs uppercase tracking-[0.2em] text-gold/70 mb-2">Exact hits</p><ul className="list-disc list-inside text-cosmic-100">{transit.exactHits.map((hit) => <li key={hit}>{hit}</li>)}</ul></div> : null}
+          {transit.phases.length ? <div className="mt-4"><p className="text-xs uppercase tracking-[0.2em] text-gold/70 mb-2">How this transit unfolds</p><ul className="space-y-1 text-cosmic-100">{transit.phases.map((phase) => <li key={`${phase.label}-${phase.period}`}><strong className="text-gold">{phase.label}:</strong> {phase.period}</li>)}</ul></div> : null}
+        </article>)}</div>
+      </section>
+
+      <section>
+        <h5 className="font-serif text-2xl text-gold mb-4">Month by month</h5>
+        <div className="grid gap-3 sm:grid-cols-2">{presentation.monthly.map((month) => <div key={month.key} className="rounded-xl border border-white/10 p-4"><h6 className="font-serif text-lg text-cosmic-50">{month.label}</h6><p className="mt-1 text-sm text-cosmic-300">{month.summary}</p>{month.transitNames.length ? <p className="mt-2 text-sm text-cosmic-100">{month.transitNames.join('; ')}</p> : <p className="mt-2 text-sm text-cosmic-300">A quieter month for integration and consolidation.</p>}</div>)}</div>
+      </section>
+
+      {actions.length ? <section><h5 className="font-serif text-2xl text-gold mb-4">Action plan</h5>{actions.map((section) => <div key={section.heading} className="text-cosmic-100 leading-relaxed whitespace-pre-line">{section.body}</div>)}</section> : null}
+
+      <section><h5 className="font-serif text-2xl text-gold mb-4">Supporting influences</h5><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-gold/20 text-xs uppercase tracking-wider text-gold/70"><th className="py-3 pr-4">Transit</th><th className="py-3 pr-4">Active window</th><th className="py-3">Importance</th></tr></thead><tbody>{presentation.appendix.map((item) => <tr key={item.id} className="border-b border-white/5"><td className="py-3 pr-4 text-cosmic-50">{item.transit}</td><td className="py-3 pr-4 text-cosmic-200">{item.activePeriod}</td><td className="py-3 text-gold">{item.importance}</td></tr>)}</tbody></table></div></section>
+
+      <div className="pt-4 border-t border-gold/10"><button type="button" onClick={() => { if (report.id) void downloadYearlyTransitPdf(report.id); }} className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs">Download PDF</button></div>
+    </div>
+  );
+}
 
 function StatusBody({ report, onRetry, retrying }: { report: PublicReport; onRetry: () => void; retrying: boolean }) {
   const status = report.status ?? 'queued';
@@ -200,7 +248,7 @@ export default function ReportsTab() {
             </button>
             {expanded === report.id && (
               <div className="px-6 pb-6 border-t border-gold/20 pt-4">
-                {isApproved ? <ApprovedBody report={report} /> : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
+                {isApproved ? (report.type === 'transit' ? <TransitApprovedBody report={report} /> : <ApprovedBody report={report} />) : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
               </div>
             )}
           </div>

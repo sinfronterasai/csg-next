@@ -1,5 +1,6 @@
 import { query, transaction } from '@/lib/db';
 import crypto from 'crypto';
+import { buildYearlyTransitPresentation, toCustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // Unified journal store for the Profile Hub. All non-tarot artifacts
 // (reports, horoscopes, zoom sessions) live in `readings` with a `type`
@@ -497,6 +498,7 @@ export function toPublicReport(rec: UniversalReadingRecord) {
   } | undefined);
   const status = rec.pipelineStatus ?? pipeline?.status ?? null;
   if (isReportDeliverable(rec)) {
+    const yearlyPack = (rec.result as any)?.yearlyTransitPack;
     return {
       id: rec.id,
       reportId: (rec.result as any)?.reportId ?? null,
@@ -506,6 +508,7 @@ export function toPublicReport(rec: UniversalReadingRecord) {
       paid: (rec.pricePaid ?? 0) > 0,
       overview: toPublicOverview((rec.result as any)?.overview),
       sections: toPublicSections(pipeline?.sections),
+      ...(rec.result?.reportType === 'transit' && yearlyPack ? { presentation: toCustomerYearlyTransitPresentation(buildYearlyTransitPresentation(yearlyPack)) } : {}),
       createdAt: rec.createdAt,
     };
   }

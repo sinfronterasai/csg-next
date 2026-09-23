@@ -53,7 +53,7 @@ describe('retry route', () => {
   });
 
   it('launch gate — rejects a disabled SKU before claim or dispatch', async () => {
-    setup({ reportType: 'transit' });
+    setup({ reportType: 'relationship' });
     const res = await call();
     expect(res.status).toBe(404);
     expect(claim).not.toHaveBeenCalled();

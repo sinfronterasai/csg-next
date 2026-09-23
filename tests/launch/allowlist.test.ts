@@ -23,7 +23,7 @@ describe('launch allowlist (pure) — after LB-PUBLIC gate removal', () => {
     expect(isLaunchType('natal')).toBe(true);
     expect(isLaunchType('natalpremium')).toBe(true);
     expect(isLaunchType('loveblueprint')).toBe(true);
-    for (const t of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
+    for (const t of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       expect(isLaunchType(t)).toBe(false);
     }
   });
@@ -49,14 +49,12 @@ describe('launch allowlist (pure) — after LB-PUBLIC gate removal', () => {
   });
 
   it('gateCheckout blocks non-launch types for everyone', () => {
-    expect(gateCheckout('transit', 7).allowed).toBe(false);
-    expect(gateCheckout('transit', 7).code).toBe('launch_unavailable');
+    expect(gateCheckout('transit', 7).allowed).toBe(true);
     expect(gateCheckout('fullcosmic', 7).allowed).toBe(false);
   });
 
   it('gateGeneration blocks non-launch types for everyone', () => {
-    expect(gateGeneration('transit', 7).allowed).toBe(false);
-    expect(gateGeneration('transit', 7).code).toBe('launch_unavailable');
+    expect(gateGeneration('transit', 7).allowed).toBe(true);
     expect(gateGeneration('fullcosmic', 7).allowed).toBe(false);
   });
 
@@ -127,7 +125,7 @@ describe('checkout route: post-LB-PUBLIC gates', () => {
   });
 
   it('#3 no user can buy a non-launch type (404, no Stripe session)', async () => {
-    for (const banned of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
+    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       jest.clearAllMocks();
       createCheckout = require('@/lib/billing/reportPurchase').createReportCheckoutSession;
       const res = await checkoutCall({ reportType: banned });
@@ -206,7 +204,7 @@ describe('generate route: post-LB-PUBLIC gates', () => {
   });
 
   it('#3 no user can GENERATE a non-launch type (404, no dispatch)', async () => {
-    for (const banned of ['transit', 'relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
+    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       jest.clearAllMocks();
       dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
       const res = await genCall({ type: banned, purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });

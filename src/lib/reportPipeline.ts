@@ -48,6 +48,8 @@ export interface DispatchInput {
   verifiedFacts: Record<string, unknown>;
   /** Compact compiler-owned input for the writer; never includes the full ledger. */
   writerInput?: { narrativeFactPacks: unknown[]; deterministic?: { tables: unknown; skeleton: unknown } };
+  /** Customer-safe, deterministic Yearly Transit briefing for bounded AI synthesis. */
+  presentationBrief?: unknown;
   promptSlug: string;
   /** Override callback URL (tests use this). Falls back to CSG_REPORT_CALLBACK_URL. */
   callbackUrl?: string;
@@ -106,7 +108,7 @@ function requireEnv(name: string): string {
 // --- Network (injectable for tests) -------------------------------------------
 
 type FetchLike = typeof fetch;
-let fetchImpl: FetchLike = fetch;
+let fetchImpl: FetchLike = (input, init) => fetch(input, init);
 export function __setFetch(fn: FetchLike) { fetchImpl = fn; }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -175,7 +177,7 @@ export function buildDispatchPayload(input: DispatchInput, workflow: PremiumNata
       deterministic: { schemaVersion: compiled.schemaVersion, skeleton: { metadata: compiled.metadata, narrativeSlots: compiled.narrativeSlots }, tables: compiled.tables },
       narrativeFactPacks: buildNarrativeFactPacks(compiled), promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
   }
-  return { reportId: input.reportId, reportType: contractType, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts, writerInput: input.writerInput, promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
+  return { reportId: input.reportId, reportType: contractType, tier: input.tier, birthData: input.birthData, verifiedFacts: input.verifiedFacts, writerInput: input.writerInput, presentationBrief: input.presentationBrief, promptSlug: input.promptSlug || PROMPT_SLUG[contractType], callbackUrl: input.callbackUrl };
 }
 
 // --- R1: dispatcher -----------------------------------------------------------
@@ -195,6 +197,7 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
   const callbackUrl = input.callbackUrl ?? requireEnv('CSG_REPORT_CALLBACK_URL');
 
   const payload = buildDispatchPayload({ ...input, callbackUrl }, workflow);
+  const payloadBytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -206,9 +209,13 @@ export async function dispatchReport(input: DispatchInput): Promise<DispatchResu
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
     });
     return { ok: res.ok, status: res.status, reportId: input.reportId };
+  } catch (error) {
+    const cause = error && typeof error === 'object' && 'cause' in error ? (error as { cause?: unknown }).cause : undefined;
+    const causeCode = cause && typeof cause === 'object' && 'code' in cause ? String((cause as { code?: unknown }).code) : '';
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`n8n dispatch request failed (${payloadBytes} bytes): ${detail}${causeCode ? ` [${causeCode}]` : ''}`);
   } finally {
     clearTimeout(timeout);
   }
@@ -249,7 +256,6 @@ export async function sendEditorDecision(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
     });
     return { ok: res.ok, status: res.status };
   } finally {

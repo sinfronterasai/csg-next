@@ -67,6 +67,14 @@ describe('R2.2 validation', () => {
     const res = await POST(new Request('http://localhost/x', { method: 'POST', headers, body: 'not json' }));
     expect(res.status).toBe(400);
   });
+  it('unwraps one n8n JSON-body transport layer before strict validation', async () => {
+    getReadingByReportId.mockResolvedValue(VALID_REPORT);
+    applyPipelineCallback.mockResolvedValue('applied');
+    const headers = new Headers({ authorization: 'Bearer good-token', 'content-type': 'application/json' });
+    const envelope = { reportId: 'rid-x', status: 'approved', sections: [VALID_SECTION], judge: { pass: true } };
+    const res = await POST(new Request('http://localhost/x', { method: 'POST', headers, body: JSON.stringify(JSON.stringify(envelope)) }));
+    expect(res.status).toBe(200);
+  });
   it('missing status -> 400', async () => {
     getReadingByReportId.mockResolvedValue(VALID_REPORT);
     const res = await call({ reportId: 'rid-x', sections: [VALID_SECTION], judge: {} });

@@ -1,0 +1,92 @@
+import tls from 'node:tls';
+import { query } from '../src/lib/db';
+
+export async function diagnoseDatabaseTls(readingId?: number) {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return { ok: false, error: 'DATABASE_URL missing' };
+  const url = new URL(raw);
+  try {
+    await query('SELECT 1');
+    const state = readingId ? await query(
+      `SELECT r.id, r.user_id, r.pipeline_status, r.result->>'reportId' AS report_id,
+              o.status AS order_status, o.report_id AS order_report_id
+         FROM readings r LEFT JOIN report_orders o ON o.reading_id = r.id
+        WHERE r.id = $1`,
+      [readingId],
+    ) : null;
+    const row = state?.rows[0];
+    return {
+      ok: true,
+      hostname: url.hostname,
+      port: Number(url.port || 5432),
+      sslmode: url.searchParams.get('sslmode') || null,
+      reading: row ? {
+        id: Number(row.id), userId: Number(row.user_id), status: row.pipeline_status,
+        reportId: row.report_id, orderStatus: row.order_status, orderReportId: row.order_report_id,
+      } : null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      hostname: url.hostname,
+      port: Number(url.port || 5432),
+      sslmode: url.searchParams.get('sslmode') || null,
+      error: error instanceof Error ? error.message : String(error),
+      code: error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : null,
+    };
+  }
+}
+
+export async function diagnoseN8nTls() {
+  const raw = process.env.N8N_REPORT_WEBHOOK_URL;
+  if (!raw) return { ok: false, error: 'N8N_REPORT_WEBHOOK_URL missing' };
+  const url = new URL(raw);
+  const port = Number(url.port || 443);
+  const inspection = await new Promise<Record<string, unknown>>((resolve) => {
+    const socket = tls.connect({ host: url.hostname, port, servername: url.hostname, rejectUnauthorized: false }, () => {
+      const cert = socket.getPeerCertificate();
+      resolve({
+        ok: true,
+        hostname: url.hostname,
+        port,
+        authorized: socket.authorized,
+        authorizationError: socket.authorizationError || null,
+        subject: cert.subject?.CN || null,
+        issuer: cert.issuer?.CN || null,
+        validFrom: cert.valid_from || null,
+        validTo: cert.valid_to || null,
+        fingerprint256: cert.fingerprint256 || null,
+      });
+      socket.end();
+    });
+    socket.setTimeout(15_000, () => {
+      socket.destroy();
+      resolve({ ok: false, hostname: url.hostname, port, error: 'TLS connection timeout' });
+    });
+    socket.on('error', (error) => resolve({ ok: false, hostname: url.hostname, port, error: error.message }));
+  });
+  if (!inspection.ok) return inspection;
+  try {
+    const sizes = [50_000, 100_000, 200_000, 500_000, 1_000_000];
+    const sizeResults = [];
+    for (const size of sizes) {
+      try {
+        const response = await fetch(raw, {
+          method: 'POST',
+          redirect: 'manual',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${process.env.REPORT_PIPELINE_TOKEN || ''}`,
+          },
+          body: JSON.stringify({ reportId: 'diagnostic-size-probe', reportType: 'yearlytransit', tier: 'paid', pad: 'x'.repeat(size) }),
+        });
+        sizeResults.push({ requestedBytes: size, httpStatus: response.status });
+      } catch (error) {
+        sizeResults.push({ requestedBytes: size, httpStatus: null, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return { ...inspection, sizeResults };
+  } catch (error) {
+    return { ...inspection, httpStatus: null, httpError: error instanceof Error ? error.message : String(error) };
+  }
+}

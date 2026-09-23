@@ -6,6 +6,7 @@
 // callback tokens, and every non-approved status.
 
 import type { ReportPdfInput } from '@/lib/reportPdf';
+import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // The async pipeline section shape written by /api/reports/pipeline-complete and
 // surfaced (approved only) by toPublicReport. All fields optional on the wire;
@@ -29,6 +30,7 @@ export interface AsyncPublicReport {
   overview?: { glyph?: string; label: string; value: string; note?: string }[];
   sections?: AsyncSection[];
   createdAt?: string;
+  presentation?: CustomerYearlyTransitPresentation;
 }
 
 const SECTION_HEADING_FALLBACK = 'Section';

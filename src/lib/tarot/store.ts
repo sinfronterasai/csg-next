@@ -63,7 +63,7 @@ export async function listReadings(userId: number): Promise<ReadingRecord[]> {
       ORDER BY created_at DESC`,
     [userId, READING_TYPE],
   );
-  return rows.map((r) => hydrateRow(r));
+  return rows.map((r: any) => hydrateRow(r));
 }
 
 export async function getReading(id: number, userId: number): Promise<ReadingRecord | null> {

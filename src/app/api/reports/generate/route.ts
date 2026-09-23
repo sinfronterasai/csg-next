@@ -8,12 +8,15 @@ import {
   mapReportType, dispatchReport, isUnsupportedForPipeline,
 } from '@/lib/reportPipeline';
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
-import { geocodeLocation, geocodeCoordinates } from '@/lib/chartEngine';
+import { geocodeLocation, geocodeCoordinates, computeChart } from '@/lib/chartEngine';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
 import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
+import { compileYearlyTransit } from '@/lib/yearlyTransit/compiler';
+import { startYearlyTransitWorkflow, type YearlyTransitWorkflowInput } from '@/lib/yearlyTransit/workflow';
+import { buildYearlyTransitPresentation, toCustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 
 // Pipeline-eligible solo types. Two-person + tarot are handled elsewhere.
 const PIPELINE_TYPES: ReportType[] = [
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
     const user = await getUserById(decoded.userId);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
-    const { type: rawType, partner, purchaseId } = body;
+    const { type: rawType, partner, purchaseId, fromDate } = body;
     const type = rawType as ReportType;
 
     // Launch allowlist gate (L3): server-authoritative. Rejects non-launch types.
@@ -117,6 +120,7 @@ export async function POST(request: Request) {
       // This is evaluated BEFORE the paid-only gate so a consumed correlated
       // report can be retrieved without a second consumption or generation.
       if (purchase.status === 'consumed') {
+        if (type === 'transit') await resumePendingYearlyTransitWorkflow({ purchaseId, user, decoded });
         const response = await findCorrelatedReport(purchaseId, Number(decoded.userId));
         if (response) return response;
       }
@@ -142,8 +146,15 @@ export async function POST(request: Request) {
       // Build the immutable reading (this runs the VerifiedFactsV2 preflight). On
       // input_incomplete we fail closed with 422 and never touch the purchase.
       let readingInput;
+      let workflowInput: Omit<YearlyTransitWorkflowInput, 'readingId'> | undefined;
       try {
-        readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued' });
+        if (type === 'transit') {
+          const prepared = await buildPendingYearlyTransitInput({ decoded, user, reportId, price: REPORT_META[type].price, fromDate });
+          readingInput = prepared.reading;
+          workflowInput = prepared.workflow;
+        } else {
+          readingInput = await buildReadingInput({ decoded, user, type, partner, price: REPORT_META[type].price, reportId, pipelineStatus: 'queued', fromDate });
+        }
       } catch (e) {
         if (e instanceof V2PreflightError) {
           return NextResponse.json(
@@ -178,6 +189,21 @@ export async function POST(request: Request) {
       }
       const readingId = consumed.readingId;
       // reportId is the single source of truth declared above (line ~105).
+
+      if (type === 'transit' && consumed.outcome === 'consumed' && workflowInput) {
+        try {
+          const started = await startYearlyTransitWorkflow({ ...workflowInput, readingId });
+          await query(
+            `UPDATE readings SET result = jsonb_set(result, '{workflowTaskRunId}', to_jsonb($2::text), true)
+               WHERE id = $1 AND pipeline_status = 'queued'`,
+            [readingId, started.taskRunId],
+          );
+          return NextResponse.json({ success: true, status: 'queued', readingId, reportId, taskRunId: started.taskRunId, pending: true });
+        } catch (error) {
+          await markReadingFailed(readingId);
+          return NextResponse.json({ error: 'Report workflow unavailable. Please try again shortly.', detail: error instanceof Error ? error.message : 'workflow-start-failed' }, { status: 502 });
+        }
+      }
 
       // Dispatch to n8n. Fails closed: non-2xx / network error marks the reading
       // rejected and returns 502. The purchase stays 'consumed' (already paid),
@@ -311,14 +337,111 @@ async function buildBirthInfo(c: any, user: any) {
   };
 }
 
+async function buildPendingYearlyTransitInput(opts: {
+  decoded: any;
+  user: any;
+  reportId: string;
+  price: number;
+  fromDate?: string;
+}) {
+  const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [opts.decoded.userId]);
+  if (rows.length === 0) throw new V2BuildError('Create your birth chart first');
+  const chart = await buildBirthInfo(rows[0], opts.user);
+  if (!chart.time || chart.unknownTime) throw new V2BuildError('Known birth time is required for Yearly Transit');
+  const birthData = {
+    firstName: chart.name,
+    dob: chart.date,
+    birthTime: chart.time,
+    place: chart.location,
+    lat: chart.latitude,
+    lon: chart.longitude,
+    tz: chart.timezone,
+    solarFallback: false,
+  };
+  const title = REPORT_META.transit.title;
+  return {
+    reading: {
+      userId: Number(opts.decoded.userId), type: 'report', title,
+      question: `${title} report`, pricePaid: opts.price,
+      resultJson: JSON.stringify({
+        title, reportType: 'transit', generatedFor: 'self', reportId: opts.reportId,
+        pricePaid: opts.price, tier: 'paid', pending: true, yearlyTransitPending: true,
+        metadata: { birthData, fromDate: opts.fromDate ?? null },
+      }),
+      pipelineStatus: 'queued',
+    },
+    workflow: { reportId: opts.reportId, userId: Number(opts.decoded.userId), fromDate: opts.fromDate, birthData },
+  };
+}
+
+async function resumePendingYearlyTransitWorkflow(opts: { purchaseId: string; user: any; decoded: any }) {
+  const pending = await query(
+    `SELECT r.id AS reading_id, o.report_id, r.pipeline_status, r.result
+       FROM report_orders o JOIN readings r ON r.id = o.reading_id
+      WHERE o.purchase_id = $1 AND o.user_id = $2 LIMIT 1`,
+    [opts.purchaseId, Number(opts.decoded.userId)],
+  );
+  const row = pending.rows[0];
+  if (!row || !['queued', 'processing'].includes(row.pipeline_status)) return;
+  const result = typeof row.result === 'string' ? JSON.parse(row.result) : (row.result ?? {});
+  const birthData = result.metadata?.birthData;
+  if (!result.yearlyTransitPending || result.workflowTaskRunId || !birthData || typeof row.report_id !== 'string') return;
+  const claimed = await query(
+    `UPDATE readings SET pipeline_status = 'processing'
+       WHERE id = $1 AND pipeline_status IN ('queued', 'processing')
+         AND COALESCE(result->>'workflowTaskRunId', '') = ''
+     RETURNING id`,
+    [Number(row.reading_id)],
+  );
+  if ((claimed.rowCount ?? 0) !== 1) return;
+  try {
+    const started = await startYearlyTransitWorkflow({
+      readingId: Number(row.reading_id),
+      reportId: row.report_id,
+      userId: Number(opts.decoded.userId),
+      fromDate: typeof result.metadata.fromDate === 'string' ? result.metadata.fromDate : undefined,
+      birthData,
+    });
+    await query(
+      `UPDATE readings SET result = jsonb_set(result, '{workflowTaskRunId}', to_jsonb($2::text), true)
+         WHERE id = $1 AND pipeline_status = 'processing'`,
+      [Number(row.reading_id), started.taskRunId],
+    );
+  } catch (error) {
+    console.error('[yearly-transit] workflow recovery failed:', error instanceof Error ? error.message : error);
+    await markReadingFailed(Number(row.reading_id)).catch(() => undefined);
+  }
+}
+
 async function buildReadingInput(opts: {
-  decoded: any; user: any; type: ReportType; partner: any; price: number; reportId?: string; pipelineStatus: string;
+  decoded: any; user: any; type: ReportType; partner: any; price: number; reportId?: string; pipelineStatus: string; fromDate?: string;
 }): Promise<{ userId: number; type: string; title: string; question: string; pricePaid: number; resultJson: string; pipelineStatus: string }> {
-  const { decoded, user, type, partner, price, reportId, pipelineStatus } = opts;
+  const { decoded, user, type, partner, price, reportId, pipelineStatus, fromDate } = opts;
   const { rows } = await query('SELECT * FROM natal_charts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [decoded.userId]);
   if (rows.length === 0) throw new Error('Create your birth chart first');
   const c = rows[0];
   const chart = await buildBirthInfo(c, user);
+  if (type === 'transit') {
+    try {
+      const chartData = await computeChart({ ...chart, requireAllBodies: true });
+      const generatedAtUtc = new Date().toISOString();
+      const yearlyTransitPack = await compileYearlyTransit({
+        chart: chartData,
+        snapshot: {
+          snapshotId: reportId || crypto.randomUUID(), generatedAtUtc,
+          birthData: { date: chart.date, time: chart.time, latitude: chart.latitude, longitude: chart.longitude, timezone: chart.timezone },
+        },
+        fromDate: fromDate || generatedAtUtc.slice(0, 10),
+      });
+      const title = REPORT_META[type].title;
+      const overview = yearlyTransitPack.windows.filter((window) => yearlyTransitPack.aiPacks.primaryWindows.some((item) => item.id === window.id)).slice(0, 8).map((window) => ({ label: `${window.mover} ${window.aspectType} ${window.target}`, value: `${window.activeWindow.startUtc} → ${window.activeWindow.endUtc}`, note: `Score ${window.importanceScore}/100 · ${window.segments[0]?.direction ?? 'indeterminate'}` }));
+      const snapshot = { birthData: { firstName: chart.name, dob: chart.date, birthTime: chart.time || null, place: chart.location, lat: chart.latitude, lon: chart.longitude, tz: chart.timezone, solarFallback: chart.unknownTime }, verifiedFacts: yearlyTransitPack, yearlyTransitPack };
+      return { userId: Number(decoded.userId), type, title, question: `${title} report`, pricePaid: price, pipelineStatus,
+        resultJson: JSON.stringify({ title, reportType: type, generatedFor: 'self', reportId, pricePaid: price, tier: 'paid', overview, verifiedFacts: yearlyTransitPack, yearlyTransitPack, pending: true, metadata: snapshot }) };
+    } catch (error) {
+      throw new V2BuildError(error instanceof Error ? error.message : 'Yearly transit facts could not be compiled');
+    }
+  }
   const contractType = mapReportType(type)!;
   const v2 = await buildVerifiedFactsForReport(contractType, chart);
   if (!v2.ok) throw new V2PreflightError(v2.preflight);
@@ -468,5 +591,6 @@ async function findCorrelatedReport(purchaseId: string, userId: number) {
     mode: 'repeat', success: true, status: 'approved', pending: false, retryAvailable: false,
     readingId: Number(row.reading_id), reportId: row.report_id,
     title, overview, sections,
+    ...(result.reportType === 'transit' && result.yearlyTransitPack ? { presentation: toCustomerYearlyTransitPresentation(buildYearlyTransitPresentation(result.yearlyTransitPack)) } : {}),
   });
 }

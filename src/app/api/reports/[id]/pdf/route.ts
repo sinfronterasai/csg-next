@@ -4,6 +4,7 @@ import { verifyToken, getUserById } from '@/lib/auth';
 import { getReadingById, isReportDeliverable } from '@/lib/profile/store';
 import { buildPaidNatalPdf, type PaidNatalPdfInput, type PaidFact } from '@/lib/paidNatalPdf';
 import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
+import { buildYearlyTransitPdf } from '@/lib/yearlyTransit/pdf';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,6 +15,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: 'Invalid report id' }, { status: 400 });
     const record = await getReadingById(id, Number(decoded.userId));
     const result = record?.result as any;
+    if (record && record.type === 'report' && record.pricePaid != null && record.pricePaid > 0 && result?.reportType === 'transit' && isReportDeliverable(record)) {
+      const pack = result.yearlyTransitPack ?? result.metadata?.yearlyTransitPack;
+      if (!pack || typeof result.reportId !== 'string') return NextResponse.json({ error: 'Yearly transit facts incomplete' }, { status: 422 });
+      const pdf = await buildYearlyTransitPdf(pack, result.title || record.title || 'Yearly Transit Forecast', String(result.metadata?.birthData?.firstName || 'Seeker'), result.pipeline?.sections?.map((section: any) => ({ heading: String(section.id || 'Section'), body: String(section.prose || '') })) || []);
+      return new Response(pdf as BodyInit, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="cosmic-spirit-guide-yearly-transit-${id}.pdf"`, 'Cache-Control': 'private, no-store' } });
+    }
     if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || !['natal', 'natalpremium'].includes(result?.reportType) || !isReportDeliverable(record)) {
       return NextResponse.json({ error: 'Paid natal report is not available' }, { status: 404 });
     }

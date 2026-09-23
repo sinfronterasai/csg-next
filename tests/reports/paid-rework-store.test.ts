@@ -49,7 +49,7 @@ beforeEach(async () => {
 });
 
 it('rejects a disabled or free SKU even when a consumed order was forged', async () => {
-  await db.exec(`UPDATE report_orders SET report_type = 'transit', sku = 'report-transit'; UPDATE readings SET result = jsonb_set(result, '{reportType}', '"transit"')`);
+  await db.exec(`UPDATE report_orders SET report_type = 'relationship', sku = 'report-relationship'; UPDATE readings SET result = jsonb_set(result, '{reportType}', '"relationship"')`);
   expect(await claim()).toMatchObject({ outcome: 'not_entitled' });
 });
 
