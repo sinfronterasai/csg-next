@@ -156,7 +156,17 @@ export async function verifyPersistedYearlyDelivery(readingId: number, expectedR
 export async function verifyAuthenticatedYearlyDelivery(readingId: number, expectedReportId: string) {
   if (!process.env.DATABASE_URL || !process.env.CSG_REPORT_CALLBACK_URL) throw new Error('Delivery verification configuration is missing');
   const callback = new URL(process.env.CSG_REPORT_CALLBACK_URL);
-  if (callback.protocol !== 'https:' || callback.hostname !== 'csg-lb-staging-0905.onrender.com') {
+  const allowedCallbackHosts = String(
+    process.env.REPORT_CALLBACK_HOSTS ||
+      'csg-lb-staging-0905.onrender.com,csg-next.onrender.com',
+  )
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    callback.protocol !== 'https:' ||
+    !allowedCallbackHosts.includes(callback.hostname.toLowerCase())
+  ) {
     throw new Error('Delivery verification host is not allowlisted');
   }
   const client = new Client(buildDbPoolConfig(process.env.DATABASE_URL));
