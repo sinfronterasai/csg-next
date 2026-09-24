@@ -60,7 +60,24 @@ jobs:
           npm run db:migrate
 
       - name: Tests
-        run: npm test -- --runInBand
+        run: |
+          set +e
+          npm test -- --runInBand --json --outputFile=test-results.json > test-output.txt 2>&1
+          status=$?
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('test-results.json').read_text())
+          for suite in result.get('testResults', []):
+              if suite.get('numFailingTests', 0):
+                  print(f"::error file={suite.get('name','unknown')}::failed tests: {suite['numFailingTests']}")
+          print(f"Test suites: {result.get('numPassedTestSuites', 0)} passed, {result.get('numFailedTestSuites', 0)} failed")
+          print(f"Tests: {result.get('numPassedTests', 0)} passed, {result.get('numFailedTests', 0)} failed")
+          PY
+          if [ "$status" -ne 0 ]; then
+            tail -n 80 test-output.txt
+          fi
+          exit "$status"
 
       - name: Production build
         run: npm run build
