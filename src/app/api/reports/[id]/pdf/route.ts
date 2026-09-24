@@ -6,6 +6,7 @@ import { buildPaidNatalPdf, type PaidNatalPdfInput, type PaidFact } from '@/lib/
 import { buildVocationPdf } from '@/lib/vocationPdf';
 import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
 import { buildYearlyTransitPdf } from '@/lib/yearlyTransit/pdf';
+import { hasUnsafeVocationProse, validateVocationSnapshot } from '@/lib/vocationIntegrity';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,8 +30,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       const pack = ledger?.reportData?.vocationCareerWindows ?? ledger?.reportData?.vocationEvidence?.careerWindowPack;
       const sections = result.pipeline?.sections;
       if (!birth || !ledger?.facts || !pack || !Array.isArray(sections)) return NextResponse.json({ error: 'Vocation facts incomplete' }, { status: 422 });
+      const integrity = validateVocationSnapshot(birth, ledger);
+      const proseErrors = hasUnsafeVocationProse(sections);
+      if (!integrity.ok || proseErrors.length) return NextResponse.json({ error: 'Vocation report failed deterministic integrity validation' }, { status: 422 });
       const pdf = await buildVocationPdf({
-        title: result.title || record.title || 'Vocation & Wealth Map', name: String(birth.firstName || 'Seeker'),
+        title: result.title || record.title || 'Vocation & Wealth Map', name: String(birth.firstName || birth.name || 'You'),
         birth: { date: String(birth.dob), time: String(birth.birthTime || ''), location: String(birth.place) },
         pack,
         sections: sections.map((s: any) => ({ id: String(s.id || 'section'), heading: String(s.id || 'Section'), prose: String(s.prose || '') })),

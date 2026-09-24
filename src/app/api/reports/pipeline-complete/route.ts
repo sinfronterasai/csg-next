@@ -7,6 +7,7 @@ import { verifyCallbackToken, convertCompactCallback } from '@/lib/reportPipelin
 import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
 import { validateYearlyTransitCallback } from '@/lib/yearlyTransit/callback';
 import { aiResponseToPipelineSections } from '@/lib/yearlyTransit/aiValidator';
+import { hasUnsafeVocationProse, sanitizeVocationProse, validateVocationSnapshot } from '@/lib/vocationIntegrity';
 
 // POST /api/reports/pipeline-complete
 // n8n calls this with the generated/approved/rejected report. The app is the
@@ -71,11 +72,11 @@ function isValidSection(value: unknown): value is CallbackSection {
   return Array.isArray(section.blocks) && section.blocks.length > 0 && section.blocks.every(isValidBlock);
 }
 
-function normalizeSections(sections: CallbackSection[]): StoredCallbackSection[] {
+function normalizeSections(sections: CallbackSection[], reportType?: string): StoredCallbackSection[] {
   return sections.map((section) => ({
     id: section.id,
-    prose: section.blocks.map((block) => block.prose).join('\n\n'),
-    blocks: section.blocks,
+    prose: section.blocks.map((block) => reportType === 'vocation' ? sanitizeVocationProse(block.prose) : block.prose).join('\n\n'),
+    blocks: reportType === 'vocation' ? section.blocks.map((block) => ({ ...block, prose: sanitizeVocationProse(block.prose) })) : section.blocks,
   }));
 }
 
@@ -190,6 +191,12 @@ export async function POST(request: Request) {
     if (!ledgerFacts || standardSections.some(section => section.blocks.some(block => block.factIds.some(id => !ledgerFacts[id])))) {
       return NextResponse.json({ error: 'Vocation callback contains unknown fact id' }, { status: 400 });
     }
+    const ledger = storedResult?.verifiedFacts ?? storedResult?.metadata?.verifiedFacts;
+    const integrity = validateVocationSnapshot(storedResult?.metadata?.birthData, ledger);
+    const proseErrors = hasUnsafeVocationProse(standardSections.map((section) => ({ ...section, blocks: section.blocks.map((block) => ({ ...block, prose: sanitizeVocationProse(block.prose) })) })));
+    if (!integrity.ok || proseErrors.length) {
+      return NextResponse.json({ error: 'Vocation callback failed deterministic integrity validation' }, { status: 400 });
+    }
   }
 
   let callbackSections = sections ?? [];
@@ -210,7 +217,7 @@ export async function POST(request: Request) {
 
   // Compact callbacks are converted into the existing app contract. Their
   // deterministic tables/skeleton are deliberately not copied into pipeline state.
-  const normalizedSections = normalizeSections(callbackSections);
+  const normalizedSections = normalizeSections(callbackSections, reportType);
   const callbackHash = canonicalCallbackHash({
     status,
     sections: normalizedSections,

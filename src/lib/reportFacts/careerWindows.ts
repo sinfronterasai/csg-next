@@ -26,6 +26,7 @@ export interface VocationCareerWindowPack {
   movers: readonly string[]; targets: readonly string[]; orbPolicy: Record<string, number>;
   months: VocationMonthBucket[]; windows: VocationCareerWindow[];
   facts: Record<string, VerifiedFact>; canonicalWindowHash: string;
+  birthSnapshot: { date: string; time: string; location: string; timezone: string; latitude: number; longitude: number };
 }
 
 function stable(value: unknown): string {
@@ -78,6 +79,6 @@ export async function buildVocationCareerWindowPack(birth: BirthInput, generated
     facts[w.evidenceIds[0]] = { id: w.evidenceIds[0], kind: 'transit', source: 'derived-deterministic', display: `${w.mover} ${w.aspect} ${w.target}: ${w.localStart}–${w.localEnd}`, value: w, provenance: [targetFactId] };
   });
   const months = monthBuckets(generatedLocalDate, resolved.timezone, windows);
-  const base = { schemaVersion: VOCATION_CAREER_WINDOW_VERSION as typeof VOCATION_CAREER_WINDOW_VERSION, generatedLocalDate, displayTimezone: resolved.timezone, period, movers: [...MOVERS], targets: natal.map(n => n.key), orbPolicy: { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 5 }, months, windows, facts };
+  const base = { schemaVersion: VOCATION_CAREER_WINDOW_VERSION as typeof VOCATION_CAREER_WINDOW_VERSION, generatedLocalDate, displayTimezone: resolved.timezone, period, movers: [...MOVERS], targets: natal.map(n => n.key), orbPolicy: { conjunction: 8, opposition: 8, square: 6, trine: 6, sextile: 5 }, months, windows, facts, birthSnapshot: { date: effectiveBirth.date, time: effectiveBirth.time || '', location: effectiveBirth.location, timezone: resolved.timezone, latitude: Number(resolved.lat), longitude: Number(resolved.lon) } };
   return { ...base, canonicalWindowHash: crypto.createHash('sha256').update(stable(base)).digest('hex') };
 }

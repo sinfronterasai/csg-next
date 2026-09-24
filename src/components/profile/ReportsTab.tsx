@@ -68,6 +68,18 @@ function TransitApprovedBody({ report }: { report: PublicReport }) {
   );
 }
 
+function VocationApprovedBody({ report }: { report: PublicReport }) {
+  const sections = mapAsyncSectionsToPdf(report.sections);
+  const presentation = report.vocationPresentation;
+  return <div className="space-y-8">
+    {presentation ? <section className="rounded-2xl border border-gold/20 bg-gold/5 p-5"><p className="text-xs uppercase tracking-[0.24em] text-gold/70 mb-2">Coverage</p><p className="font-serif text-xl text-cosmic-50">{presentation.coverage}</p><p className="mt-2 text-sm text-cosmic-300">Customer-facing dates use {presentation.timezone}; UTC remains the internal calculation standard.</p></section> : null}
+    <section className="space-y-5">{sections.map((s, i) => <div key={`${report.reportId ?? report.id}-vocation-sec-${i}`}><h5 className="font-serif text-xl text-gold mb-1">{s.heading}</h5><div className="prose prose-invert max-w-none text-cosmic-100 leading-relaxed whitespace-pre-line">{s.body}</div></div>)}</section>
+    {presentation?.periods.length ? <section><h5 className="font-serif text-2xl text-gold mb-4">Featured periods</h5><div className="space-y-4">{presentation.periods.map((period) => <article key={period.name} className="rounded-2xl border border-white/10 bg-white/5 p-5"><h6 className="font-serif text-xl text-cosmic-50">{period.name}: {period.start} through {period.end}</h6><p className="mt-2 text-cosmic-100">{period.meaning}</p><p className="mt-2 text-cosmic-200"><strong className="text-gold">Consider:</strong> {period.action}</p><p className="mt-2 text-sm text-cosmic-300"><strong className="text-gold">Tradeoff:</strong> {period.caution}</p></article>)}</div></section> : null}
+    {presentation?.appendix.length ? <section><h5 className="font-serif text-2xl text-gold mb-4">Complete window appendix</h5><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-gold/20 text-xs uppercase tracking-wider text-gold/70"><th className="py-3 pr-4">Dates</th><th className="py-3 pr-4">Transit</th><th className="py-3">Phase</th></tr></thead><tbody>{presentation.appendix.map((item) => <tr key={`${item.start}-${item.transit}`} className="border-b border-white/5"><td className="py-3 pr-4 text-cosmic-200">{item.start} through {item.end}</td><td className="py-3 pr-4 text-cosmic-50">{item.transit}</td><td className="py-3 text-cosmic-200">{item.direction}</td></tr>)}</tbody></table></div></section> : null}
+    <div className="pt-4 border-t border-gold/10"><button type="button" onClick={() => { if (report.id) void downloadYearlyTransitPdf(report.id); }} className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs">Download PDF</button></div>
+  </div>;
+}
+
 function StatusBody({ report, onRetry, retrying }: { report: PublicReport; onRetry: () => void; retrying: boolean }) {
   const status = report.status ?? 'queued';
 
@@ -248,7 +260,7 @@ export default function ReportsTab() {
             </button>
             {expanded === report.id && (
               <div className="px-6 pb-6 border-t border-gold/20 pt-4">
-                {isApproved ? (report.type === 'transit' ? <TransitApprovedBody report={report} /> : <ApprovedBody report={report} />) : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
+                {isApproved ? (report.type === 'transit' ? <TransitApprovedBody report={report} /> : report.type === 'vocation' ? <VocationApprovedBody report={report} /> : <ApprovedBody report={report} />) : <StatusBody report={report} onRetry={() => void retryReport(report)} retrying={retryingId === report.id} />}
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { query, transaction } from '@/lib/db';
 import crypto from 'crypto';
 import { buildYearlyTransitPresentation, toCustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
+import { buildVocationAppendix, buildVocationPeriods, customerCoverageLabel } from '@/lib/vocationPresentation';
 
 // Unified journal store for the Profile Hub. All non-tarot artifacts
 // (reports, horoscopes, zoom sessions) live in `readings` with a `type`
@@ -499,6 +500,8 @@ export function toPublicReport(rec: UniversalReadingRecord) {
   const status = rec.pipelineStatus ?? pipeline?.status ?? null;
   if (isReportDeliverable(rec)) {
     const yearlyPack = (rec.result as any)?.yearlyTransitPack;
+    const vocationPack = (rec.result as any)?.metadata?.verifiedFacts?.reportData?.vocationEvidence?.careerWindowPack
+      ?? (rec.result as any)?.metadata?.verifiedFacts?.reportData?.vocationCareerWindows;
     return {
       id: rec.id,
       reportId: (rec.result as any)?.reportId ?? null,
@@ -509,6 +512,12 @@ export function toPublicReport(rec: UniversalReadingRecord) {
       overview: toPublicOverview((rec.result as any)?.overview),
       sections: toPublicSections(pipeline?.sections),
       ...(rec.result?.reportType === 'transit' && yearlyPack ? { presentation: toCustomerYearlyTransitPresentation(buildYearlyTransitPresentation(yearlyPack)) } : {}),
+      ...(rec.result?.reportType === 'vocation' && vocationPack ? { vocationPresentation: {
+        coverage: customerCoverageLabel(vocationPack),
+        periods: buildVocationPeriods(vocationPack.windows),
+        appendix: buildVocationAppendix(vocationPack.windows),
+        timezone: vocationPack.displayTimezone,
+      } } : {}),
       createdAt: rec.createdAt,
     };
   }

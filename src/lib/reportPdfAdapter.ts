@@ -31,6 +31,12 @@ export interface AsyncPublicReport {
   sections?: AsyncSection[];
   createdAt?: string;
   presentation?: CustomerYearlyTransitPresentation;
+  vocationPresentation?: {
+    coverage: string;
+    timezone: string;
+    periods: Array<{ name: string; start: string; end: string; meaning: string; action: string; caution: string }>;
+    appendix: Array<{ start: string; end: string; transit: string; direction: string; exact: string }>;
+  };
 }
 
 const SECTION_HEADING_FALLBACK = 'Section';
