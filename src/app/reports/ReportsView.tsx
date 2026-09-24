@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import ReportResult from '@/components/reports/ReportResult';
 import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
+import { WHOP_CHECKOUT_URLS } from '@/lib/whopCatalog';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
 // launch slice. Free Natal is available to everyone. Love Blueprint is a paid
@@ -20,7 +21,7 @@ type Accent = 'teal' | 'gold';
 type Kind = 'free' | 'paid';
 
 const ALLOWED: {
-  id: string; name: string; blurb: string; icon: string; accent: Accent; cta: string; kind: Kind;
+  id: string; name: string; blurb: string; icon: string; accent: Accent; cta: string; kind: Kind; whopOffer?: keyof typeof WHOP_CHECKOUT_URLS;
 }[] = [
   {
     id: 'natal', name: 'Birth Chart Report', blurb: 'Your complete natal map — the foundation every other report builds on. Start here.',
@@ -28,19 +29,19 @@ const ALLOWED: {
   },
   {
     id: 'natalpremium', name: 'Premium Natal Report', blurb: 'Your complete, quality-gated natal story with verified placements, practical integration, and a downloadable PDF to keep.',
-    icon: 'fa-star', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid',
+    icon: 'fa-star', accent: 'gold', cta: 'BUY NOW — $39', kind: 'paid', whopOffer: 'premium_natal_report',
   },
   {
     id: 'loveblueprint', name: 'Love Blueprint', blurb: 'Your Venus, Mars and Moon signature with the real love aspects colouring your chart. $39 — one-time purchase, yours forever.',
-    icon: 'fa-heart', accent: 'gold', cta: 'GET LOVE REPORT — $39', kind: 'paid',
+    icon: 'fa-heart', accent: 'gold', cta: 'GET LOVE REPORT — $39', kind: 'paid', whopOffer: 'love_blueprint',
   },
   {
     id: 'transit', name: 'Yearly Transit Forecast', blurb: 'A deterministic twelve-month map of your strongest transit windows, exact hits, eclipses, and practical timing. $49 — one-time purchase, yours forever.',
-    icon: 'fa-compass', accent: 'gold', cta: 'GET FORECAST — $49', kind: 'paid',
+    icon: 'fa-compass', accent: 'gold', cta: 'GET FORECAST — $49', kind: 'paid', whopOffer: 'yearly_transit_forecast',
   },
   {
-    id: 'vocation', name: 'Vocation & Wealth Map', blurb: 'A deterministic 24-month professional timing map for your public role, work, money patterns, and next launch windows. $39 — one-time purchase, yours forever.',
-    icon: 'fa-briefcase', accent: 'gold', cta: 'GET VOCATION MAP — $39', kind: 'paid',
+    id: 'vocation', name: 'Vocation & Wealth Map', blurb: 'A deterministic 24-month professional timing map for your public role, work, money patterns, and next launch windows. $55 — one-time purchase, yours forever.',
+    icon: 'fa-briefcase', accent: 'gold', cta: 'GET VOCATION MAP — $55', kind: 'paid', whopOffer: 'vocation_wealth_map',
   },
 ];
 
@@ -142,6 +143,11 @@ export default function Reports() {
   }
 
   async function startCheckout(id: string) {
+    const product = ALLOWED.find((item) => item.id === id);
+    if (product?.whopOffer) {
+      window.location.href = WHOP_CHECKOUT_URLS[product.whopOffer];
+      return;
+    }
     setCheckoutLoading(id);
     setError(null);
     setResumeState('idle');

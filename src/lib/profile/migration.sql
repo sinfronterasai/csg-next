@@ -141,3 +141,24 @@ BEGIN
       ADD CONSTRAINT ck_report_orders_sku CHECK (sku = 'report-' || report_type);
   END IF;
 END $$;
+
+-- Whop one-time purchase entitlements. Payment IDs are the idempotency key:
+-- a retried payment.succeeded event cannot grant the same offer twice.
+CREATE TABLE IF NOT EXISTS whop_entitlements (
+  id          bigserial PRIMARY KEY,
+  user_id     integer REFERENCES users(id),
+  email       text NOT NULL,
+  offer       text NOT NULL,
+  plan_id     text NOT NULL,
+  payment_id  text UNIQUE NOT NULL,
+  status      text NOT NULL DEFAULT 'active',
+  granted_at  timestamptz NOT NULL DEFAULT now(),
+  revoked_at  timestamptz,
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_whop_entitlements_status CHECK (status IN ('active', 'revoked'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_whop_entitlements_user_offer
+  ON whop_entitlements (user_id, offer, status);
+CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
+  ON whop_entitlements (lower(email));

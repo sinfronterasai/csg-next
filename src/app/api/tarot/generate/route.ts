@@ -5,6 +5,7 @@ import { getEntitlement } from "@/lib/tarot/entitlements";
 import { getSpread } from "@/lib/tarot/spreads";
 import { makeSeed } from "@/lib/tarot/draw";
 import { generateReading } from "@/lib/tarot/generate";
+import { hasWhopOffer } from "@/lib/whop";
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null;
@@ -38,7 +39,8 @@ export async function POST(request: NextRequest) {
 
   // Entitlement gate: free users may only draw free spreads.
   const { spreadTierMet } = await import("@/lib/tarot/entitlements");
-  if (!spreadTierMet(spread.tier, tier as any)) {
+  const whopUnlocked = userId ? await hasWhopOffer(userId, spread.id as any) : false;
+  if (!spreadTierMet(spread.tier, tier as any) && !whopUnlocked) {
     return NextResponse.json(
       { error: "This spread is a Premium feature. Upgrade to draw it.", code: "UPGRADE_REQUIRED", spreadId },
       { status: 403 },
