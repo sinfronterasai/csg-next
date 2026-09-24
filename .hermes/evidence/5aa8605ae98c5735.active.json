@@ -1,0 +1,846 @@
+{
+  "success": true,
+  "versionId": "050a3458-6557-421a-ae35-380903c05e9a",
+  "workflowId": "5aa8605ae98c5735",
+  "authors": "import",
+  "name": "Add compact natal router branch",
+  "description": "Route paid natal to the standalone compact four-slot child when configured; preserve legacy fallback for all other requests.",
+  "createdAt": "2026-09-16T10:56:44.980Z",
+  "updatedAt": "2026-09-16T10:56:44.980Z",
+  "nodes": [
+    {
+      "id": "0bbc8b4b-0893-5a85-9ca0-969061c20cc7",
+      "name": "Report Generate Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "report-generate",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "e76ac0f8-ae00-5735-a905-78fe1a1a743b"
+    },
+    {
+      "id": "01aced1b-c85c-5816-84de-4064888aa61d",
+      "name": "Authenticate + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const incoming=$input.first().json;const body=incoming.body||incoming;const headers=incoming.headers||{};const expected=$env.REPORT_PIPELINE_TOKEN;if(!expected)throw new Error('REPORT_PIPELINE_TOKEN is not configured');const auth=String(headers.authorization||headers.Authorization||'');if(auth!==`Bearer ${expected}`)throw new Error('Unauthorized');const allowed={\"natal\":\"01-natal\",\"relationship\":\"02-relationship-matrix\",\"loveblueprint\":\"03-love-blueprint\",\"lovetiming\":\"04-love-timing\",\"yearlytransit\":\"08-yearly-transit\",\"vocation\":\"09-vocation-wealth\",\"karmicshadow\":\"10-karmic-shadow\",\"fullcosmic\":\"11-full-cosmic-bundle\"};if(!allowed[body.reportType])throw new Error('Unsupported MVP reportType');if(!body.reportId||!body.verifiedFacts||!body.callbackUrl)throw new Error('Missing reportId, verifiedFacts, or callbackUrl');const m=String(body.callbackUrl).match(/^(https?):\\/\\/([^/:?#]+)(?::\\d+)?(?:[/?#]|$)/i);if(!m)throw new Error('callbackUrl is invalid');const protocol=m[1].toLowerCase(),hostname=m[2].toLowerCase();const configuredHosts=String($env.REPORT_CALLBACK_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);const envHosts=[...new Set([...configuredHosts,'cosmicspiritguide.com','csg-next.onrender.com','csg-lb-staging-0905.onrender.com','localhost','127.0.0.1'])];const hostOK=envHosts.some(h=>hostname===h||hostname.endsWith('.'+h));if(!hostOK)throw new Error('callbackUrl host is not allowlisted');if(protocol!=='https'&&!['localhost','127.0.0.1'].includes(hostname))throw new Error('callbackUrl must use HTTPS');const compact=String($env.N8N_PREMIUM_NATAL_WORKFLOW||'').toLowerCase()==='compact'&&body.reportType==='natal'&&body.tier==='paid';return [{json:{...body,promptSlug:allowed[body.reportType],...(compact?{narrativeFactPacks:body.writerInput?.narrativeFactPacks,deterministic:body.writerInput?.deterministic}: {})}}];"
+      }
+    },
+    {
+      "id": "dcbaef4b-dc06-50ec-af89-549ed463355a",
+      "name": "Is natal?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "add33bf5-0be6-5d92-997a-e2dce17637a1",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "natal",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b5d3ec9d-92aa-5826-8ff1-c9c3e2e4f4aa",
+      "name": "Run 01-natal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        -60
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ String($env.N8N_PREMIUM_NATAL_WORKFLOW || '').toLowerCase() === 'compact' && $json.reportType === 'natal' && $json.tier === 'paid' ? 'compact-groq-6a5e39c06c6f4635' : '041aea81bd395e74' }}",
+          "mode": "id",
+          "cachedResultName": "CSG Reports \u00b7 01-natal \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "69607cc7-88ba-55d1-98a3-7a0c7e4821b1",
+      "name": "Is relationship?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "023a0df8-52ad-5a30-814d-9a0d3d4690b5",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "relationship",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e5f9d07b-1ad4-5162-a00e-8e6a60dfdeb1",
+      "name": "Run 02-relationship-matrix",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1080,
+        120
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "44fd90cc65235761",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 02-relationship-matrix \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "590b7c60-1997-5b76-abf7-2cae5b211ca1",
+      "name": "Is loveblueprint?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "13f4d002-9a44-5334-836a-519d17638979",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "loveblueprint",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6924e4fa-cfef-56f6-831c-4bd06c25ff2d",
+      "name": "Run 03-love-blueprint",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1500,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "52e9720868e35ade",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 03-love-blueprint \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "92f5ffa8-7ba1-5d93-bc97-996c3f6fab87",
+      "name": "Is lovetiming?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1700,
+        540
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48d74e18-13db-543e-845b-fae0f27379b3",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "lovetiming",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e00c1aec-0dcf-5c22-9072-a50aec11c704",
+      "name": "Run 04-love-timing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1920,
+        480
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "a27973a3292d50a9",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 04-love-timing \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "457602ce-e7b7-5271-84bf-2621f415e23d",
+      "name": "Is yearlytransit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2120,
+        720
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "770416ba-a3f1-5d13-a14f-01057077859f",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "yearlytransit",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "13571702-ba21-5ef2-9013-2c225f7fc61c",
+      "name": "Run 08-yearly-transit",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2340,
+        660
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "2380d18f842f5978",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 08-yearly-transit \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e291e539-3df1-5090-a39e-9c65943c3295",
+      "name": "Is vocation?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        900
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8114cce8-5a72-5a6c-a82e-2b6267483e56",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "vocation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "137bcaef-b00f-57fb-b5a7-5ecb3ffebb4e",
+      "name": "Run 09-vocation-wealth",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2760,
+        840
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "e188230ec42d5507",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 09-vocation-wealth \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "fe4fec1b-158f-5e7d-946d-e1f2a39e7b0a",
+      "name": "Is karmicshadow?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2960,
+        1080
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1b24ac3c-110c-5b78-8b1b-021045a6afc4",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "karmicshadow",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7cb4e24d-ecec-5f22-bfce-f06958da4ea0",
+      "name": "Run 10-karmic-shadow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3180,
+        1020
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "33b9e88817e35984",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 10-karmic-shadow \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "2fe29ed1-0dae-5b11-95b9-169c9ac36a2b",
+      "name": "Is fullcosmic?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3380,
+        1260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0f8bcd36-8afd-50da-97e1-861ef78df890",
+              "leftValue": "={{ $json.reportType }}",
+              "rightValue": "fullcosmic",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8e3d3906-61e3-581f-b25c-5859b8fd961d",
+      "name": "Run 11-full-cosmic-bundle",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3600,
+        1200
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "a7c79c6772a850ac",
+          "mode": "list",
+          "cachedResultName": "CSG Reports \u00b7 11-full-cosmic-bundle \u00b7 Writer Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "1c509b02-08b1-50f5-8c93-710ba72993bc",
+      "name": "Callback to App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Authenticate + Validate').first().json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ String($('Authenticate + Validate').first().json.callbackUrl || '').includes('csg-lb-staging-0905.onrender.com') ? $env.REPORT_PIPELINE_TOKEN : ($env.REPORT_CALLBACK_TOKEN || $env.REPORT_PIPELINE_TOKEN) }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (($json.response && $json.response.reportType === 'yearlytransit') || $json.reportType === 'yearlytransit') ? ($json.status === 'approved' ? {status:'approved',response:$json.response} : {status:'rejected',reportId:$json.reportId,reportType:'yearlytransit',versionBundle:$json.versionBundle,rejectReasons:$json.rejectReasons}) : JSON.stringify({reportId:$json.reportId,status:$json.status,sections:$json.sections,judge:$json.judge,editorNote:$json.editorNote,rejectReasons:$json.rejectReasons}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "f63f8ff3-5fdd-5e18-b4ab-c3b40d5d3c19",
+      "name": "Master Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -320
+      ],
+      "parameters": {
+        "width": 880,
+        "height": 220,
+        "content": "# CSG Report Interpretation Pipeline\nPOST /webhook/report-generate with Bearer REPORT_PIPELINE_TOKEN. Routes solo MVP reports only. Child workflows run writer \u2192 deterministic lint \u2192 one revision \u2192 judge. Paid passes return needs_editor; free passes return approved. Execution payloads are not persisted."
+      }
+    }
+  ],
+  "connections": {
+    "Report Generate Webhook": {
+      "main": [
+        [
+          {
+            "node": "Authenticate + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authenticate + Validate": {
+      "main": [
+        [
+          {
+            "node": "Is natal?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Is natal?": {
+      "main": [
+        [
+          {
+            "node": "Run 01-natal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is relationship?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is relationship?": {
+      "main": [
+        [
+          {
+            "node": "Run 02-relationship-matrix",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is loveblueprint?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is loveblueprint?": {
+      "main": [
+        [
+          {
+            "node": "Run 03-love-blueprint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is lovetiming?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is lovetiming?": {
+      "main": [
+        [
+          {
+            "node": "Run 04-love-timing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is yearlytransit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is yearlytransit?": {
+      "main": [
+        [
+          {
+            "node": "Run 08-yearly-transit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is vocation?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is vocation?": {
+      "main": [
+        [
+          {
+            "node": "Run 09-vocation-wealth",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is karmicshadow?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is karmicshadow?": {
+      "main": [
+        [
+          {
+            "node": "Run 10-karmic-shadow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is fullcosmic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is fullcosmic?": {
+      "main": [
+        [
+          {
+            "node": "Run 11-full-cosmic-bundle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Run 01-natal": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 02-relationship-matrix": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 03-love-blueprint": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 04-love-timing": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 08-yearly-transit": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 09-vocation-wealth": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 10-karmic-shadow": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run 11-full-cosmic-bundle": {
+      "main": [
+        [
+          {
+            "node": "Callback to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodeGroups": []
+}

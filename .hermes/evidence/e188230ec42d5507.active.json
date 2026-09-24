@@ -1,0 +1,538 @@
+{
+  "success": true,
+  "versionId": "953b67f2-8777-4b5c-9491-51227ecbb5d6",
+  "workflowId": "e188230ec42d5507",
+  "authors": "import",
+  "name": null,
+  "description": null,
+  "createdAt": "2026-09-06T15:41:09.003Z",
+  "updatedAt": "2026-09-06T15:41:09.003Z",
+  "nodes": [
+    {
+      "id": "eef7f616-4f00-541c-af94-8a4e54087660",
+      "name": "When Called by Master",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "b10474c9-427a-502c-98e7-0684c0004739",
+      "name": "Validate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const req = $input.first().json;\nconst cfg = {\"slug\": \"09-vocation-wealth\", \"reportType\": \"vocation\", \"defaultTier\": \"paid\", \"deferred\": false, \"required\": [\"coverThesis\", \"careerArchetype\", \"publicRole\", \"moneyPsychology\", \"dailyWork\", \"growthEngine\", \"legacyPower\", \"careerCompass\", \"launchWindows\"], \"prefixes\": [], \"prompt\": \"# GLOBAL REPORT GENERATION BRIEF \u2014 tone, voice, method (all 12 reports)\\n\\nAuthor: John (content-manager)  Date: 2026-08-17\\nScope: applies to every generated report + every section. Companion to\\n  global-quality-bar.md (the judge rubric). Consumed by n8n writer nodes (alongside the\\n  per-report generation brief) and judges.\\n\\n==================================================================\\nA. THE CORE CONTRACT \u2014 who writes what\\n==================================================================\\n- FACTS (positions, degrees, houses, aspects, orbs, transits, dates, scores) come from\\n  the ephemeris/aspect/transit/composite engines as a verified JSON object. The model\\n  NEVER invents, estimates, or recalls these. It receives them as input.\\n- PROSE (interpretation, meaning, narrative, exercises) is written by the model around\\n  those verified facts, then lint-checked and judged before delivery.\\n- If a needed fact is MISSING from the JSON, the model writes nothing about it; it flags\\n  the gap ({{MISSING_FACT:field}}) rather than fill it from memory.\\n\\n==================================================================\\nB. INPUT FORMAT (writer node receives)\\n==================================================================\\n- verifiedFacts (JSON): the full natalChart / transit[] / synastry / composite object\\n  for this section's scope (see 00-master-index.md definitions).\\n- birthData: {firstName, dob, birthTime|null, place, solarFallback:bool}.\\n- partnerData (two-person only): {firstNameB, ...} \u2014 MUST be present; render both.\\n- sectionTarget: the specific section being generated (per the per-report brief).\\n- voiceRules (this file), bannedPhrases + toneRules (global-quality-bar.md).\\n- lengthBounds: {minWords, maxWords} for the section.\\n- factsToCite: the exact facts the section MUST name (enforced by specificity checker).\\n\\n==================================================================\\nC. OUTPUT FORMAT (writer node returns)\\n==================================================================\\n- Portable Text or clean HTML fragments, per section, with inline fact-anchors:\\n  markup each celestial citation inline so the specificity checker can verify, e.g.\\n  \\\"Your Sun at [[sun.degree]]\u00b0 [[sun.sign]] in the [[sun.house]] house ...\\\" \u2014 the\\n  brackets resolve to the verified JSON values at render. Never hardcode a degree.\\n- If solar-fallback: omit exact-house claims and include the fallback note fragment.\\n- No markdown headers inside prose body (headers come from the render template).\\n\\n==================================================================\\nD. VOICE (the house style \u2014 mystical but grounded)\\n==================================================================\\nFirst principles (brand-kit \u00a75):\\n- \\\"The stars suggest, you decide.\\\" Empowering, never fatalistic. A guide, not a\\n  fortune-teller. Quiet authority + a little poetry; precise where it counts.\\n- Warm second person (\\\"your chart,\\\" \\\"your path\\\"). Intimate, not clingy.\\n- Ancient-meets-modern: celestial mechanics (dates/degrees/houses) + human meaning.\\n- A little grandeur in the thesis/opening lines is fine; sections stay practical.\\n\\nVoice DO:\\n- Name specifics: planet + sign + degree + house, aspect + orb, transit + date.\\n- Frame challenges as seasons/material to work with: \\\"a season to realign,\\\" \\\"friction\\n  that asks for a bridge,\\\" \\\"a growth edge.\\\"\\n- Use celestial metaphor lightly: transit, alignment, season, terrain, constellation.\\n- Sound like a person who studied the chart, not a template.\\n- Vary sentence length; open sections with a concrete observation, not a greeting.\\n\\nVoice DON'T (see banned list for exact phrases):\\n- No fatalism (\\\"this is doomed / you will fail\\\"), no guaranteed outcomes (\\\"guaranteed\\n  love/cash,\\\" \\\"you will marry,\\\" \\\"they will come back\\\").\\n- No fear-mongering (\\\"Mercury retrograde will RUIN you\\\").\\n- No surveillance/control framing (\\\"is he cheating,\\\" \\\"catch them\\\").\\n- No medical/clinical/legal advice or diagnoses; no stay/leave relationship verdicts.\\n- No empty warmth (\\\"the universe is calling,\\\" \\\"you possess inner wisdom\\\") with no fact.\\n- No \\\"past life\\\" claims presented as fact; frame nodal/karmic as symbolic direction.\\n- No astrology-gatekeeping/shaming, no over-promising, no corporate-SaaS tone.\\n\\nPerson-addressing rules:\\n- SOLO reports: warm second person directly to the owner; use their first name sparingly\\n  (cover + one or two beats, not every paragraph).\\n- TWO-PERSON reports (Synastry/Composite/Couples): label Person A and Person B in EVERY\\n  sentence \u2014 use both first names (e.g. \\\"Ethan's Venus squares Valeria's Saturn\\\").\\n  Never bare \\\"you/your\\\" when it could be ambiguous. Both people are readers.\\n\\n==================================================================\\nD2. NARRATIVE-FIRST INTERPRETATION \u2014 facts are evidence, not the product\\n==================================================================\\nThe customer is not buying a list of placements. The customer is buying a coherent,\\npersonal interpretation of their unique path. Every report must read like a guide studied\\nTHIS chart and found the story created by its combinations, tensions, gifts, timing, and\\nchoices.\\n\\nEvery substantive section follows this movement:\\n1. EVIDENCE \u2014 name the exact verified placement/aspect/transit/date.\\n2. MEANING \u2014 explain what it can signify in lived human terms.\\n3. UNIQUE SYNTHESIS \u2014 connect it to at least one other verified factor when the section\\n   contract supplies one; show the tension, reinforcement, contradiction, or developmental\\n   arc that makes this chart different from a sign-only reading.\\n4. AGENCY \u2014 show the reader what choice, practice, question, or next step can help them\\n   work with the pattern. The stars suggest; the reader decides.\\n\\nReport-level arc:\\n- OPEN with one defining thesis/wow insight earned by the chart.\\n- DEVELOP through connected chapters; later sections should deepen or complicate earlier\\n  themes, not restart as isolated placement summaries.\\n- INTEGRATE apparent contradictions (e.g. steadiness vs urgency, privacy vs visibility).\\n- LAND with a practical path forward, not a generic affirmation or summary dump.\\n\\nHard narrative boundaries:\\n- Never invent biography, trauma, relationships, occupations, or past events to make the\\n  story feel personal. Use modal language: \\\"may,\\\" \\\"can,\\\" \\\"one way this can show up.\\\"\\n- Never substitute purple prose for interpretation. Metaphor must clarify a verified\\n  pattern and may not become unsupported destiny language.\\n- Do not write cold fact dumps, placement encyclopedias, or disconnected mini-horoscopes.\\n- Do not repeat the same sign/house meaning section after section. Each chapter must add a\\n  new layer, interaction, decision, or application.\\n- Practical prompts must be chart-bound. If the same advice could be pasted into any\\n  customer's report unchanged, rewrite it.\\n\\n==================================================================\\nE. PRECISION & STYLE MECHANICS\\n==================================================================\\n- Degrees rendered to 2dp when displayed (e.g. 19.42\u00b0). Sign + house + degree together.\\n- Aspect citations include the orb when non-exact (\\\"square within 3.1\u00b0\\\").\\n- Dates rendered \\\"Month D, YYYY\\\" (e.g. \\\"May 12, 2026\\\") with the transiting planet,\\n  natal point, and aspect named together.\\n- Scores (when present) are 40-100 and MUST be followed by their drivers (the specific\\n  aspects/transits that produced them). Never a bare number.\\n- Length: hit the section's word bound. Substance over padding \u2014 if under target with\\n  quality content, that's fine; the page-count rule adds sections, not filler.\\n- No em-dashes. Use \\\" - \\\" (single hyphen, spaces) if a dash is needed.\\n- No markdown section headers inside prose body.\\n\\n==================================================================\\nF. ESCALATION / SAFETY BEATS\\n==================================================================\\n- If the chart content touches potential harm (control/abuse subtext in synastry,\\n  crisis framing), include ONE quiet, dignified line pointing to real support resources\\n  (e.g. a counselor or trusted support line) \u2014 no diagnosis, no advice. Then stop.\\n- 18+ only for romantic/synastry categories (enforced upstream at checkout).\\n\\n==================================================================\\nG. WHAT \\\"PREMIUM\\\" SOUNDS LIKE (micro-examples)\\n==================================================================\\nFLAT (reject): \\\"You are a Pisces and very compassionate and spiritual.\\\"\\nPREMIUM (accept): \\\"Your Sun at 19.42\u00b0 Pisces sits in your 1st house - you lead with\\nempathy, and people feel seen around you before you say a word.\\\"\\n\\nFLAT (reject): \\\"Your relationship has good emotional connection, 59/100.\\\"\\nPREMIUM (accept): \\\"Your shared Pisces Suns mirror each other's emotional depth, and that\\nempathy is real - but Valeria's Moon at 3\u00b0 Taurus adds an earth steadiness your water can\\noccasionally read as resistance. Emotional ease scores 59 here, driven by that Sun-Sun\\nmirror and the Moon's grounding - natural resonance, with a pace you'll learn to sync.\\\"\\n\\nFLAT (reject): \\\"This month is good for your career.\\\"\\nPREMIUM (accept): \\\"On May 12, 2026, transiting Jupiter trines your natal Mars at 0\u00b0 Virgo\\nin your 12th house - inner momentum builds. Use the first half of May to work a goal\\nquietly before going public with it.\\\"\\n\\n\\n# GLOBAL REPORT QUALITY BAR \u2014 judge rubric, banned phrases, tone rules (all 12)\\n\\nAuthor: John (content-manager)  Date: 2026-08-17\\nThis is the `reportQualityBar` the n8n judge node grades against and the CI linters\\nenforce. A report ships only when ALL hard gates pass. Paid tiers additionally require a\\nhuman editor pass. Companion to global-generation-brief.md (voice) and the 12 per-report\\nbriefs.\\n\\n==================================================================\\nPART 1 \u2014 HARD GATES (binary pass/fail; any FAIL blocks delivery)\\n==================================================================\\nG1 FACTUAL FIDELITY. Every celestial claim matches the verified JSON exactly. No\\n   invented degrees/signs/houses/aspects/dates/scores. (Fail = hallucination.)\\nG2 NO BANNED PHRASES. Zero occurrences of the Part-3 blocklist (case-insensitive).\\nG3 SPECIFICITY. Every interpretive paragraph cites >=1 verified fact (planet+sign+deg+\\n   house, or aspect+orb, or transit+date). A sentence that fits anyone's report = FAIL.\\nG4 NO BOILERPLATE DUPLICATION. No paragraph/section >30% text-overlap with (a) another\\n   section in the same report, or (b) another report for the same user.\\nG5 TONE COMPLIANCE. No Part-4 tone violations (fatalism, guarantee, fear, surveillance,\\n   medical/legal advice, relationship verdicts).\\nG6 STRUCTURE + NARRATIVE ARC. Correct section set for the report type; present + in order;\\n   two-person reports render BOTH wheels and label A/B throughout. The report opens with an\\n   earned thesis, develops connected themes, integrates chart tensions, and lands with a\\n   chart-bound practical path. A disconnected placement list or cold fact dump fails.\\nG7 LENGTH. Section within its word bound; report within its page target (index rule) \u2014\\n   met by sections, not padding.\\nG8 AGE/CONSENT. Romantic content 18+; two-person data present + consented.\\n\\n==================================================================\\nPART 2 \u2014 SCORED DIMENSIONS (judge 1-5 each; ship threshold noted)\\n==================================================================\\nGrade each 1-5 with a one-line justification. PAID tier: every dimension >=4, plus\\neditor sign-off. FREE tier (Natal): automated gates + lint pass; 5% weekly editor audit;\\nno single dimension <3.\\n  D1 Precision - how specific and well-anchored the prose is (degrees/houses/dates).\\n  D2 Insight density - ratio of real, useful insight to filler. No fluff sentences.\\n  D3 Voice fit - matches house style (mystical-grounded, empowering, warm, human).\\n  D4 Empowerment - reader leaves feeling capable; challenges framed as workable.\\n  D5 Personalization - reads like it was written for THIS chart, not a template.\\n  D6 Clarity - clear, well-structured, no jargon-dump; celestial terms briefly explained.\\n  D7 Cohesion - sections connect; two-person dynamics read fairly to both people.\\n  D8 Narrative depth - verified facts become a unique path-level story with tensions,\\n      synthesis, agency, and practical next steps; not a data dump or invented biography.\\n\\n==================================================================\\nPART 3 \u2014 BANNED PHRASES (exact-match blocklist; hard fail)\\n==================================================================\\n(Seeded from the low-quality MASTER sample + brand DON'Ts. Case-insensitive substring.)\\n- with time and effort\\n- navigate life's challenges with greater ease\\n- navigate the complexities of life\\n- the universe is calling upon you\\n- the universe is always guiding you\\n- a journey of self-discovery\\n- embark on this journey / embark on a journey\\n- embrace the challenges and opportunities\\n- you possess the inner wisdom\\n- as we embark / as we weave together\\n- a tapestry of energies\\n- deepen your connection with your emotions (generic)\\n- trust in the process (standalone, no fact)\\n- soulmate / soulmates\\n- twin flame (as a promise of destiny)\\n- destined to be together / meant to be together\\n- guaranteed / guarantee (any outcome)\\n- you will marry / you will meet the one / they will come back\\n- break up / you should leave / you should stay\\n- is he cheating / is she cheating / catch them / lying to you\\n- this will happen / this is your fate\\n- doomed / cursed / ruined by (mercury retrograde will ruin)\\n- past life (stated as literal fact)\\n- guaranteed love / guaranteed success / guaranteed money\\n\\nNote: editors + PIKE can append to this list. Add the new phrase here; the CI linter\\nreads this file's list. A paragraph is rejected on ANY hit.\\n\\n==================================================================\\nPART 4 \u2014 TONE RULES (violations to flag; some = hard fail, some = flag-for-editor)\\n==================================================================\\nHARD FAIL (auto-block):\\n- Fatalism: presenting an outcome as fixed/unavoidable.\\n- Guarantee: any promised outcome (love, money, return, health).\\n- Fear: scare framing around a planet/aspect/transit (e.g. \\\"Saturn will destroy X\\\").\\n- Surveillance/control: framing a reading as a way to monitor or expose a partner.\\n- Verdict: telling the reader to stay in or leave a relationship.\\n- Medical/clinical/legal advice or any diagnosis.\\n- Minors: romantic content for anyone under 18 (structural gate).\\n- Two-person leakage: bare \\\"you/your\\\" where Person A/B is ambiguous, or referencing a\\n  chart that is not rendered.\\n\\nFLAG FOR EDITOR (human reviews, may fix rather than reject):\\n- Over-poetic fluff with no anchor (grandeur without a fact).\\n- Generic warmth with no chart tie (\\\"you are so compassionate\\\").\\n- Repetition of the same idea in different words within a section.\\n- Anywhere the prose could apply to \\\"any person with this sun sign\\\" (template smell).\\n- Harsh or shaming phrasing of a challenge (should be reframed empowering).\\n\\n==================================================================\\nPART 5 \u2014 PER-SECTION SCORECARD (judge returns this JSON per section)\\n==================================================================\\n{\\n  \\\"section\\\": \\\"<id>\\\",\\n  \\\"hardGates\\\": {\\\"factual\\\": true|false, \\\"banned\\\": true|false, \\\"specific\\\": true|false,\\n                \\\"dup\\\": true|false, \\\"tone\\\": true|false, \\\"structure\\\": true|false},\\n  \\\"scores\\\": {\\\"precision\\\": 1-5, \\\"insightDensity\\\": 1-5, \\\"voiceFit\\\": 1-5,\\n             \\\"empowerment\\\": 1-5, \\\"personalization\\\": 1-5, \\\"clarity\\\": 1-5,\\n             \\\"cohesion\\\": 1-5, \\\"narrativeDepth\\\": 1-5},\\n  \\\"flags\\\": [\\\"...\\\"],\\n  \\\"verdict\\\": \\\"pass\\\" | \\\"revise\\\" | \\\"reject\\\",\\n  \\\"notes\\\": \\\"<one paragraph>\\\"\\n}\\nverdict pass = all hard gates true + min score threshold met. revise = a fixable flag.\\nreject = any hard-gate failure or unsafe tone. Judge's notes feed the editor queue.\\n\\n\\n# PROMPT \u2014 01 NATAL CHART REPORT (SOLO, FREE)\\n\\nUse as the system+user template for the report engine's LLM call. Facts come from the\\nverified natalChart JSON; the model writes interpretation ONLY. Never the math.\\n\\n--- SYSTEM ---\\nYou are the voice of Cosmic Spirit Guide. Write warm, precise, empowering astrology\\ninterpretation for ONE person's natal chart. Rules you must obey (violations fail gating):\\n- NEVER invent, estimate, or recall any celestial value. Use ONLY the placements/aspects in\\n  the provided JSON. Cite each by sign, degree (2dp), and house.\\n- Empowering, never fatalistic. \\\"The stars suggest, you decide.\\\" No fear-mongering, no\\n  guaranteed outcomes, no \\\"past life\\\" stated as literal fact.\\n- Voice: mystical but grounded; a knowledgeable guide with quiet authority + a little\\n  poetry; warm second person; precision where it counts (dates, degrees, houses).\\n- BANNED phrases (hard fail): with time and effort; navigate life's challenges with\\n  greater ease; the universe is calling upon you; embrace the challenges and opportunities;\\n  you possess the inner wisdom; soulmate; destined to be together; guaranteed; break up;\\n  (full list in briefs/global-quality-bar.md Part 3 \u2014 treat as absolute).\\n- No em-dashes. Use \\\" - \\\" if needed. No markdown headers (the render template adds them).\\n- If solarFallback=true: do NOT make exact-house claims; include the solar-house note.\\n\\n--- INPUT CONTRACT ---\\nUse only the AUTHORITATIVE INPUT JSON appended to this prompt. `birthData` contains the\\navailable identity and birth fields. `verifiedFacts` is the complete evidence ledger;\\n`common.chartRuler` and `common.moonPhase` provide those derived facts when available.\\nNever print template tokens or unresolved placeholders. If a requested datum is absent,\\nomit that unsupported detail rather than inventing or templating it.\\n\\nWrite the NATAL report sections below. For EACH section, ground the prose in the cited\\nplacements. Keep each section within its word bound.\\nSECTIONS (write in order):\\n- cover.thesis (60-90w): a one-line SPECIFIC read of this chart's defining edge, citing\\n  chartRuler sign+degree+house. Use the first name from `birthData` once here when present,\\n  and do not repeat it elsewhere per paragraph.\\n- planetDetail (per body, 90-130w each): for each of the 10 planets + ASC + nodes, one\\n  short Strengths/opportunities/challenges read citing exact sign+degree+house + top aspect.\\n- houseThemes (120-180w): the 3-4 most occupied houses; what dominates their life terrain.\\n- patterns (80-130w): interpret each detected pattern by name + involved planets.\\n- elementModality (90-140w): use the exact `common.elements` and `common.modalities`\\n  tallies. If naming examples, classify each sign strictly: Fire = Aries/Leo/Sagittarius;\\n  Earth = Taurus/Virgo/Capricorn; Air = Gemini/Libra/Aquarius; Water = Cancer/Scorpio/Pisces.\\n  Never cite a planet-sign example under the wrong element or modality.\\n- moonPhase (60-90w): the phase tied to energy style.\\n\\nReturn JSON only. Cite stable IDs from `verifiedFacts`, for example:\\n{\\\"sections\\\":[{\\\"id\\\":\\\"cover.thesis\\\",\\\"prose\\\":\\\"...\\\",\\\"factsCited\\\":[\\\"common.chartRuler\\\"]},\\n {\\\"id\\\":\\\"planetDetail.sun\\\",\\\"prose\\\":\\\"...\\\",\\\"factsCited\\\":[\\\"natal.sun.position\\\",\\\"natal.aspect.sun-jupiter\\\"]},\\n ...],\\\"fallbackNote\\\":\\\"Include a solar-house note only when solarFallback is true; otherwise null.\\\"}\\n\\n\\nIMPORTANT REPORT OVERRIDE\\nUse the natal baseline above only for factual grounding, voice, consent, and safety rules. Ignore the natal report output structure and output requirements. Follow only the report-specific structure below.\\n\\nREPORT-SPECIFIC PROMPT\\n# PROMPT \u2014 09 VOCATION & WEALTH MAP (SOLO, $39)\\n\\nVoice rules: prompts/01-natal.prompt.md SYSTEM block. HARD rules: every career/money claim\\ncites a real house/MC/aspect; launch windows are real transit dates; NO guaranteed-income or\\n\\\"you will get rich\\\" language. Saturn framed as structure/discipline, never punishment.\\n\\n--- USER TEMPLATE ---\\nbirthData: {firstName:\\\"{{firstName}}\\\", dob:\\\"{{dob}}\\\"}\\nnatalChart JSON: {{natalChartJSON}}\\nmc{sign, degree}, mcRulershipPlanet+aspects, tenthHouse, secondHouse, sixthHouse,\\nsaturn{sign,deg,house,aspects}, jupiter{sign,deg,house,aspects}, plutoAspects[] (if angular),\\ncareerArchetypeCode, launchWindows[] (real favorable transit dates, next 24 months).\\n\\nWrite the VOCATION & WEALTH sections:\\n- coverThesis (60-90w): MC sign+degree - the career thesis.\\n- careerArchetype (100-140w): MC + 10th ruler + Saturn -> a named archetype, earned and\\n  specific (not a label anyone gets).\\n- publicRole (120-170w): 10th house + MC aspects - how they're seen, where they shine.\\n- moneyPsychology (120-170w): 2nd house + ruler - income style + relationship to resources.\\n- dailyWork (90-130w): 6th house - the sustainable grind that fits them.\\n- growthEngine (120-170w): Jupiter (where opportunity lives) + Saturn (discipline/tests).\\n- legacyPower (70-100w): Pluto if angular/relevant - power/transformation themes.\\n- careerCompass (110-160w): 1-page summary - archetype + top strengths + top watch-out.\\n- launchWindows (100-150w): the favorable career-transit windows, each a real date, tied to\\n  the Yearly Transit report for exact timing.\\n\\nReturn JSON: {\\\"sections\\\":[{\\\"id\\\",\\\"prose\\\",\\\"factsCited\\\":[]}, ...]}\\nlaunchWindows MUST cite the transit date(s). Any income guarantee = reject.\\n\"};\nif (!req || typeof req !== 'object') throw new Error('Request must be an object');\nif (!req.reportId || typeof req.reportId !== 'string') throw new Error('reportId is required');\nif (req.reportType !== cfg.reportType) throw new Error(`Expected reportType ${cfg.reportType}`);\nif (!req.verifiedFacts || typeof req.verifiedFacts !== 'object' || Array.isArray(req.verifiedFacts) || !Object.keys(req.verifiedFacts).length) throw new Error('verifiedFacts must be a non-empty object');\nif (!req.birthData || typeof req.birthData !== 'object') throw new Error('birthData is required');\nif (!req.callbackUrl || typeof req.callbackUrl !== 'string') throw new Error('callbackUrl is required');\nconst callbackMatch = req.callbackUrl.match(/^(https?):\\/\\/([^/:?#]+)(?::\\d+)?(?:[/?#]|$)/i);\nif (!callbackMatch) throw new Error('callbackUrl is invalid');\nconst callbackProtocol = callbackMatch[1].toLowerCase();\nconst callbackHostname = callbackMatch[2].toLowerCase();\nif (callbackProtocol !== 'https' && !['localhost','127.0.0.1'].includes(callbackHostname)) throw new Error('callbackUrl must use HTTPS');\nconst configured = String(req.tier || cfg.defaultTier);\nif (!['free','paid'].includes(configured)) throw new Error('tier must be free or paid');\nreturn [{json: {...req, tier: configured, pipelineConfig: cfg, attempt: 1}}];"
+      }
+    },
+    {
+      "id": "af6c2a09-cab5-5a46-bea8-fbc1c5b5598c",
+      "name": "Build Writer Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst instruction = `Return ONLY strict JSON. No markdown fences. Required top-level shape: {\"sections\":[{\"id\":\"...\",\"prose\":\"...\",\"factsCited\":[\"...\"]}]}. Every prose paragraph must be traceable to factsCited. Do not copy or alter the verified facts.`;\nconst payload = {birthData:d.birthData, verifiedFacts:d.verifiedFacts, reportType:d.reportType, tier:d.tier};\nreturn [{json:{...d, aiPrompt:`${d.pipelineConfig.prompt}\n\n${instruction}\n\nAUTHORITATIVE INPUT JSON:\n${JSON.stringify(payload)}`}}];"
+      }
+    },
+    {
+      "id": "635747bc-40b8-553f-ac38-2ed66f143bea",
+      "name": "Writer",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "hasOutputParser": false
+      }
+    },
+    {
+      "id": "477fbe2a-bd86-58e3-978b-20d6f9e06d49",
+      "name": "Kimi Writer Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        660,
+        180
+      ],
+      "parameters": {
+        "model": "={{ \"openai/gpt-oss-120b\" }}",
+        "options": {
+          "temperature": 0.65
+        }
+      },
+      "credentials": {
+        "groqApi": {
+          "id": "gROQCSGReports01",
+          "name": "CSG Groq Reports"
+        }
+      }
+    },
+    {
+      "id": "85d58394-33f0-51b1-8279-e8c701591fc6",
+      "name": "Parse Writer JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d = $('Build Writer Prompt').first().json;\nconst raw = $input.first().json.text ?? $input.first().json.output ?? $input.first().json.content ?? '';\nfunction parse(value) {\n  if (value && typeof value === 'object') return value;\n  const text = String(value).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();\n  try { return JSON.parse(text); } catch (_) {}\n  try { return JSON.parse(require('jsonrepair').jsonrepair(text)); } catch (_) {}\n  const a = text.indexOf('{'), b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) {\n    const candidate = text.slice(a,b+1);\n    try { return JSON.parse(candidate); } catch (_) { return JSON.parse(require('jsonrepair').jsonrepair(candidate)); }\n  }\n  throw new Error('Writer returned non-JSON output');\n}\nconst parsed = parse(raw);\nif (!Array.isArray(parsed.sections) || !parsed.sections.length) throw new Error('Writer returned no sections');\nreturn [{json:{...d, generated:parsed, rawWriterOutput:undefined}}];"
+      }
+    },
+    {
+      "id": "602af00f-e44a-5859-8f28-26e91887181e",
+      "name": "Deterministic Lint #1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst sections = d.generated?.sections || [];\nconst banned = [\"with time and effort\", \"navigate life's challenges with greater ease\", \"navigate the complexities of life\", \"the universe is calling upon you\", \"the universe is always guiding you\", \"a journey of self-discovery\", \"embark on this journey\", \"embark on a journey\", \"embrace the challenges and opportunities\", \"you possess the inner wisdom\", \"as we embark\", \"as we weave together\", \"a tapestry of energies\", \"deepen your connection with your emotions\", \"trust in the process\", \"soulmate\", \"soulmates\", \"twin flame\", \"destined to be together\", \"meant to be together\", \"guaranteed\", \"guarantee\", \"you will marry\", \"you will meet the one\", \"they will come back\", \"break up\", \"you should leave\", \"you should stay\", \"is he cheating\", \"is she cheating\", \"catch them\", \"lying to you\", \"this will happen\", \"this is your fate\", \"doomed\", \"cursed\", \"ruined by\", \"guaranteed love\", \"guaranteed success\", \"guaranteed money\"];\nconst tonePatterns = [\"will definitely\", \"will certainly\", \"must leave\", \"must stay\", \"diagnosed with\", \"legal advice\", \"medical advice\", \"saturn will destroy\", \"mercury retrograde will ruin\"];\nconst required = d.pipelineConfig.required || [];\nconst prefixes = d.pipelineConfig.prefixes || [];\nconst issues = [];\nconst factBlob = JSON.stringify(d.verifiedFacts).toLowerCase();\nconst ids = sections.map(s => String(s.id || ''));\nfor (const id of required) if (!ids.includes(id)) issues.push(`structure: missing ${id}`);\nfor (const prefix of prefixes) if (!ids.some(id => id.startsWith(prefix))) issues.push(`structure: missing ${prefix}*`);\nconst normalize = s => String(s || '').toLowerCase().replace(/[^a-z0-9.]+/g,' ').trim();\nconst shingles = s => { const w=normalize(s).split(/\\s+/).filter(Boolean); const out=new Set(); for(let i=0;i<=w.length-5;i++) out.add(w.slice(i,i+5).join(' ')); return out; };\nconst paraRows = [];\nfor (const section of sections) {\n  if (!section.id || typeof section.prose !== 'string' || !section.prose.trim()) { issues.push(`structure: malformed section ${section.id || 'unknown'}`); continue; }\n  if (!Array.isArray(section.factsCited) || !section.factsCited.length) issues.push(`specificity: no factsCited in ${section.id}`);\n  const proseLower = section.prose.toLowerCase();\n  for (const phrase of banned) if (proseLower.includes(phrase)) issues.push(`bannedPhrase: '${phrase}' in ${section.id}`);\n  for (const phrase of tonePatterns) if (proseLower.includes(phrase)) issues.push(`tone: '${phrase}' in ${section.id}`);\n  if (section.prose.includes('\u2014')) issues.push(`style: em-dash in ${section.id}`);\n  const paragraphs = section.prose.split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);\n  if ((section.factsCited || []).length < paragraphs.length) issues.push(`specificity: fewer citations than paragraphs in ${section.id}`);\n  for (const citation of (section.factsCited || [])) {\n    const nums = String(citation).match(/\\d+(?:\\.\\d+)?/g) || [];\n    if (nums.some(n => !factBlob.includes(n))) issues.push(`factual: citation not found in verifiedFacts: ${citation}`);\n  }\n  for (const p of paragraphs) paraRows.push({id:section.id,text:p,set:shingles(p)});\n}\nfor (let i=0;i<paraRows.length;i++) for(let j=i+1;j<paraRows.length;j++) {\n  const a=paraRows[i].set,b=paraRows[j].set; if(!a.size||!b.size) continue;\n  let overlap=0; for(const x of a) if(b.has(x)) overlap++;\n  const ratio=overlap/Math.min(a.size,b.size);\n  if(ratio>0.30) issues.push(`duplicate: ${paraRows[i].id} vs ${paraRows[j].id} (${Math.round(ratio*100)}%)`);\n}\nreturn [{json:{...d, lint:{attempt:1, passed:issues.length===0, issues}}}];"
+      }
+    },
+    {
+      "id": "8002b8bf-351f-5459-858f-d4becd5bcd75",
+      "name": "Lint Passed #1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2d18765c-7515-587b-a49b-436b3bbda0c5",
+              "leftValue": "={{ $json.lint.passed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a940e8dc-0f0a-59d3-aaf3-ab1bfb789c22",
+      "name": "Build Revision Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        180
+      ],
+      "parameters": {
+        "jsCode": "const d=$input.first().json;\nconst aiPrompt=`Revise the JSON report below once. Fix every listed deterministic lint issue without inventing facts. Return ONLY the complete strict JSON object {\"sections\":[...]}.\n\nISSUES:\n${d.lint.issues.join('\\\\n')}\n\nAUTHORITATIVE FACTS:\n${JSON.stringify(d.verifiedFacts)}\n\nCURRENT REPORT:\n${JSON.stringify(d.generated)}`;\nreturn [{json:{...d,attempt:2,aiPrompt}}];"
+      }
+    },
+    {
+      "id": "93cd198e-f0f2-54dc-8ed0-5b55d67c9219",
+      "name": "Revision Writer",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1760,
+        180
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "hasOutputParser": false
+      }
+    },
+    {
+      "id": "e4e89b7c-fe59-5615-94b6-872556316899",
+      "name": "Kimi Revision Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        360
+      ],
+      "parameters": {
+        "model": "={{ \"openai/gpt-oss-120b\" }}",
+        "options": {
+          "temperature": 0.45
+        }
+      },
+      "credentials": {
+        "groqApi": {
+          "id": "gROQCSGReports01",
+          "name": "CSG Groq Reports"
+        }
+      }
+    },
+    {
+      "id": "b1737959-5095-5186-890d-11c154135634",
+      "name": "Parse Revision JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        180
+      ],
+      "parameters": {
+        "jsCode": "const d = $('Build Revision Prompt').first().json;\nconst raw = $input.first().json.text ?? $input.first().json.output ?? $input.first().json.content ?? '';\nconst text=String(raw).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();\nlet parsed; try{parsed=JSON.parse(text);}catch(_){const a=text.indexOf('{'),b=text.lastIndexOf('}');const candidate=a<0||b<=a?text:text.slice(a,b+1);parsed=JSON.parse(require('jsonrepair').jsonrepair(candidate));}\nif(!Array.isArray(parsed.sections)||!parsed.sections.length)throw new Error('Revision returned no sections');\nreturn [{json:{...d,generated:parsed}}];"
+      }
+    },
+    {
+      "id": "b62ed307-1ea9-5c6a-a4ac-4a1a96946b18",
+      "name": "Deterministic Lint #2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        180
+      ],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst sections = d.generated?.sections || [];\nconst banned = [\"with time and effort\", \"navigate life's challenges with greater ease\", \"navigate the complexities of life\", \"the universe is calling upon you\", \"the universe is always guiding you\", \"a journey of self-discovery\", \"embark on this journey\", \"embark on a journey\", \"embrace the challenges and opportunities\", \"you possess the inner wisdom\", \"as we embark\", \"as we weave together\", \"a tapestry of energies\", \"deepen your connection with your emotions\", \"trust in the process\", \"soulmate\", \"soulmates\", \"twin flame\", \"destined to be together\", \"meant to be together\", \"guaranteed\", \"guarantee\", \"you will marry\", \"you will meet the one\", \"they will come back\", \"break up\", \"you should leave\", \"you should stay\", \"is he cheating\", \"is she cheating\", \"catch them\", \"lying to you\", \"this will happen\", \"this is your fate\", \"doomed\", \"cursed\", \"ruined by\", \"guaranteed love\", \"guaranteed success\", \"guaranteed money\"];\nconst tonePatterns = [\"will definitely\", \"will certainly\", \"must leave\", \"must stay\", \"diagnosed with\", \"legal advice\", \"medical advice\", \"saturn will destroy\", \"mercury retrograde will ruin\"];\nconst required = d.pipelineConfig.required || [];\nconst prefixes = d.pipelineConfig.prefixes || [];\nconst issues = [];\nconst factBlob = JSON.stringify(d.verifiedFacts).toLowerCase();\nconst ids = sections.map(s => String(s.id || ''));\nfor (const id of required) if (!ids.includes(id)) issues.push(`structure: missing ${id}`);\nfor (const prefix of prefixes) if (!ids.some(id => id.startsWith(prefix))) issues.push(`structure: missing ${prefix}*`);\nconst normalize = s => String(s || '').toLowerCase().replace(/[^a-z0-9.]+/g,' ').trim();\nconst shingles = s => { const w=normalize(s).split(/\\s+/).filter(Boolean); const out=new Set(); for(let i=0;i<=w.length-5;i++) out.add(w.slice(i,i+5).join(' ')); return out; };\nconst paraRows = [];\nfor (const section of sections) {\n  if (!section.id || typeof section.prose !== 'string' || !section.prose.trim()) { issues.push(`structure: malformed section ${section.id || 'unknown'}`); continue; }\n  if (!Array.isArray(section.factsCited) || !section.factsCited.length) issues.push(`specificity: no factsCited in ${section.id}`);\n  const proseLower = section.prose.toLowerCase();\n  for (const phrase of banned) if (proseLower.includes(phrase)) issues.push(`bannedPhrase: '${phrase}' in ${section.id}`);\n  for (const phrase of tonePatterns) if (proseLower.includes(phrase)) issues.push(`tone: '${phrase}' in ${section.id}`);\n  if (section.prose.includes('\u2014')) issues.push(`style: em-dash in ${section.id}`);\n  const paragraphs = section.prose.split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);\n  if ((section.factsCited || []).length < paragraphs.length) issues.push(`specificity: fewer citations than paragraphs in ${section.id}`);\n  for (const citation of (section.factsCited || [])) {\n    const nums = String(citation).match(/\\d+(?:\\.\\d+)?/g) || [];\n    if (nums.some(n => !factBlob.includes(n))) issues.push(`factual: citation not found in verifiedFacts: ${citation}`);\n  }\n  for (const p of paragraphs) paraRows.push({id:section.id,text:p,set:shingles(p)});\n}\nfor (let i=0;i<paraRows.length;i++) for(let j=i+1;j<paraRows.length;j++) {\n  const a=paraRows[i].set,b=paraRows[j].set; if(!a.size||!b.size) continue;\n  let overlap=0; for(const x of a) if(b.has(x)) overlap++;\n  const ratio=overlap/Math.min(a.size,b.size);\n  if(ratio>0.30) issues.push(`duplicate: ${paraRows[i].id} vs ${paraRows[j].id} (${Math.round(ratio*100)}%)`);\n}\nreturn [{json:{...d, lint:{attempt:2, passed:issues.length===0, issues}}}];"
+      }
+    },
+    {
+      "id": "93b9f61c-df0e-5fff-8930-aaf8da1eeab0",
+      "name": "Lint Passed #2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2420,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d2ca41eb-28b7-5eaf-a28c-e10ed6dbaab5",
+              "leftValue": "={{ $json.lint.passed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ac3b1a5e-84d3-507d-b1aa-1877b4924fd6",
+      "name": "Build Judge Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d=$input.first().json;\nconst rubric={hardGates:['factual','banned','specific','dup','tone','structure','length','ageConsent'],scores:['precision','insightDensity','voiceFit','empowerment','personalization','clarity','cohesion']};\nconst aiPrompt=`Judge this report against the supplied CSG quality bar. Return ONLY strict JSON: {\"hardGates\":{\"factual\":true,\"banned\":true,\"specific\":true,\"dup\":true,\"tone\":true,\"structure\":true,\"length\":true,\"ageConsent\":true},\"scores\":{\"precision\":1,\"insightDensity\":1,\"voiceFit\":1,\"empowerment\":1,\"personalization\":1,\"clarity\":1,\"cohesion\":1},\"verdict\":\"pass|revise|reject\",\"flags\":[],\"notes\":\"...\"}. Paid requires every score >=4. Free requires every score >=3. Deterministic lint already passed; do not override a factual problem you detect.\n\nRUBRIC:${JSON.stringify(rubric)}\nFACTS:${JSON.stringify(d.verifiedFacts)}\nREPORT:${JSON.stringify(d.generated)}`;\nreturn [{json:{...d,aiPrompt}}];"
+      }
+    },
+    {
+      "id": "36ded858-1416-5942-b13f-0a05af7f3f49",
+      "name": "Judge",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2860,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.aiPrompt }}",
+        "hasOutputParser": false
+      }
+    },
+    {
+      "id": "9c5df269-0db6-5f5a-a1bf-9bc434014f37",
+      "name": "Kimi Judge Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        180
+      ],
+      "parameters": {
+        "model": "={{ \"openai/gpt-oss-120b\" }}",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "credentials": {
+        "groqApi": {
+          "id": "gROQCSGReports01",
+          "name": "CSG Groq Reports"
+        }
+      }
+    },
+    {
+      "id": "c7433892-1bf6-5722-b3bd-bc7f5d96d7a5",
+      "name": "Finalize Judged Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d=$('Build Judge Prompt').first().json;\nconst raw=$input.first().json.text ?? $input.first().json.output ?? $input.first().json.content ?? '';\nconst text=String(raw).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();\nlet judge;try{judge=JSON.parse(text);}catch(_){const a=text.indexOf('{'),b=text.lastIndexOf('}');const candidate=a<0||b<=a?text:text.slice(a,b+1);judge=JSON.parse(require('jsonrepair').jsonrepair(candidate));}\nconst gates=Object.values(judge.hardGates||{});const scores=Object.values(judge.scores||{}).map(Number);\nconst threshold=d.tier==='paid'?4:3;\nconst passed=judge.verdict==='pass'&&gates.length>=8&&gates.every(Boolean)&&scores.length>=7&&scores.every(x=>x>=threshold);\nconst status=passed?(d.tier==='paid'?'needs_editor':'approved'):'rejected';\nconst reasons=passed?[]:[...(judge.flags||[]),...(judge.notes?[judge.notes]:[])];\nreturn [{json:{reportId:d.reportId,reportType:d.reportType,tier:d.tier,callbackUrl:d.callbackUrl,dispatchClaim:d.dispatchClaim,status,sections:d.generated.sections,judge,editorNote:d.tier==='paid'&&passed?'Human editor sign-off required before approved delivery':null,rejectReasons:reasons}}];"
+      }
+    },
+    {
+      "id": "3480a50c-e48d-5645-a4b0-cd95ff79578b",
+      "name": "Finalize Rejected Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const d=$input.first().json;\nreturn [{json:{reportId:d.reportId,reportType:d.reportType,tier:d.tier,callbackUrl:d.callbackUrl,dispatchClaim:d.dispatchClaim,status:'rejected',sections:[],judge:{hardGates:{deterministicLint:false},scores:{},verdict:'reject'},editorNote:null,rejectReasons:d.lint?.issues||['deterministic lint failed']}}];"
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Master": {
+      "main": [
+        [
+          {
+            "node": "Validate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request": {
+      "main": [
+        [
+          {
+            "node": "Build Writer Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Writer Prompt": {
+      "main": [
+        [
+          {
+            "node": "Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writer": {
+      "main": [
+        [
+          {
+            "node": "Parse Writer JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Writer JSON": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Lint #1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Revision Prompt": {
+      "main": [
+        [
+          {
+            "node": "Revision Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revision Writer": {
+      "main": [
+        [
+          {
+            "node": "Parse Revision JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Revision JSON": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Lint #2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Judge Prompt": {
+      "main": [
+        [
+          {
+            "node": "Judge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Judge": {
+      "main": [
+        [
+          {
+            "node": "Finalize Judged Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic Lint #1": {
+      "main": [
+        [
+          {
+            "node": "Lint Passed #1?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lint Passed #1?": {
+      "main": [
+        [
+          {
+            "node": "Build Judge Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Revision Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic Lint #2": {
+      "main": [
+        [
+          {
+            "node": "Lint Passed #2?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lint Passed #2?": {
+      "main": [
+        [
+          {
+            "node": "Build Judge Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize Rejected Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kimi Writer Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kimi Revision Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Revision Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kimi Judge Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Judge",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodeGroups": []
+}

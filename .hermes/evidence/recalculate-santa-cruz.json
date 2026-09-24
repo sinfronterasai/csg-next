@@ -1,0 +1,242 @@
+{
+  "birth": {
+    "date": "1980-03-09",
+    "time": "16:21",
+    "location": "Santa Cruz, California",
+    "timezone": "America/Los_Angeles",
+    "latitude": 36.97412,
+    "longitude": -122.0308
+  },
+  "positions": [
+    {
+      "id": "natal.sun.position",
+      "display": "Sun at 19.59° Pisces in the 7th house",
+      "value": {
+        "key": "sun",
+        "label": "Sun",
+        "longitude": 349.5899999999999,
+        "degreeInSign": 19.59,
+        "sign": "pisces",
+        "signLabel": "Pisces",
+        "house": 7,
+        "retrograde": false,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.moon.position",
+      "display": "Moon at 19.85° Sagittarius in the 4th house",
+      "value": {
+        "key": "moon",
+        "label": "Moon",
+        "longitude": 259.85,
+        "degreeInSign": 19.85,
+        "sign": "sagittarius",
+        "signLabel": "Sagittarius",
+        "house": 4,
+        "retrograde": false,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.mercury.position",
+      "display": "Mercury at 12.07° Pisces in the 7th house, in detriment (retrograde)",
+      "value": {
+        "key": "mercury",
+        "label": "Mercury",
+        "longitude": 342.06999999999994,
+        "degreeInSign": 12.07,
+        "sign": "pisces",
+        "signLabel": "Pisces",
+        "house": 7,
+        "retrograde": true,
+        "dignity": "detriment"
+      }
+    },
+    {
+      "id": "natal.venus.position",
+      "display": "Venus at 3.62° Taurus in the 9th house, in domicile",
+      "value": {
+        "key": "venus",
+        "label": "Venus",
+        "longitude": 33.620000000000005,
+        "degreeInSign": 3.62,
+        "sign": "taurus",
+        "signLabel": "Taurus",
+        "house": 9,
+        "retrograde": false,
+        "dignity": "domicile"
+      }
+    },
+    {
+      "id": "natal.mars.position",
+      "display": "Mars at 0.60° Virgo in the 1st house (retrograde)",
+      "value": {
+        "key": "mars",
+        "label": "Mars",
+        "longitude": 150.60000000000002,
+        "degreeInSign": 0.6,
+        "sign": "virgo",
+        "signLabel": "Virgo",
+        "house": 1,
+        "retrograde": true,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.jupiter.position",
+      "display": "Jupiter at 3.46° Virgo in the 1st house, in detriment (retrograde)",
+      "value": {
+        "key": "jupiter",
+        "label": "Jupiter",
+        "longitude": 153.46000000000004,
+        "degreeInSign": 3.46,
+        "sign": "virgo",
+        "signLabel": "Virgo",
+        "house": 1,
+        "retrograde": true,
+        "dignity": "detriment"
+      }
+    },
+    {
+      "id": "natal.saturn.position",
+      "display": "Saturn at 23.97° Virgo in the 2nd house (retrograde)",
+      "value": {
+        "key": "saturn",
+        "label": "Saturn",
+        "longitude": 173.97000000000003,
+        "degreeInSign": 23.97,
+        "sign": "virgo",
+        "signLabel": "Virgo",
+        "house": 2,
+        "retrograde": true,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.uranus.position",
+      "display": "Uranus at 25.53° Scorpio in the 4th house (retrograde)",
+      "value": {
+        "key": "uranus",
+        "label": "Uranus",
+        "longitude": 235.52999999999997,
+        "degreeInSign": 25.53,
+        "sign": "scorpio",
+        "signLabel": "Scorpio",
+        "house": 4,
+        "retrograde": true,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.neptune.position",
+      "display": "Neptune at 22.62° Sagittarius in the 4th house",
+      "value": {
+        "key": "neptune",
+        "label": "Neptune",
+        "longitude": 262.62,
+        "degreeInSign": 22.62,
+        "sign": "sagittarius",
+        "signLabel": "Sagittarius",
+        "house": 4,
+        "retrograde": false,
+        "dignity": null
+      }
+    },
+    {
+      "id": "natal.pluto.position",
+      "display": "Pluto at 21.22° Libra in the 3rd house (retrograde)",
+      "value": {
+        "key": "pluto",
+        "label": "Pluto",
+        "longitude": 201.22000000000003,
+        "degreeInSign": 21.22,
+        "sign": "libra",
+        "signLabel": "Libra",
+        "house": 3,
+        "retrograde": true,
+        "dignity": null
+      }
+    }
+  ],
+  "mc": {
+    "key": "midheaven",
+    "label": "Midheaven",
+    "longitude": 53.44,
+    "degreeInSign": 23.44,
+    "sign": "taurus",
+    "signLabel": "Taurus",
+    "house": 10,
+    "retrograde": false,
+    "dignity": null,
+    "display": "Midheaven at 23.44° Taurus in the 10th house"
+  },
+  "rulers": {
+    "dsc": {
+      "house": 7,
+      "ruler": "saturn",
+      "rulerLabel": "Saturn",
+      "sign": "virgo",
+      "degreeInSign": 23.97,
+      "house_of_ruler": 2,
+      "retrograde": true,
+      "dignity": null,
+      "condition": "in Virgo",
+      "provenance": [
+        "common.cusp.7",
+        "natal.saturn.position"
+      ]
+    },
+    "second": {
+      "house": 2,
+      "ruler": "mercury",
+      "rulerLabel": "Mercury",
+      "sign": "pisces",
+      "degreeInSign": 12.07,
+      "house_of_ruler": 7,
+      "retrograde": true,
+      "dignity": "detriment",
+      "condition": "in detriment",
+      "provenance": [
+        "common.cusp.2",
+        "natal.mercury.position"
+      ]
+    },
+    "sixth": {
+      "house": 6,
+      "ruler": "saturn",
+      "rulerLabel": "Saturn",
+      "sign": "virgo",
+      "degreeInSign": 23.97,
+      "house_of_ruler": 2,
+      "retrograde": true,
+      "dignity": null,
+      "condition": "in Virgo",
+      "provenance": [
+        "common.cusp.6",
+        "natal.saturn.position"
+      ]
+    },
+    "tenth": {
+      "house": 10,
+      "ruler": "venus",
+      "rulerLabel": "Venus",
+      "sign": "taurus",
+      "degreeInSign": 3.62,
+      "house_of_ruler": 9,
+      "retrograde": false,
+      "dignity": "domicile",
+      "condition": "in domicile",
+      "provenance": [
+        "common.cusp.10",
+        "natal.venus.position"
+      ]
+    }
+  },
+  "period": {
+    "fromUtc": "2026-09-23T07:00:00.000Z",
+    "toUtc": "2028-09-01T07:00:00.000Z"
+  },
+  "months": 24,
+  "windows": 14
+}

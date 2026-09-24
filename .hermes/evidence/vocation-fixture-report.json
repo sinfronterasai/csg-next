@@ -1,0 +1,77 @@
+{
+  "title": "Vocation & Wealth Map",
+  "sections": [
+    {
+      "heading": "coverThesis",
+      "body": "Your professional path is best approached as a sequence of deliberate experiments grounded in your public role, values, and practical agency."
+    },
+    {
+      "heading": "careerArchetype",
+      "body": "Your career archetype is Disciplined Craftsperson: Saturn to Sun/MC -> disciplined, masterful."
+    },
+    {
+      "heading": "publicRole",
+      "body": "The Midheaven evidence points to a public role shaped by taurus themes and the chart's 10th-house ruler."
+    },
+    {
+      "heading": "moneyPsychology",
+      "body": "Money choices become clearer when you separate security needs from the value you want your work to create."
+    },
+    {
+      "heading": "dailyWork",
+      "body": "Design daily work around repeatable strengths, clear boundaries, and tasks that keep your judgment engaged."
+    },
+    {
+      "heading": "growthEngine",
+      "body": "Growth comes from building a visible body of work and choosing opportunities that compound skill, trust, and reach."
+    },
+    {
+      "heading": "legacyPower",
+      "body": "Your longer-term influence grows when practical results and meaningful contribution reinforce each other."
+    },
+    {
+      "heading": "careerCompass",
+      "body": "Use this map as a decision aid: notice the window, name the choice, test the next step, and review the result."
+    },
+    {
+      "heading": "launchWindows",
+      "body": "2027-09-15 to 2027-11-04: jupiter sextile jupiter; applying; score 99.91.\n2028-03-26 to 2028-07-01: jupiter sextile jupiter; stationary; score 91.655.\n2026-10-15 to 2027-02-11: jupiter square mc; stationary; score 94.947.\n2027-06-12 to 2027-08-14: jupiter square mc; applying; score 99.518.\n2027-11-11 to 2028-03-16: jupiter trine mc; stationary; score 97.384.\n2028-07-10 to 2028-09-01: jupiter trine mc; applying; score 99.662.\n2027-07-24 to 2027-09-18: jupiter square mercury; applying; score 99.468.\n2028-08-22 to 2028-09-01: jupiter trine mercury; applying; score 80.137.\n2027-10-19 to 2028-04-25: jupiter trine saturn; applying; score 99.983.\n2028-06-01 to 2028-08-24: jupiter trine saturn; applying; score 99.867.\n2026-09-23 to 2026-11-04: jupiter square venus; applying; score 99.92.\n2027-01-21 to 2027-06-28: jupiter square venus; applying; score 99.998.\n2027-09-23 to 2027-11-29: jupiter trine venus; applying; score 99.732.\n2028-02-25 to 2028-07-26: jupiter trine venus; applying; score 99.91.\n2028-07-31 to 2028-09-01: saturn sextile jupiter; stationary; score 77.211.\n2026-09-23 to 2026-10-23: saturn square jupiter; separating; score 81.659.\n2027-01-27 to 2027-05-12: saturn square jupiter; applying; score 99.69.\n2027-11-23 to 2028-01-23: saturn square jupiter; stationary; score 74.254.\n2026-10-14 to 2027-02-04: saturn sextile mercury; stationary; score 88.084.\n2027-04-10 to 2028-04-13: saturn square saturn; applying; score 99.998.\n2028-07-27 to 2028-09-01: saturn conjunction venus; stationary; score 63.17."
+    }
+  ],
+  "packSummary": {
+    "generatedLocalDate": "2026-09-23",
+    "displayTimezone": "Europe/Paris",
+    "period": {
+      "fromUtc": "2026-09-22T22:00:00.000Z",
+      "toUtc": "2028-08-31T22:00:00.000Z"
+    },
+    "monthKeys": [
+      "2026-09",
+      "2026-10",
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+      "2027-03",
+      "2027-04",
+      "2027-05",
+      "2027-06",
+      "2027-07",
+      "2027-08",
+      "2027-09",
+      "2027-10",
+      "2027-11",
+      "2027-12",
+      "2028-01",
+      "2028-02",
+      "2028-03",
+      "2028-04",
+      "2028-05",
+      "2028-06",
+      "2028-07",
+      "2028-08"
+    ],
+    "windowCount": 21,
+    "canonicalWindowHash": "33790d38bdd27028c59d5815beb24ee81c43f8216c062135764c0a6bb6ebc2c6"
+  }
+}

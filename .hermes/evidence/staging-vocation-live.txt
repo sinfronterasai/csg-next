@@ -1,0 +1,73 @@
+COSMIC SPIRIT GUIDE
+Vocation & Wealth Map
+Prepared for Vocation
+1980-03-09 | 16:21 | Santa Cruz, California
+Overview
+This deterministic professional timing map begins in the saved birth-chart timezone on 2026-09-23 and covers
+exactly 24 calendar months.
+Display timezone: Europe/Paris
+UTC period: 2026-09-22T22:00:00.000Z through 2028-08-31T22:00:00.000Z
+Career windows: 21 qualifying windows. Window-pack hash:
+33790d38bdd27028c59d5815beb24ee81c43f8216c062135764c0a6bb6ebc2c6
+Cover Thesis
+coverThesis is a verified staging fixture interpretation grounded in the Vocation ledger.
+Career Archetype
+careerArchetype is a verified staging fixture interpretation grounded in the Vocation ledger.
+Public Role
+publicRole is a verified staging fixture interpretation grounded in the Vocation ledger.
+Money Psychology
+moneyPsychology is a verified staging fixture interpretation grounded in the Vocation ledger.
+Daily Work
+dailyWork is a verified staging fixture interpretation grounded in the Vocation ledger.
+Growth Engine
+growthEngine is a verified staging fixture interpretation grounded in the Vocation ledger.
+Cosmic Spirit Guide  |  Vocation & Wealth Map  |  Page 1
+Cosmic Spirit Guide  |  Vocation & Wealth Map  |  Page 1
+
+Legacy Power
+legacyPower is a verified staging fixture interpretation grounded in the Vocation ledger.
+Career Compass
+careerCompass is a verified staging fixture interpretation grounded in the Vocation ledger.
+Launch Windows
+launchWindows is a verified staging fixture interpretation grounded in the Vocation ledger.
+Career Windows
+2027-09-15 - 2027-11-04 | jupiter sextile jupiter | applying | score 99.91
+Exact hits: 2027-10-08T19:52:21.000Z
+2028-03-26 - 2028-07-01 | jupiter sextile jupiter | stationary | score 91.655
+2026-10-15 - 2027-02-11 | jupiter square mc | stationary | score 94.947
+2027-06-12 - 2027-08-14 | jupiter square mc | applying | score 99.518
+Exact hits: 2027-07-16T09:47:19.000Z
+2027-11-11 - 2028-03-16 | jupiter trine mc | stationary | score 97.384
+2028-07-10 - 2028-09-01 | jupiter trine mc | applying | score 99.662
+Exact hits: 2028-08-14T06:24:36.000Z
+2027-07-24 - 2027-09-18 | jupiter square mercury | applying | score 99.468
+Exact hits: 2027-08-21T10:12:14.000Z
+2028-08-22 - 2028-09-01 | jupiter trine mercury | applying | score 80.137
+2027-10-19 - 2028-04-25 | jupiter trine saturn | applying | score 99.983
+Exact hits: 2027-11-24T22:36:08.000Z, 2028-03-01T08:13:12.000Z
+2028-06-01 - 2028-08-24 | jupiter trine saturn | applying | score 99.867
+Exact hits: 2028-07-23T01:50:47.000Z
+2026-09-23 - 2026-11-04 | jupiter square venus | applying | score 99.92
+Exact hits: 2026-09-26T00:03:53.000Z
+2027-01-21 - 2027-06-28 | jupiter square venus | applying | score 99.998
+Exact hits: 2027-03-10T22:05:44.000Z, 2027-05-16T18:18:15.000Z
+2027-09-23 - 2027-11-29 | jupiter trine venus | applying | score 99.732
+Exact hits: 2027-10-23T04:51:16.000Z
+Cosmic Spirit Guide  |  Vocation & Wealth Map  |  Page 2
+Cosmic Spirit Guide  |  Vocation & Wealth Map  |  Page 2
+
+2028-02-25 - 2028-07-26 | jupiter trine venus | applying | score 99.91
+Exact hits: 2028-04-16T06:04:59.000Z, 2028-06-10T16:36:37.000Z
+2028-07-31 - 2028-09-01 | saturn sextile jupiter | stationary | score 77.211
+2026-09-23 - 2026-10-23 | saturn square jupiter | separating | score 81.659
+2027-01-27 - 2027-05-12 | saturn square jupiter | applying | score 99.69
+Exact hits: 2027-03-24T10:03:04.000Z
+2027-11-23 - 2028-01-23 | saturn square jupiter | stationary | score 74.254
+2026-10-14 - 2027-02-04 | saturn sextile mercury | stationary | score 88.084
+2027-04-10 - 2028-04-13 | saturn square saturn | applying | score 99.998
+Exact hits: 2027-05-31T22:05:49.000Z, 2027-10-22T17:48:12.000Z, 2028-02-21T07:13:21.000Z
+2028-07-27 - 2028-09-01 | saturn conjunction venus | stationary | score 63.17
+Disclaimer
+Astrology is a reflective tool, not a guarantee of employment, income, wealth, or any specific outcome. Use these windows
+as prompts for informed choices, practical planning, and personal agency.
+Cosmic Spirit Guide  |  Vocation & Wealth Map  |  Page 3
