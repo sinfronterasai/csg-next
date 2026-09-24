@@ -12,7 +12,7 @@
 //   - natal     (FREE gateway product; summary-first)
 //   - transit   ($49, 12-month forward ephemeris)
 //   - synastry  ($65, two-chart overlay)
-//   - vocation  ($55, career/finance from 2nd/6th/10th + MC + Saturn/Jupiter)
+//   - vocation  ($39, career/finance from 2nd/6th/10th + MC + Saturn/Jupiter)
 // Tarot keeps its own engine (src/lib/tarot/*). Zoom is booking-only.
 // Daily Dispatch reuses buildTransitBodies/moonPhase from this module.
 // ============================================================================

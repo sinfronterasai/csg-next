@@ -30,7 +30,7 @@ describe('LB-PUBLIC: launch allowlist after gate removal', () => {
     // These report types are NOT in the launch set — they must stay blocked
     // even after the beta allowlist is removed. This is the "unreleased report
     // types remain blocked" requirement.
-    const banned = ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot'];
+    const banned = ['relationship', 'lovetiming', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot'];
     for (const t of banned) {
       expect(isLaunchType(t)).toBe(false);
       const g = gateCheckout(t, '999');
@@ -177,7 +177,7 @@ describe('LB-PUBLIC: checkout route — ordinary user can buy Love Blueprint', (
 
   it('non-launch report types still rejected at checkout (404, unchanged)', async () => {
     verifyToken.mockReturnValue({ userId: '123' });
-    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic']) {
+    for (const banned of ['relationship', 'lovetiming', 'karmicshadow', 'fullcosmic']) {
       jest.clearAllMocks();
       createCheckout = require('@/lib/billing/reportPurchase').createReportCheckoutSession;
       const res = await checkoutCall({ reportType: banned });
@@ -333,7 +333,7 @@ describe('LB-PUBLIC: generation route — paid reports still require verified pu
   });
 
   it('unreleased report types remain blocked at generation (404)', async () => {
-    for (const banned of ['relationship', 'lovetiming', 'vocation', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
+    for (const banned of ['relationship', 'lovetiming', 'karmicshadow', 'fullcosmic', 'synastry', 'composite', 'couples', 'tarot']) {
       jest.clearAllMocks();
       dispatched = jest.fn(async () => ({ ok: true, status: 200 }));
       const res = await genCall({ type: banned, purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });

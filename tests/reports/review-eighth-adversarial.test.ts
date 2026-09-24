@@ -49,12 +49,12 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
     }
   });
 
-  test('Vocation reports semantic corruption and career-window blocker together',async()=>{
+  test('Vocation reports semantic corruption without masking a valid career-window pack',async()=>{
     const v:any=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
     v.reportData.vocationEvidence.mcSign=v.reportData.vocationEvidence.mcSign==='aries'?'taurus':'aries';
     const m=miss('vocation',v);
     expect(m).toMatch(/mcSign/);
-    expect(m).toMatch(/career windows/);
+    expect(m).not.toMatch(/career windows/);
   });
 
   test('common aspect index must equal canonical aspect facts by full content, not ids only',async()=>{
@@ -97,7 +97,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
     expect(preflightReport('vocation',v).status).toBe('input_incomplete');
     // restore and confirm it passes (placement was correct)
     r.house=okHouse;
-    expect(preflightReport('vocation',v).status).toBe('input_incomplete'); // still fails closed (career windows)
+    expect(preflightReport('vocation',v).status).toBe('complete');
   });
 
   test('node rulers use the locked numeric 0 sentinel house; wrong house fails',async()=>{

@@ -16,6 +16,7 @@ import {
 import { preflightReport, validateFactResolution } from './schemas';
 import { relationshipEvidence, loveBlueprintEvidence, vocationEvidence, karmicEvidence, evidenceFact } from './evidence';
 import { validateReportType, type VerifiedFactsV2, type ReportType, type VerifiedFact, type PreflightResult } from './types';
+import { buildVocationCareerWindowPack } from './careerWindows';
 
 export interface BirthInput {
   name?: string;
@@ -143,14 +144,21 @@ export async function buildVerifiedFactsV2(
     }
   }
   if (rt === 'vocation') {
+    const rulerKeys = [common.rulers?.second?.ruler, common.rulers?.tenth?.ruler].filter(Boolean) as string[];
+    const timezone = birth.timezone;
+    if (!birth.time || birth.unknownTime) throw new Error('vocation requires a known birth time and saved timezone');
+    const generatedLocalDate = asOfDate || new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const careerWindowPack = await buildVocationCareerWindowPack(birth, generatedLocalDate, rulerKeys);
+    for (const fact of Object.values(careerWindowPack.facts)) push(fact);
     const arch = vocationArchetype(common);
     reportData.vocationArchetype = arch;
     push({ id: 'score.vocation.archetype', kind: 'score', source: 'derived-deterministic',
       display: `Vocation ${arch.code} — ${arch.rule}`, value: arch, provenance: arch.drivers });
-    const vocEv = vocationEvidence(common);
+    const vocEv = vocationEvidence(common, careerWindowPack);
     reportData.vocationEvidence = vocEv;
+    reportData.vocationCareerWindows = careerWindowPack;
     // F5-ref1: surfaced fact provenance includes MC position + every complete MC-aspect ID.
-    const vocProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', vocEv.mcPositionId, ...vocEv.mcAspects];
+    const vocProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', vocEv.mcPositionId, ...vocEv.mcAspects, ...Object.keys(careerWindowPack.facts)];
     push(evidenceFact('reportData.vocationEvidence', vocEv, vocProv));
   }
   if (rt === 'karmicshadow') {
@@ -175,6 +183,15 @@ export async function buildVerifiedFactsV2(
   // Fail closed on any dangling provenance / driver id (B2).
   const resolution = validateFactResolution(ledger);
   if (!resolution.ok) throw new LedgerResolutionError(resolution.dangling);
+
+  if (rt === 'vocation') {
+    const evidence = ledger.reportData.vocationEvidence as any;
+    const pack = evidence?.careerWindowPack;
+    if (!pack || pack.months?.length !== 24 || Object.keys(pack.facts ?? {}).some((id) => !ledger.facts[id])) {
+      throw new LedgerResolutionError(['vocation.careerWindowPack']);
+    }
+    evidence.careerWindowsDeclared = true;
+  }
 
   return ledger;
 }

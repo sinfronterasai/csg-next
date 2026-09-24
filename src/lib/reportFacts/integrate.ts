@@ -63,6 +63,9 @@ export async function buildVerifiedFactsForReport(
       preflight: { status: 'input_incomplete', mode: 'preflight_failed', missing: e.bodies.map(key => `natal.${key}.position: ephemeris unavailable`) },
     };
     if (e instanceof LedgerResolutionError) throw new V2BuildError(e.message);
+    if (reportType === 'vocation' && e instanceof Error && /known birth time|saved timezone|vocation requires/.test(e.message)) {
+      return { ok: false, preflight: { status: 'input_incomplete', mode: 'preflight_failed', missing: ['vocation.knownBirthTime'] } };
+    }
     throw e;
   }
   const preflight = preflightReport(reportType as ReportType, ledger);

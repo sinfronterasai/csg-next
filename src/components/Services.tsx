@@ -40,7 +40,7 @@ export default function Services() {
               <p className="text-gray-400 text-sm leading-relaxed">Decode Midheaven aspects and 2nd/10th House dynamics for perfect professional alignment.</p>
             </div>
             <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
-              <span className="font-serif text-gold">$55</span>
+              <span className="font-serif text-gold">$39</span>
               <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
             </div>
           </div>

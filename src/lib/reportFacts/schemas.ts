@@ -912,14 +912,18 @@ function vocationEvidenceCheck(v2: VerifiedFactsV2): string | null {
   const surfaced = v2.facts['reportData.vocationEvidence'];
   if (!surfaced) semanticErrors.push('surfaced vocationEvidence fact missing');
   else {
-    const expectedProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', ev.mcPositionId, ...expectedMcAspects].sort();
+    const expectedProv = ['common.ruler.10', 'common.ruler.2', 'common.ruler.6', 'score.vocation.archetype', ev.mcPositionId, ...expectedMcAspects, ...Object.keys(ev.careerWindowPack?.facts ?? {})].sort();
     const gotProv = [...(surfaced.provenance || [])].sort();
     if (JSON.stringify(gotProv) !== JSON.stringify(expectedProv)) semanticErrors.push(`surfaced provenance ${gotProv} != ${expectedProv}`);
   }
   // T3-7: Vocation fails closed until exact 24-month career windows exist. This is appended
   // independently of the semantic errors collected above (neither suppresses the other).
   const careerBlocker = (typeof ev.careerWindowsDeclared !== 'boolean') ? 'missing careerWindowsDeclared'
-    : (ev.careerWindowsDeclared !== true ? 'career windows not yet implemented' : null);
+    : (ev.careerWindowsDeclared !== true ? 'career windows invalid' : null);
+  if (ev.careerWindowsDeclared === true) {
+    if (!ev.careerWindowPack || ev.careerWindowPack.months?.length !== 24) semanticErrors.push('careerWindowPack must contain exactly 24 month buckets');
+    if (ev.careerWindowPack && ev.careerWindowPack.windows?.some((w: any) => !w.evidenceIds?.every((id: string) => !!v2.facts[id]))) semanticErrors.push('career window evidence id unresolved');
+  }
   if (careerBlocker) semanticErrors.push(careerBlocker);
   if (semanticErrors.length > 0) return semanticErrors.join(' | ');
   return null;

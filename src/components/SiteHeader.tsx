@@ -54,7 +54,7 @@ export default function SiteHeader() {
               { label: 'Birth Chart Report', price: 'FREE', href: '/reports' },
               { label: 'Yearly Transit Forecast', price: '$49', href: '/reports' },
               { label: 'Synastry Love Report', price: '$65', href: '/reports' },
-              { label: 'Vocation & Wealth Map', price: '$55', href: '/reports' },
+              { label: 'Vocation & Wealth Map', price: '$39', href: '/reports' },
               { label: 'Tarot Spreads', price: 'from $4.99', href: '/tarot' },
               { label: 'Book a Live Zoom', price: '$120', href: '/reports' },
             ].map((r) => (

@@ -40,6 +40,16 @@ export function buildRollingUtcPeriod(fromDate: string, displayTimezone: string)
   return { fromUtc: from.toISOString(), toUtc: to.toISOString(), displayTimezone, reportType: YEARLY_TRANSIT_REPORT_TYPE };
 }
 
+export function buildRollingUtcPeriodMonths(fromDate: string, displayTimezone: string, months: number): { fromUtc: string; toUtc: string } {
+  if (!Number.isInteger(months) || months <= 0) throw new Error(`invalid month count: ${months}`);
+  const from = localMidnightParts(fromDate, displayTimezone);
+  const [year, month] = fromDate.split('-').map(Number);
+  const total = month - 1 + months;
+  const toLocal = `${String(year + Math.floor(total / 12)).padStart(4, '0')}-${String((total % 12) + 1).padStart(2, '0')}-01`;
+  const to = localMidnightParts(toLocal, displayTimezone);
+  return { fromUtc: from.toISOString(), toUtc: to.toISOString() };
+}
+
 export function isInInclusivePeriod(instantUtc: string, period: { fromUtc: string; toUtc: string }): boolean {
   const instant = Date.parse(instantUtc);
   const from = Date.parse(period.fromUtc);

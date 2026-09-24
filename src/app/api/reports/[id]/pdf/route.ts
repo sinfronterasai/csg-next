@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken, getUserById } from '@/lib/auth';
 import { getReadingById, isReportDeliverable } from '@/lib/profile/store';
 import { buildPaidNatalPdf, type PaidNatalPdfInput, type PaidFact } from '@/lib/paidNatalPdf';
+import { buildVocationPdf } from '@/lib/vocationPdf';
 import { compilePremiumNatalReport } from '@/lib/deterministicReportCompiler';
 import { buildYearlyTransitPdf } from '@/lib/yearlyTransit/pdf';
 
@@ -20,6 +21,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       if (!pack || typeof result.reportId !== 'string') return NextResponse.json({ error: 'Yearly transit facts incomplete' }, { status: 422 });
       const pdf = await buildYearlyTransitPdf(pack, result.title || record.title || 'Yearly Transit Forecast', String(result.metadata?.birthData?.firstName || 'Seeker'), result.pipeline?.sections?.map((section: any) => ({ heading: String(section.id || 'Section'), body: String(section.prose || '') })) || []);
       return new Response(pdf as BodyInit, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="cosmic-spirit-guide-yearly-transit-${id}.pdf"`, 'Cache-Control': 'private, no-store' } });
+    }
+    if (record && record.type === 'report' && record.pricePaid != null && record.pricePaid > 0 && result?.reportType === 'vocation' && isReportDeliverable(record)) {
+      const metadata = result.metadata;
+      const birth = metadata?.birthData;
+      const ledger = metadata?.verifiedFacts;
+      const pack = ledger?.reportData?.vocationCareerWindows ?? ledger?.reportData?.vocationEvidence?.careerWindowPack;
+      const sections = result.pipeline?.sections;
+      if (!birth || !ledger?.facts || !pack || !Array.isArray(sections)) return NextResponse.json({ error: 'Vocation facts incomplete' }, { status: 422 });
+      const pdf = await buildVocationPdf({
+        title: result.title || record.title || 'Vocation & Wealth Map', name: String(birth.firstName || 'Seeker'),
+        birth: { date: String(birth.dob), time: String(birth.birthTime || ''), location: String(birth.place) },
+        pack,
+        sections: sections.map((s: any) => ({ id: String(s.id || 'section'), heading: String(s.id || 'Section'), prose: String(s.prose || '') })),
+      });
+      return new Response(pdf as BodyInit, { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="cosmic-spirit-guide-vocation-${id}.pdf"`, 'Cache-Control': 'private, no-store' } });
     }
     if (!record || record.type !== 'report' || record.pricePaid == null || record.pricePaid <= 0 || !['natal', 'natalpremium'].includes(result?.reportType) || !isReportDeliverable(record)) {
       return NextResponse.json({ error: 'Paid natal report is not available' }, { status: 404 });

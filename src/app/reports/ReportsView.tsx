@@ -38,6 +38,10 @@ const ALLOWED: {
     id: 'transit', name: 'Yearly Transit Forecast', blurb: 'A deterministic twelve-month map of your strongest transit windows, exact hits, eclipses, and practical timing. $49 — one-time purchase, yours forever.',
     icon: 'fa-compass', accent: 'gold', cta: 'GET FORECAST — $49', kind: 'paid',
   },
+  {
+    id: 'vocation', name: 'Vocation & Wealth Map', blurb: 'A deterministic 24-month professional timing map for your public role, work, money patterns, and next launch windows. $39 — one-time purchase, yours forever.',
+    icon: 'fa-briefcase', accent: 'gold', cta: 'GET VOCATION MAP — $39', kind: 'paid',
+  },
 ];
 
 export default function Reports() {

@@ -46,6 +46,7 @@ const BODY_KEYS = new Set(['reportId', 'status', 'reportType', 'sections', 'judg
 const SECTION_KEYS = new Set(['id', 'blocks']);
 const BLOCK_KEYS = new Set(['role', 'prose', 'factIds']);
 const BLOCK_ROLES = new Set<CallbackBlockRole>(['evidence', 'meaning', 'synthesis', 'agency']);
+const VOCATION_SECTION_IDS = ['coverThesis', 'careerArchetype', 'publicRole', 'moneyPsychology', 'dailyWork', 'growthEngine', 'legacyPower', 'careerCompass', 'launchWindows'] as const;
 
 function hasExactKeys(value: Record<string, unknown>, allowed: Set<string>): boolean {
   return Object.keys(value).every((key) => allowed.has(key));
@@ -76,6 +77,10 @@ function normalizeSections(sections: CallbackSection[]): StoredCallbackSection[]
     prose: section.blocks.map((block) => block.prose).join('\n\n'),
     blocks: section.blocks,
   }));
+}
+
+function validateVocationSections(sections: CallbackSection[]): boolean {
+  return sections.length === VOCATION_SECTION_IDS.length && sections.every((section, index) => section.id === VOCATION_SECTION_IDS[index]);
 }
 
 export async function POST(request: Request) {
@@ -127,7 +132,7 @@ export async function POST(request: Request) {
     return handleYearlyTransitCallback(body);
   }
 
-  const { reportId, status, sections, judge, editorNote, rejectReasons, schemaVersion } = body;
+  const { reportId, status, reportType, sections, judge, editorNote, rejectReasons, schemaVersion } = body;
   const isCompact = schemaVersion === 'csg-compact-report-callback-v1';
   const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
   if ((!isCompact && ['schemaVersion', 'skeleton', 'tables', 'blocks'].some(hasOwn)) ||
@@ -148,6 +153,9 @@ export async function POST(request: Request) {
   }
   if (!isCompact && new Set(standardSections.map((section) => section.id)).size !== standardSections.length) {
     return NextResponse.json({ error: 'Duplicate section id' }, { status: 400 });
+  }
+  if (reportType === 'vocation' && status === 'approved' && !validateVocationSections(standardSections)) {
+    return NextResponse.json({ error: 'Vocation callbacks require the exact nine sections' }, { status: 400 });
   }
   if (judge !== undefined && (typeof judge !== 'object' || judge === null || Array.isArray(judge))) {
     return NextResponse.json({ error: 'Invalid judge' }, { status: 400 });
@@ -175,6 +183,13 @@ export async function POST(request: Request) {
   if (!existing) {
     // R2.2 — unknown reportId -> 404 (never create a record from a callback).
     return NextResponse.json({ error: 'Unknown reportId' }, { status: 404 });
+  }
+  if (reportType === 'vocation' && status === 'approved') {
+    const storedResult = typeof existing.result === 'string' ? JSON.parse(existing.result) : (existing.result ?? {});
+    const ledgerFacts = storedResult?.verifiedFacts?.facts ?? storedResult?.metadata?.verifiedFacts?.facts;
+    if (!ledgerFacts || standardSections.some(section => section.blocks.some(block => block.factIds.some(id => !ledgerFacts[id])))) {
+      return NextResponse.json({ error: 'Vocation callback contains unknown fact id' }, { status: 400 });
+    }
   }
 
   let callbackSections = sections ?? [];

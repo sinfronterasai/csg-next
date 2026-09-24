@@ -136,12 +136,15 @@ describe('R2-B4 — A4 evidence bundles are built and required', () => {
       expect((v2.reportData as any)[evKey]).toBeDefined();
     }
   });
-  it('vocation fails closed until career windows are implemented (T3-7)', async () => {
+  it('vocation emits a complete deterministic 24-month career-window pack', async () => {
     const v2 = await buildVerifiedFactsV2('vocation', KNOWN_TIME_ORDINARY.birth);
     const res = preflightReport('vocation', v2);
-    expect(res.status).toBe('input_incomplete');
-    expect(res.missing.join(' ')).toContain('career windows');
-    expect((v2.reportData as any).vocationEvidence).toBeDefined();
+    expect(res.status).toBe('complete');
+    const ev = (v2.reportData as any).vocationEvidence;
+    expect(ev).toBeDefined();
+    expect(ev.careerWindowsDeclared).toBe(true);
+    expect(ev.careerWindowPack.months).toHaveLength(24);
+    expect(Object.keys(ev.careerWindowPack.facts).every((id) => !!v2.facts[id])).toBe(true);
   });
 });
 

@@ -5,13 +5,13 @@ import { gateGeneration, isLaunchType, LAUNCH_FREE_TYPES, LAUNCH_PAID_TYPES } fr
 // (no beta allowlist), but non-launch types remain blocked.
 describe("reports launch allowlist (C7 server gate — post-LB-PUBLIC)", () => {
   const BANNED = [
-    "relationship", "lovetiming", "vocation", "karmicshadow",
+    "relationship", "lovetiming", "karmicshadow",
     "synastry", "composite", "fullcosmic", "couples",
   ];
 
   it("only free Natal plus Premium Natal and Love Blueprint are launch types", () => {
     expect(Array.from(LAUNCH_FREE_TYPES)).toEqual(["natal"]);
-    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["natalpremium", "loveblueprint", "transit"]);
+    expect(Array.from(LAUNCH_PAID_TYPES)).toEqual(["natalpremium", "loveblueprint", "transit", "vocation"]);
     for (const t of BANNED) expect(isLaunchType(t)).toBe(false);
   });
 
@@ -46,7 +46,7 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
   );
   const BANNED_NAMES = [
     "Relationship Matrix", "Love Timing Forecast",
-    "Vocation & Wealth Map", "Karmic & Shadow Work", "Synastry Love Report",
+    "Karmic & Shadow Work", "Synastry Love Report",
     "Composite Chart Report", "Couples Cosmic Profile", "Full Cosmic Profile",
   ];
   // $39 and $49 are allowed for the approved paid products. Other prices remain banned.
@@ -67,6 +67,7 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
     expect(src).toContain("Premium Natal Report");
     expect(src).toContain("Love Blueprint");
     expect(src).toContain("Yearly Transit Forecast");
+    expect(src).toContain("Vocation & Wealth Map");
   });
   it("renders Love Blueprint with its $39 price (public paid product)", () => {
     expect(src).toContain("$39");

@@ -154,7 +154,8 @@ export interface VocationEvidence {
   jupiterAspect: AspectEvidence;
   plutoAspect: AspectEvidence;
   wealthIndicators: string[]; // fact ids / labels
-  careerWindowsDeclared: boolean; // 24-month windows are P6/P7; declared + fail closed
+  careerWindowsDeclared: boolean;
+  careerWindowPack: import('./careerWindows').VocationCareerWindowPack;
 }
 
 export interface OptionalEvidence {

@@ -73,7 +73,7 @@ export function loveBlueprintEvidence(common: CommonDerived): LoveBlueprintEvide
   };
 }
 
-export function vocationEvidence(common: CommonDerived): VocationEvidence {
+export function vocationEvidence(common: CommonDerived, careerWindowPack: VocationEvidence['careerWindowPack']): VocationEvidence {
   const tenth = common.rulers?.tenth; const second = common.rulers?.second; const sixth = common.rulers?.sixth;
   if (!tenth || !second || !sixth) throw new Error('vocation evidence requires 2nd/6th/10th rulers');
   // F5-9: complete MC package
@@ -95,7 +95,8 @@ export function vocationEvidence(common: CommonDerived): VocationEvidence {
     plutoAspect: aspectEvidence(common, 'pluto', 'midheaven'),
     // F4-6/F5-ref2: wealth indicators are exactly the unique intended 2nd/6th/10th ruler-position facts.
     wealthIndicators: [...new Set([`natal.${second.ruler}.position`, `natal.${sixth.ruler}.position`, `natal.${tenth.ruler}.position`])],
-    careerWindowsDeclared: false, // 24-month windows are P6/P7; declared + fail closed
+    careerWindowsDeclared: false,
+    careerWindowPack,
   };
 }
 
