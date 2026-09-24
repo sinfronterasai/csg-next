@@ -23,7 +23,7 @@ const BODY_LEADING = 14;
 const DISCLAIMER = 'Astrology is a reflective tool, not a guarantee of employment, income, wealth, or any specific outcome. Use these windows as prompts for informed choices, practical planning, and personal agency.';
 
 function safe(value: unknown): string {
-  return String(value ?? '').replace(/[—–]/g, '-').replace(/[“”]/g, '"').replace(/[’′]/g, "'").replace(/•/g, '*');
+  return String(value ?? '').replace(/[—–‑‒−]/g, '-').replace(/[“”]/g, '"').replace(/[’′]/g, "'").replace(/•/g, '*').replace(/[\u00a0\u202f]/g, ' ');
 }
 function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
   const lines: string[] = [];
