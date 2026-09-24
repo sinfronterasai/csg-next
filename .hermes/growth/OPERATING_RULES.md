@@ -27,6 +27,7 @@ Before every cycle:
 6. Inspect existing specifications.
 7. Inspect completed work.
 8. Inspect repository when relevant.
+9. Read IMPLEMENTATION_ENGINEER.md before implementation work.
 
 Never assume previous work does not exist.
 
@@ -156,6 +157,8 @@ implements approved specifications.
 
 Reviewer:
 reviews implementation.
+
+Implementation details and completion reporting are governed by IMPLEMENTATION_ENGINEER.md.
 
 No agent approves its own work.
 
