@@ -28,10 +28,11 @@ describe('independent third review adversarial contract cases 2',()=>{
     expect(validateFactResolution(v).ok).toBe(false);
   });
 
-  test('vocation fails closed until exact 24-month career windows exist',async()=>{
+  test('vocation emits a complete deterministic 24-month career-window pack',async()=>{
     const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
-    expect((v.reportData as any).vocationEvidence.careerWindowsDeclared).toBe(false);
-    expect(preflightReport('vocation',v).status).toBe('input_incomplete');
+    expect((v.reportData as any).vocationEvidence.careerWindowsDeclared).toBe(true);
+    expect(preflightReport('vocation',v).status).toBe('complete');
+    expect((v.reportData as any).vocationEvidence.careerWindowPack.months).toHaveLength(24);
   });
 
   test('Part of Fortune switches day/night formula based on solar sect',async()=>{
