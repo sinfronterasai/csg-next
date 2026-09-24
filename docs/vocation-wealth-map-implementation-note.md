@@ -24,8 +24,11 @@ Verification artifacts:
 - `.hermes/evidence/vocation-fixture.pdf`: `%PDF-`, 6,321 bytes, 3 rendered pages; extracted text contains all required headings and disclaimer; visual inspection found no clipping, blank pages, or unreadable tables.
 - `npm run typecheck:test`, `npm run build`, and `git diff --check`: passing.
 
-Remaining external gate:
+External staging gate:
 
-- The existing Render staging environment supplied the configured n8n token and external staging `DATABASE_URL` in memory. Authenticated staging fixture smoke reached the master router and callback: disposable user 211, reading 1274, and correlation `23c29d82-9006-4c61-ad55-f50e6f85d531` returned callback HTTP 200, persisted approved state with nine sections, and appeared in authenticated `/api/profile/reports` as an approved Vocation report.
-- The live staging PDF request returned 404 because Render is deployed at stale SHA `9e96c81090b2a9a23cbf39764fd17f839a57d413` from September 17, 2026, before the current Vocation PDF route. The local current implementation's dedicated PDF artifact is verified separately. Deployment of the current uncommitted implementation is the remaining external gate.
+- Render staging service `srv-dae516lbedkc73bbsc80` is deployed from `f7a212b02c1d75c981b8f17f3ca862397b0de187` (`fix(vocation): normalize PDF unicode output`), deployment `dep-daq834142hec738m8qv0` reached `live` on September 24, 2026.
+- Real staging n8n smoke execution 308 completed successfully through the master router and Vocation child. The callback persisted `approved` with nine sections for disposable reading 1279 and report correlation `2ac12d0e-8c0e-42bf-bdbe-22802cdddaca`.
+- Authenticated staging `/api/profile/reports` returned the approved `vocation` report with all nine sections.
+- Authenticated staging `/api/reports/1279/pdf` returned HTTP 200, `application/pdf`, `%PDF-`, 7,148 bytes, and three pages. Extracted text contained the title, overview, required report content, career windows, and safety disclaimer. Rendered-page inspection found no blank pages, clipping, broken pagination, unreadable text, or malformed layout.
+- The live n8n report initially exposed a PDF Unicode failure on U+2011 and U+202F model punctuation; `src/lib/vocationPdf.ts` now normalizes those characters, the focused PDF replay passes, and the fix is deployed and verified live.
 - Four broader facts-suite failures remain outside this Vocation launch change: dense-vs-sparse aspect count and stale Juno/Chiron retrograde reference expectations.
