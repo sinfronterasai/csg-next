@@ -69,7 +69,15 @@ Reject.
 
 A score alone does not approve development.
 
-Evidence must justify the score.
+Evidence must justify the score. Before an opportunity reaches reviewer, the researcher must also provide:
+- at least one concrete competitor gap or defensible CSG advantage,
+- a cheaper pre-build validation experiment,
+- baseline and target metrics,
+- an explicit success threshold,
+- an explicit kill threshold,
+- an identified conversion destination whose production status is verified or marked UNKNOWN.
+
+If any of these are missing, keep the opportunity in RESEARCH rather than asking the reviewer to rescue it.
 
 ## Mandatory opportunity output
 

@@ -33,6 +33,10 @@ PASS requires a score of at least 70 and no blocking issue.
 
 The score must be evidence-based and must not compensate for a blocking issue.
 
+Treat these as mandatory proposal gates, not optional polish: competitor-gap evidence, a cheaper pre-build experiment, baseline and target metrics, explicit success and kill thresholds, and a verified or explicitly UNKNOWN conversion destination. A research-stage proposal must specify how pre-build tests will be run; it does not need to provide results from tests that have not yet been implemented. Missing a required plan or contract is at least REVISE; if the proposal has no credible path to supply it, REJECT.
+
+Do not demand completed implementation artifacts, production telemetry, or test results before approving a specification. Those belong in acceptance criteria and rollout gates. Do demand that the proposal define the exact test, data contract, decision rule, safety gate, and evidence required before rollout.
+
 This adversarial relationship is intentional.
 
 The researcher says:

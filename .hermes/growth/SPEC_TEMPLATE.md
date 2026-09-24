@@ -78,6 +78,20 @@ Entry page
 - [ ]
 - [ ]
 
+## Pre-build validation experiment
+
+Hypothesis:
+
+Cheapest test:
+
+Baseline:
+
+Target:
+
+Success threshold:
+
+Kill threshold:
+
 ## Rollout
 
 Initial cohort:

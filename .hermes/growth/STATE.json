@@ -1,10 +1,14 @@
 {
   "schemaVersion": 1,
   "mode": "supervised",
-  "lastCycle": null,
+  "lastCycle": "2026-09-24-gate9",
   "activeBuilds": [],
   "activeExperiments": [],
-  "readyQueue": [],
+  "readyQueue": [
+    "R-016",
+    "R-023",
+    "R-024"
+  ],
   "measuring": [],
   "completed": [],
   "limits": {
