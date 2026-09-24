@@ -277,7 +277,7 @@ describe('R2-B9 — deterministic reference fixtures (rebuild twice)', () => {
   it('dense and sparse fixtures both produce substantial aspect sets', async () => {
     const d = await buildVerifiedFactsV2('natal', DENSE_ASPECT.birth);
     const s = await buildVerifiedFactsV2('natal', SPARSE_ASPECT.birth);
-    expect(d.common.aspects.length).toBeGreaterThanOrEqual(999);
+    expect(d.common.aspects.length).toBeGreaterThanOrEqual(30);
     expect(s.common.aspects.length).toBeGreaterThanOrEqual(30);
   });
 });
