@@ -22,7 +22,10 @@ export default async function SharedReportPage({
   const report = toPublicReport(rec);
   if (report.pending || report.status !== 'approved') notFound();
   const sections = report.sections.map((section) => ({
-    heading: section.id.replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    heading: section.id
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[._-]+/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase()),
     body: section.prose,
   }));
 
