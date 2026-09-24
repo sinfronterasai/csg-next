@@ -31,6 +31,37 @@ Before every cycle:
 
 Never assume previous work does not exist.
 
+## Baseline synchronization gate
+
+Before beginning implementation, the Developer must verify that the implementation branch descends from the current approved CI-clean base commit.
+
+The Developer must record:
+
+- Base branch
+- Base commit SHA
+- Latest approved CI run
+- Implementation branch
+- Implementation HEAD
+
+If the implementation branch predates the approved CI baseline:
+
+- STOP.
+- Do not repair unrelated baseline failures inside a growth ticket.
+- Preserve the implementation work separately.
+- Recreate the implementation branch from the verified CI-clean base.
+
+The implementation report must include:
+
+BASELINE
+
+Base branch:
+Base SHA:
+Approved CI run:
+CI run result:
+Implementation branch:
+Implementation HEAD:
+Baseline synchronized: YES | NO
+
 ## Opportunity discovery
 
 Use the CSG Traffic Growth skill.
