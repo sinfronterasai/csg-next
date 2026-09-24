@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "mode": "supervised",
+  "lastCycle": null,
+  "activeBuilds": [],
+  "activeExperiments": [],
+  "readyQueue": [],
+  "measuring": [],
+  "completed": [],
+  "limits": {
+    "maxReady": 5,
+    "maxBuilding": 1,
+    "maxMeasuring": 5
+  }
+}
