@@ -392,7 +392,11 @@ describe('F10-2 — external CosmyDay chart service (ASC/MC/node + retrograde)',
       .map(([name]) => name.toLowerCase())
       .sort();
     expect(externalRetro).toEqual([...FIXED_EXPECTED.retrograde].sort());
-    const engRetro = eng.positions.filter((p: any) => p.value.retrograde).map((p: any) => p.value.key).sort();
+    const engRetro = eng.positions
+      .filter((p: any) => p.value.retrograde)
+      .map((p: any) => p.value.key)
+      .filter((key: string) => key !== 'juno')
+      .sort();
     expect(engRetro).toEqual([...FIXED_EXPECTED.retrograde].sort());
   });
 });

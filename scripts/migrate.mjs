@@ -49,7 +49,15 @@ if (lastStmt.length > 0) {
   statements.push(lastStmt);
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error('DATABASE_URL is required for migrations');
+const parsedUrl = new URL(connectionString);
+const sslMode = parsedUrl.searchParams.get('sslmode');
+const useSsl = sslMode === 'require' || parsedUrl.hostname.toLowerCase().endsWith('.render.com');
+const pool = new Pool({
+  connectionString,
+  ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+});
 
 let ok = 0;
 let fail = 0;

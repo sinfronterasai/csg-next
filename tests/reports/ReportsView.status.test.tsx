@@ -7,6 +7,10 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
 
+// These tests exercise the owned-report resume path. Keep checkout in the
+// mocked API path rather than navigating to the external Whop checkout host.
+jest.mock('@/lib/whopCatalog', () => ({ WHOP_CHECKOUT_URLS: {} }));
+
 const jsonResponse = (body: unknown, status = 200) =>
   Promise.resolve({ ok: status >= 200 && status < 300, status, json: async () => body } as Response);
 
