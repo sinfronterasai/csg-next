@@ -1,0 +1,39 @@
+{
+  "opportunities": [
+    {
+      "id": "R-016",
+      "title": "Exact Personalized Transit Window",
+      "status": "READY",
+      "score": 90,
+      "spec": ".hermes/growth/specs/R-016-exact-personalized-transit-window.md"
+    },
+    {
+      "id": "R-023",
+      "title": "Shareable Birth-Chart Signature Card",
+      "status": "READY",
+      "score": 94,
+      "spec": ".hermes/growth/specs/R-023-shareable-birth-chart-card.md"
+    },
+    {
+      "id": "R-024",
+      "title": "Birth-Chart Constellation Navigator",
+      "status": "READY",
+      "score": 95,
+      "spec": ".hermes/growth/specs/R-024-constellation-navigator.md"
+    },
+    {
+      "id": "R-019",
+      "title": "Embeddable Moon Widget",
+      "status": "REJECTED",
+      "score": 20,
+      "reason": "External adoption, install verification, widget safety, and attribution are not specified."
+    },
+    {
+      "id": "R-020",
+      "title": "Career Diagnostic",
+      "status": "RESEARCH",
+      "score": 28,
+      "reason": "Paid destination and privacy/contact governance remain unresolved."
+    }
+  ]
+}

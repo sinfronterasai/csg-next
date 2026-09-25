@@ -7,6 +7,14 @@ const mockNotFound = jest.fn(() => { throw new Error('NOT_FOUND'); });
 
 jest.mock('@/lib/profile/store', () => ({
   getReadingByShareToken: (...args: unknown[]) => mockGetReadingByShareToken(...args),
+  toPublicReport: (rec: any) => ({
+    pending: rec.pipelineStatus !== 'approved',
+    status: rec.pipelineStatus,
+    type: rec.result?.reportType ?? 'natal',
+    title: rec.result?.title ?? rec.title ?? null,
+    overview: [],
+    sections: rec.result?.pipeline?.sections ?? [],
+  }),
 }));
 jest.mock('next/navigation', () => ({ notFound: () => mockNotFound() }));
 jest.mock('@/components/reports/ReportResult', () => ({

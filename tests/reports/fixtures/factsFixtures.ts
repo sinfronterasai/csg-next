@@ -35,7 +35,7 @@ export interface FactsFixture {
 export const KNOWN_TIME_ORDINARY: FactsFixture = {
   name: 'known-ordinary',
   birth: { date: '1990-06-15', time: '12:00', location: 'Paris', name: 'Fixture A' },
-  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', mcSign: 'taurus', mcRuler: 'venus', northNodeRuler: 'saturn', southNodeRuler: 'sun', exactRetrograde: ['saturn','uranus','neptune','pluto'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
+  expect: { knownTime: true, ref: { sunSign: 'gemini', sunDegreeInSign: 24.05, ascendantSign: 'virgo', ascendantHouse: 1, chartRuler: 'mercury', seventhHouseRuler: 'jupiter', mcSign: 'taurus', mcRuler: 'venus', northNodeRuler: 'saturn', southNodeRuler: 'sun', exactRetrograde: ['saturn','uranus','neptune','pluto','juno'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const UNKNOWN_TIME_SOLAR: FactsFixture = {
@@ -69,7 +69,7 @@ export const BOUNDARY_NEAR_29: FactsFixture = {
 export const RETRO_NULL_DIGNITY: FactsFixture = {
   name: 'retro-null-dignity',
   birth: { date: '1979-10-05', time: '09:30', location: 'Tokyo', name: 'Fixture E' },
-  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', mcSign: 'virgo', mcRuler: 'mercury', northNodeRuler: 'mercury', southNodeRuler: 'jupiter', exactRetrograde: ['northnode'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
+  expect: { knownTime: true, expectNullDignity: true, ref: { sunSign: 'libra', sunDegreeInSign: 11.18, ascendantSign: 'scorpio', ascendantHouse: 1, chartRuler: 'mars', seventhHouseRuler: 'venus', mcSign: 'virgo', mcRuler: 'mercury', northNodeRuler: 'mercury', southNodeRuler: 'jupiter', exactRetrograde: ['northnode','chiron'], nullDignityBody: 'sun', aspectCountMin: 30, hasRetrograde: true } },
 };
 
 export const DENSE_ASPECT: FactsFixture = {
