@@ -11,7 +11,7 @@ const DETERMINISTIC_BIRTH = {
 };
 let natalFacts: any;
 
- describe('twelfth independent adversarial probes', () => {
+describe('twelfth independent adversarial probes', () => {
   beforeAll(async () => {
     natalFacts = await buildVerifiedFactsV2('natal', DETERMINISTIC_BIRTH);
   }, 30000);

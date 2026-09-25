@@ -8,15 +8,15 @@ import { KNOWN_TIME_ORDINARY, RETRO_NULL_DIGNITY } from './fixtures/factsFixture
 const missing=(rt:any,v:any)=>preflightReport(rt,v).missing.join(' | ');
 const DETERMINISTIC_BIRTH = {
   ...KNOWN_TIME_ORDINARY.birth,
-  latitude: 40.7128,
-  longitude: -74.006,
-  timezone: 'America/New_York',
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
 };
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 let factsCache: Record<'natal' | 'relationship' | 'vocation' | 'karmicshadow' | 'loveblueprint', any>;
 const freshFacts = (reportType: keyof typeof factsCache) => clone(factsCache[reportType]);
 
- describe('sixth independent review semantic cases',()=>{
+describe('sixth independent review semantic cases',()=>{
   beforeAll(async () => {
     factsCache = {
       natal: await buildVerifiedFactsV2('natal', DETERMINISTIC_BIRTH),
