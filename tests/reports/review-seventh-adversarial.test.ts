@@ -4,10 +4,27 @@ import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 
 const dignityLabel:any={domicile:'in domicile',exaltation:'exalted',detriment:'in detriment',fall:'in fall'};
 const missing=(rt:any,v:any)=>preflightReport(rt,v).missing.join(' | ');
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
+const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+let factsCache: Record<'relationship' | 'natal' | 'karmicshadow' | 'vocation', any>;
+const freshFacts = (reportType: keyof typeof factsCache) => clone(factsCache[reportType]);
 
 describe('seventh independent review semantic bypasses',()=>{
+  beforeAll(async () => {
+    factsCache = {
+      relationship: await buildVerifiedFactsV2('relationship', DETERMINISTIC_PARIS_BIRTH),
+      natal: await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH),
+      karmicshadow: await buildVerifiedFactsV2('karmicshadow', DETERMINISTIC_PARIS_BIRTH),
+      vocation: await buildVerifiedFactsV2('vocation', DETERMINISTIC_PARIS_BIRTH),
+    };
+  }, 60000);
   test('house ruler must be derived from cusp sign, not self-declared ruler id',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('relationship');
     const r:any=(v.reportData as any).relationshipEvidence.seventhHouseRuler;
     const alternate='sun';
     expect(r.ruler).not.toBe(alternate);
@@ -25,7 +42,7 @@ describe('seventh independent review semantic bypasses',()=>{
   });
 
   test('common aliases must equal canonical facts for retrograde dignity key and label too',async()=>{
-    const v=await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('natal');
     const j:any=v.common.juno;
     j.retrograde=!j.retrograde;
     j.dignity=j.dignity===null?'domicile':null;
@@ -35,7 +52,7 @@ describe('seventh independent review semantic bypasses',()=>{
   });
 
   test('authoritative nodal completeness derives from immutable facts, not mutable common array',async()=>{
-    const v=await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('karmicshadow');
     const e:any=(v.reportData as any).karmicEvidence;
     const id=e.nodalAspects.find((x:string)=>{
       const a:any=v.facts[x].value;
@@ -51,7 +68,7 @@ describe('seventh independent review semantic bypasses',()=>{
   });
 
   test('Vocation complete MC set derives from immutable facts and detects coordinated omission',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('vocation');
     const e:any=(v.reportData as any).vocationEvidence;
     const protectedIds=new Set([e.saturnAspect.aspectId,e.jupiterAspect.aspectId,e.plutoAspect.aspectId].filter(Boolean));
     const id=e.mcAspects.find((x:string)=>!protectedIds.has(x));
