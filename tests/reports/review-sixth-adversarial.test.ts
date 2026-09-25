@@ -12,7 +12,14 @@ const DETERMINISTIC_BIRTH = {
   longitude: 2.3522,
   timezone: 'Europe/Paris',
 };
+const DETERMINISTIC_TOKYO_BIRTH = {
+  ...RETRO_NULL_DIGNITY.birth,
+  latitude: 35.6762,
+  longitude: 139.6503,
+  timezone: 'Asia/Tokyo',
+};
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+let retroChart: any;
 let factsCache: Record<'natal' | 'relationship' | 'vocation' | 'karmicshadow' | 'loveblueprint', any>;
 const freshFacts = (reportType: keyof typeof factsCache) => clone(factsCache[reportType]);
 
@@ -25,6 +32,7 @@ describe('sixth independent review semantic cases',()=>{
       karmicshadow: await buildVerifiedFactsV2('karmicshadow', DETERMINISTIC_BIRTH),
       loveblueprint: await buildVerifiedFactsV2('loveblueprint', DETERMINISTIC_BIRTH),
     };
+    retroChart = await computeChart(DETERMINISTIC_TOKYO_BIRTH as any);
   }, 60000);
   test('POF metadata is validated for every known-time report, not Natal only',async()=>{
     const v=freshFacts('relationship');
@@ -150,7 +158,7 @@ describe('sixth independent review semantic cases',()=>{
   // F6-10: Stellium serialization is canonical across input permutations (deep equality
   // of id, kind, source, display, value, provenance) without sorting away defects.
   test('F6-10 stellium fact is identical across chart planet permutations', async () => {
-    const base: any = await computeChart(RETRO_NULL_DIGNITY.birth);
+    const base: any = clone(retroChart);
     const presentIds = new Set(base.planets.map((p: any) => `natal.${p.key}.position`));
     const stelliumOf = (orderedPlanets: any[]) => {
       const chart = { ...base, planets: orderedPlanets };

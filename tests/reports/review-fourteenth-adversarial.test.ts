@@ -4,6 +4,12 @@ import { mechanicalJplTimestamps } from '@/lib/reportFacts/derived';
 import { signFromLongitude } from '@/lib/astrology';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const ordinal = (n: number) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const display = (v: any) => {
@@ -16,8 +22,13 @@ const display = (v: any) => {
 };
 
 describe('fourteenth independent semantic probes', () => {
+  let natalFacts: any;
+  beforeAll(async () => {
+    natalFacts = await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH);
+  }, 30000);
+
   test('POF house is derived from recomputed longitude and validated cusps', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const f = v.facts['natal.partoffortune.position']; const a = v.common.partOfFortune;
     const wrong = f.value.house === 12 ? 11 : f.value.house + 1;
     f.value.house = wrong; a.value.house = wrong; f.display = display(f.value); a.display = f.display;
@@ -25,7 +36,7 @@ describe('fourteenth independent semantic probes', () => {
   });
 
   test('ordinary root position house is derived from longitude and validated cusps', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const f = v.facts['natal.chiron.position'];
     f.value.house = f.value.house === 12 ? 11 : f.value.house + 1; f.display = display(f.value);
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
