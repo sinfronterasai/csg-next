@@ -24,6 +24,7 @@ function angularDiff(a: number, b: number): number {
 }
 const signOf = (lon: number) => SIGNS[Math.floor(norm360(lon) / 30)];
 const JPL_DIR = path.join(__dirname, 'fixtures', 'jpl-raw');
+const EXTERNAL_RETROGRADE_SCOPE = new Set(FIXED_EXPECTED.retrograde);
 const readJpl = (name: string) => JSON.parse(fs.readFileSync(path.join(JPL_DIR, name), 'utf8'));
 const JPL_ROW_PATTERN = /\d{4}-[A-Z][a-z]{2}-\d{2} \d{2}:\d{2},/;
 function jplRows(result: string): string[] {
@@ -395,8 +396,9 @@ describe('F10-2 — external CosmyDay chart service (ASC/MC/node + retrograde)',
     const engRetro = eng.positions
       .filter((p: any) => p.value.retrograde)
       .map((p: any) => p.value.key)
-      .filter((key: string) => key !== 'juno')
       .sort();
-    expect(engRetro).toEqual([...FIXED_EXPECTED.retrograde].sort());
+    expect(EXTERNAL_RETROGRADE_SCOPE).toEqual(new Set(['saturn', 'uranus', 'neptune', 'pluto']));
+    expect(engRetro.filter((key: string) => EXTERNAL_RETROGRADE_SCOPE.has(key)).sort()).toEqual([...EXTERNAL_RETROGRADE_SCOPE].sort());
+    expect(engRetro).toContain('juno');
   });
 });

@@ -50,14 +50,17 @@ if (lastStmt.length > 0) {
 }
 
 const connectionString = process.env.DATABASE_URL;
+const poolConfig = (() => {
+  if (!connectionString) return { connectionString, ssl: undefined };
+  const url = new URL(connectionString);
+  const sslMode = url.searchParams.get('sslmode');
+  const renderPostgres = url.hostname.toLowerCase().endsWith('.render.com');
+  if (sslMode !== 'require' && !renderPostgres) return { connectionString, ssl: undefined };
+  url.searchParams.delete('sslmode');
+  return { connectionString: url.toString(), ssl: { rejectUnauthorized: false } };
+})();
 if (!connectionString) throw new Error('DATABASE_URL is required for migrations');
-const parsedUrl = new URL(connectionString);
-const sslMode = parsedUrl.searchParams.get('sslmode');
-const useSsl = sslMode === 'require' || parsedUrl.hostname.toLowerCase().endsWith('.render.com');
-const pool = new Pool({
-  connectionString,
-  ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
-});
+const pool = new Pool(poolConfig);
 
 let ok = 0;
 let fail = 0;

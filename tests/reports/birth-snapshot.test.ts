@@ -12,11 +12,13 @@ afterEach(() => jest.restoreAllMocks());
 jest.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'test' }) }) }));
 jest.mock('@/lib/auth', () => ({ verifyToken: () => ({ userId: '7' }), getUserById: async () => ({ id: 7, first_name: 'Fixture', role: 'customer' }) }));
 jest.mock('@/lib/db', () => ({ query: jest.fn() }));
-jest.mock('@/lib/freeBirthChart', () => ({
-  ...jest.requireActual('@/lib/freeBirthChart'),
-  compileFreeBirthChart: jest.fn(() => ({ fixture: true })),
-}));
-jest.mock('@/lib/reportFacts/integrate', () => ({ ...jest.requireActual('@/lib/reportFacts/integrate'), buildVerifiedFactsForReport: jest.fn(async () => ({ ok: true, ledger: { fixture: true } })) }));
+jest.mock('@/lib/reportFacts/integrate', () => {
+  const actual = jest.requireActual('@/lib/reportFacts/integrate');
+  return {
+    ...actual,
+    buildVerifiedFactsForReport: jest.fn(actual.buildVerifiedFactsForReport),
+  };
+});
 jest.mock('@/lib/billing/reportPurchase', () => ({ verifyPurchasePaidViaStripe: jest.fn() }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({ getReportPurchase: async () => ({ userId: 7, reportType: 'natalpremium', sku: 'report-natalpremium', status: 'paid' }), isValidPurchaseId: () => true, consumeReportPurchase: jest.fn() }));
 jest.mock('@/lib/reportPipeline', () => ({ ...jest.requireActual('@/lib/reportPipeline'), dispatchReport: jest.fn(async () => ({ ok: true })) }));
