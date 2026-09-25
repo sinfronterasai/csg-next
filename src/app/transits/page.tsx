@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, breadcrumbJsonLd, mergeJsonLd } from "@/lib/seo/jsonld";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
+import NamedTransitExplorer from "./NamedTransitExplorer";
+
+const namedTransitEnabled = process.env.CSG_NAMED_TRANSIT_EXPERIMENT === "true" || process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT === "true";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata } = buildMetadata({
@@ -40,6 +43,7 @@ export default function TransitsHub() {
         Get your <Link className="underline" href="/birth-chart">free birth chart</Link> to see where
         transits land for you.
       </p>
+      {namedTransitEnabled && <NamedTransitExplorer />}
     </main>
   );
 }
