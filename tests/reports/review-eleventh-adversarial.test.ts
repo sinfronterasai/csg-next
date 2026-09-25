@@ -3,10 +3,20 @@ import { preflightReport } from '@/lib/reportFacts/schemas';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
+let natalFacts: any;
 
-describe('eleventh independent adversarial probes', () => {
+ describe('eleventh independent adversarial probes', () => {
+  beforeAll(async () => {
+    natalFacts = await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH);
+  }, 30000);
   test('canonical/common aspect nested unexpected metadata fails closed', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const common = v.common.aspects[0];
     const canonical = v.facts[common.id];
     common.value.injected = 'not contract data';
@@ -15,7 +25,7 @@ describe('eleventh independent adversarial probes', () => {
   });
 
   test('canonical aspect facts-map key must equal wrapper id', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const common = v.common.aspects[0];
     const canonical = v.facts[common.id];
     delete v.facts[common.id];
@@ -24,7 +34,7 @@ describe('eleventh independent adversarial probes', () => {
   });
 
   test('coordinated reversed aspect endpoints are not canonical', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const common = v.common.aspects[0];
     const canonical = v.facts[common.id];
     for (const a of [common, canonical]) {
@@ -37,7 +47,7 @@ describe('eleventh independent adversarial probes', () => {
   });
 
   test('coordinated non-finite aspect orb and weight fail closed', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const common = v.common.aspects[0];
     const canonical = v.facts[common.id];
     for (const a of [common, canonical]) {
@@ -49,21 +59,21 @@ describe('eleventh independent adversarial probes', () => {
   });
 
   test('both POF copies cannot coordinate a false signLabel', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.common.partOfFortune.value.signLabel = 'False Sign';
     v.facts['natal.partoffortune.position'].value.signLabel = 'False Sign';
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('both POF copies require signLabel rather than accepting coordinated omission', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     delete v.common.partOfFortune.value.signLabel;
     delete v.facts['natal.partoffortune.position'].value.signLabel;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('both POF copies cannot coordinate false key and label', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     for (const w of [v.common.partOfFortune, v.facts['natal.partoffortune.position']]) {
       w.value.key = 'falsefortune';
       w.value.label = 'False Fortune';
