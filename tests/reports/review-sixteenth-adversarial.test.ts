@@ -7,9 +7,20 @@ import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 const clone=<T>(x:T):T=>JSON.parse(JSON.stringify(x));
 const ordinal=(n:number)=>{const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);};
 const DIGNITY_LABEL:Record<string,string>={domicile:'in domicile',exaltation:'exalted',detriment:'in detriment',fall:'in fall'};
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
 const display=(v:any)=>{const {sign,degreeInSign}=signFromLongitude(v.longitude);const h=v.house!=null?` in the ${ordinal(v.house)} house`:'';const d=v.dignity?`, ${DIGNITY_LABEL[v.dignity as string]}`:'';const r=v.retrograde?' (retrograde)':'';const u=v.uncertain?' (approximate; birth time unknown)':'';return `${v.label} at ${degreeInSign.toFixed(2)}° ${sign.label}${h}${d}${r}${u}`;};
 
 describe('sixteenth independent semantic probes',()=>{
+  let natalFacts:any;
+
+  beforeAll(async () => {
+    natalFacts = await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH);
+  }, 30000);
   test.each([
     ['0001-01-01 09:00','0001-01-01 10:00',false],
     ['0004-02-29 09:00','0004-02-29 10:00',false],
@@ -25,7 +36,7 @@ describe('sixteenth independent semantic probes',()=>{
   });
 
   test('common.houses entries cannot be duplicated or aliased to keep num sequence with wrong longitudes',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(natalFacts);
     // Keep array order 11,12 but duplicate the 11th cusp content into both slots.
     const h11={...v.common.houses[10]};
     v.common.houses[10]=h11;
@@ -34,7 +45,7 @@ describe('sixteenth independent semantic probes',()=>{
   });
 
   test('common.houses num field cannot be spoofed independently of id/content',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(natalFacts);
     // Swap content but renumber to keep positional order valid.
     const a={...v.common.houses[0],num:1};
     const b={...v.common.houses[1],num:2};

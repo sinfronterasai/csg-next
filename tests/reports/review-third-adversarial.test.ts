@@ -3,6 +3,13 @@ import { buildAspects, buildPatterns, computeVerifiedCommon, ASPECT_ORBS } from 
 import { dignityFor } from '@/lib/astrology';
 import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
+
 function chartOf(bodies: {key:string; longitude:number}[]): any {
   return {
     planets: bodies.map(b => ({
@@ -24,6 +31,11 @@ function patternsFor(chart:any): any[] {
 }
 
 describe('independent third review adversarial cases',()=>{
+  let ordinaryCommon: Awaited<ReturnType<typeof computeVerifiedCommon>>;
+
+  beforeAll(async () => {
+    ordinaryCommon = await computeVerifiedCommon(DETERMINISTIC_PARIS_BIRTH);
+  }, 30000);
   test('rejects impossible but normalizable calendar dates',()=>{
     expect(isValidAsOfDate('2026-02-30')).toBe(false);
     expect(isValidAsOfDate('2025-02-29')).toBe(false);
@@ -48,7 +60,7 @@ describe('independent third review adversarial cases',()=>{
   });
 
   test('house-ruler condition uses ruler planet placement, not cusp sign',async()=>{
-    const common=await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const common=ordinaryCommon;
     const r=common.rulers!.dsc!;
     const planet=common.positions.find((p:any)=>p.id===`natal.${r.ruler}.position`)!;
     const v:any=planet.value;

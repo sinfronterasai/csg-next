@@ -144,7 +144,7 @@ export default function Reports() {
 
   async function startCheckout(id: string) {
     const product = ALLOWED.find((item) => item.id === id);
-    if (product?.whopOffer) {
+    if (product?.whopOffer && WHOP_CHECKOUT_URLS[product.whopOffer]) {
       window.location.href = WHOP_CHECKOUT_URLS[product.whopOffer];
       return;
     }

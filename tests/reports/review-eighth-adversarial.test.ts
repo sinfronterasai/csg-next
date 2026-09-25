@@ -6,10 +6,23 @@ import { KNOWN_TIME_ORDINARY } from './fixtures/factsFixtures';
 
 const miss=(rt:any,v:any)=>preflightReport(rt,v).missing.join(' | ');
 const clone=(x:any)=>JSON.parse(JSON.stringify(x));
+const DETERMINISTIC_PARIS_BIRTH={...KNOWN_TIME_ORDINARY.birth,latitude:48.8566,longitude:2.3522,timezone:'Europe/Paris'};
 
 describe('eighth independent review supplement and canonical bypasses',()=>{
+  let facts:any;
+  let chart:any;
+  beforeAll(async()=>{
+    facts={
+      natal:await buildVerifiedFactsV2('natal',DETERMINISTIC_PARIS_BIRTH),
+      loveblueprint:await buildVerifiedFactsV2('loveblueprint',DETERMINISTIC_PARIS_BIRTH),
+      vocation:await buildVerifiedFactsV2('vocation',DETERMINISTIC_PARIS_BIRTH),
+      relationship:await buildVerifiedFactsV2('relationship',DETERMINISTIC_PARIS_BIRTH),
+      karmicshadow:await buildVerifiedFactsV2('karmicshadow',DETERMINISTIC_PARIS_BIRTH),
+    };
+    chart=await computeChart(DETERMINISTIC_PARIS_BIRTH as any);
+  },60000);
   test('flat POF source and provenance must remain canonical after serialization',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.natal);
     const f=v.facts['natal.partoffortune.position'];
     f.source='swiss-ephemeris';
     f.provenance=['natal.sun.position','natal.moon.position','natal.venus.position'];
@@ -17,7 +30,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('Chiron present=false cannot coexist with a nonempty authoritative qualifying set or omitted ids',async()=>{
-    const v:any=await buildVerifiedFactsV2('loveblueprint',KNOWN_TIME_ORDINARY.birth);
+    const v:any=clone(facts.loveblueprint);
     const e=v.reportData.loveBlueprintEvidence;
     const id='natal.aspect.chiron-venus-conjunction';
     const fact:any={
@@ -34,7 +47,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('two Stellium facts are identical across sign-group input permutations',async()=>{
-    const base:any=await computeChart(KNOWN_TIME_ORDINARY.birth);
+    const base:any=chart;
     const ps=base.planets.slice(0,6).map((p:any,i:number)=>({...p,sign:i<3?'aries':'taurus',signLabel:i<3?'Aries':'Taurus',degreeInSign:i%3+1,longitude:(i<3?0:30)+(i%3+1)}));
     const rest=base.planets.slice(6).map((p:any,i:number)=>({...p,sign:`x${i}`}));
     const a=[...ps,...rest];
@@ -50,7 +63,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('Vocation reports semantic corruption without masking a valid career-window pack',async()=>{
-    const v:any=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v:any=clone(facts.vocation);
     v.reportData.vocationEvidence.mcSign=v.reportData.vocationEvidence.mcSign==='aries'?'taurus':'aries';
     const m=miss('vocation',v);
     expect(m).toMatch(/mcSign/);
@@ -58,20 +71,20 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('common aspect index must equal canonical aspect facts by full content, not ids only',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.natal);
     v.common.aspects[0].value.orb+=1;
     v.common.aspects[0].display='false but same id';
     expect(preflightReport('natal',v).status).toBe('input_incomplete');
   });
 
   test('alias uncertain metadata is compared using the actual contract field name',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.natal);
     v.common.juno.uncertain=true;
     expect(preflightReport('natal',v).status).toBe('input_incomplete');
   });
 
   test('cusp sign must be consistent with canonical cusp longitude before deriving ruler',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.relationship);
     const cusp=v.facts['common.cusp.7'].value;
     cusp.sign='leo'; cusp.signLabel='Leo';
     const p=v.facts['natal.sun.position'].value;
@@ -81,7 +94,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('ruler contextual house must match its house; wrong house fails with correct placement',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.relationship);
     const r=v.reportData.relationshipEvidence.seventhHouseRuler;
     // placement + house_of_ruler unchanged; only the contextual house is wrong (7 expected).
     r.house=2;
@@ -90,7 +103,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('MC ruler contextual house must be 10; wrong house fails with correct placement',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(clone(facts.vocation));
     const r=v.reportData.vocationEvidence.mcRuler;
     const okHouse=r.house; // capture correct
     r.house=7;
@@ -101,7 +114,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('node rulers use the locked numeric 0 sentinel house; wrong house fails',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.karmicshadow);
     const r=v.reportData.karmicEvidence.northNodeRuler;
     expect(r.house).toBe(0); // F9-9: numeric 0 for nodal rulers
     r.house=5;
@@ -110,14 +123,14 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('missing South Node context returns incomplete instead of throwing',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(facts.karmicshadow);
     delete v.facts['natal.southnode.position'];
     expect(() => preflightReport('karmicshadow', v)).not.toThrow();
     expect(preflightReport('karmicshadow', v).status).toBe('input_incomplete');
   });
 
   test('missing Vocation mcRuler returns incomplete instead of throwing',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(clone(facts.vocation));
     delete v.reportData.vocationEvidence.mcRuler;
     expect(() => preflightReport('vocation', v)).not.toThrow();
     const r = preflightReport('vocation', v);
@@ -126,7 +139,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('missing Vocation secondRuler returns incomplete instead of throwing',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(clone(facts.vocation));
     delete v.reportData.vocationEvidence.secondRuler;
     expect(() => preflightReport('vocation', v)).not.toThrow();
     const r = preflightReport('vocation', v);
@@ -135,7 +148,7 @@ describe('eighth independent review supplement and canonical bypasses',()=>{
   });
 
   test('missing Vocation sixthRuler returns incomplete instead of throwing',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth));
+    const v:any=clone(clone(facts.vocation));
     delete v.reportData.vocationEvidence.sixthRuler;
     expect(() => preflightReport('vocation', v)).not.toThrow();
     const r = preflightReport('vocation', v);

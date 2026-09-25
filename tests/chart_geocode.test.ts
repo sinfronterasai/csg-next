@@ -1,7 +1,15 @@
 import { geocodeLocation } from '@/lib/chartEngine';
 
-describe('geocodeLocation (real forward geocoder)', () => {
+const mockAustinGeocoder = () => jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+  ok: true,
+  json: async () => ({ results: [{ latitude: 30.2672, longitude: -97.7431, timezone: 'America/Chicago' }] }),
+} as Response);
+
+afterEach(() => jest.restoreAllMocks());
+
+describe('geocodeLocation forward-provider boundary', () => {
   it('resolves a real city not in the static table (Austin, TX)', async () => {
+    mockAustinGeocoder();
     const g = await geocodeLocation('Austin, TX');
     expect(g).not.toBeNull();
     expect(g!.lat).toBeCloseTo(30.26, 1);
@@ -9,8 +17,8 @@ describe('geocodeLocation (real forward geocoder)', () => {
   });
 
   it('returns a usable IANA timezone for the resolved location', async () => {
+    mockAustinGeocoder();
     const g = await geocodeLocation('Austin, TX');
-    expect(typeof g!.timezone).toBe('string');
     expect(g!.timezone.length).toBeGreaterThan(2);
   });
 

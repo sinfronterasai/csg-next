@@ -5,9 +5,14 @@ import { render, screen } from '@testing-library/react';
 const mockGetReadingByShareToken = jest.fn();
 const mockNotFound = jest.fn(() => { throw new Error('NOT_FOUND'); });
 
-jest.mock('@/lib/profile/store', () => ({
-  getReadingByShareToken: (...args: unknown[]) => mockGetReadingByShareToken(...args),
-}));
+jest.mock('@/lib/db', () => ({ query: jest.fn() }));
+jest.mock('@/lib/profile/store', () => {
+  const actual = jest.requireActual('@/lib/profile/store');
+  return {
+    ...actual,
+    getReadingByShareToken: (...args: unknown[]) => mockGetReadingByShareToken(...args),
+  };
+});
 jest.mock('next/navigation', () => ({ notFound: () => mockNotFound() }));
 jest.mock('@/components/reports/ReportResult', () => ({
   __esModule: true,

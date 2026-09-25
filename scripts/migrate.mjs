@@ -49,7 +49,18 @@ if (lastStmt.length > 0) {
   statements.push(lastStmt);
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const connectionString = process.env.DATABASE_URL;
+const poolConfig = (() => {
+  if (!connectionString) return { connectionString, ssl: undefined };
+  const url = new URL(connectionString);
+  const sslMode = url.searchParams.get('sslmode');
+  const renderPostgres = url.hostname.toLowerCase().endsWith('.render.com');
+  if (sslMode !== 'require' && !renderPostgres) return { connectionString, ssl: undefined };
+  url.searchParams.delete('sslmode');
+  return { connectionString: url.toString(), ssl: { rejectUnauthorized: false } };
+})();
+if (!connectionString) throw new Error('DATABASE_URL is required for migrations');
+const pool = new Pool(poolConfig);
 
 let ok = 0;
 let fail = 0;

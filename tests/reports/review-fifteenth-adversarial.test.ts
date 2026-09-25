@@ -8,10 +8,37 @@ import { ALL_FIXTURES, UNKNOWN_TIME_SOLAR } from './fixtures/factsFixtures';
 
 const clone=<T>(x:T):T=>JSON.parse(JSON.stringify(x));
 const ordinal=(n:number)=>{const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);};
+const DETERMINISTIC_ANCHORS: Record<string, { latitude: number; longitude: number; timezone: string }> = {
+  Paris: { latitude: 48.8566, longitude: 2.3522, timezone: 'Europe/Paris' },
+  Berlin: { latitude: 52.52, longitude: 13.405, timezone: 'Europe/Berlin' },
+  London: { latitude: 51.5074, longitude: -0.1278, timezone: 'Europe/London' },
+  Tokyo: { latitude: 35.6762, longitude: 139.6503, timezone: 'Asia/Tokyo' },
+  'New York': { latitude: 40.7128, longitude: -74.006, timezone: 'America/New_York' },
+  Sydney: { latitude: -33.8688, longitude: 151.2093, timezone: 'Australia/Sydney' },
+  'Mexico City, Mexico': { latitude: 19.4326, longitude: -99.1332, timezone: 'America/Mexico_City' },
+};
+const deterministicBirth = (birth: any) => ({ ...birth, ...(DETERMINISTIC_ANCHORS[birth.location] ?? {}) });
 const DIGNITY_LABEL:Record<string,string>={domicile:'in domicile',exaltation:'exalted',detriment:'in detriment',fall:'in fall'};
 const display=(v:any)=>{const {sign,degreeInSign}=signFromLongitude(v.longitude);const h=v.house!=null?` in the ${ordinal(v.house)} house`:'';const d=v.dignity?`, ${DIGNITY_LABEL[v.dignity as string]}`:'';const r=v.retrograde?' (retrograde)':'';const u=v.uncertain?' (approximate; birth time unknown)':'';return `${v.label} at ${degreeInSign.toFixed(2)}° ${sign.label}${h}${d}${r}${u}`;};
 
+let unknownTimeFacts: any;
+let knownOrdinaryFacts: any;
+let pofAspectHits: number[] = [];
+
 describe('fifteenth independent semantic probes',()=>{
+  beforeAll(async () => {
+    unknownTimeFacts = await buildVerifiedFactsV2('natal', deterministicBirth(UNKNOWN_TIME_SOLAR.birth));
+    knownOrdinaryFacts = await buildVerifiedFactsV2(
+      'natal',
+      deterministicBirth(ALL_FIXTURES.find(x => x.name === 'known-ordinary')!.birth),
+    );
+    pofAspectHits = [];
+    for (const fixture of ALL_FIXTURES.filter(x => x.expect.knownTime)) {
+      const chart = await computeChart(deterministicBirth(fixture.birth) as any);
+      const common = await buildCommonDerived(chart, false);
+      pofAspectHits.push(common.aspects.filter(x => x.value.bodyA === 'partoffortune' || x.value.bodyB === 'partoffortune').length);
+    }
+  }, 60000);
   test.each([
     ['2025-02-30 09:00','2025-02-30 10:00'],
     ['1990-13-15 09:00','1990-13-15 10:00'],
@@ -22,7 +49,7 @@ describe('fifteenth independent semantic probes',()=>{
   });
 
   test('unknown-time baseline and fabricated-house mutation are distinguished',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',UNKNOWN_TIME_SOLAR.birth));
+    const v:any=clone(unknownTimeFacts);
     const baseline=preflightReport('natal',v).status;
     const f=v.facts['natal.mercury.position'];
     expect(f.value.house).toBeNull();
@@ -35,11 +62,8 @@ describe('fifteenth independent semantic probes',()=>{
   });
 
   test('independent POF aspect check has per-fixture non-vacuous coverage',async()=>{
-    for(const fixture of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
-      const chart=await computeChart(fixture.birth as any);
-      const common=await buildCommonDerived(chart,false);
-      const hits=common.aspects.filter(x=>x.value.bodyA==='partoffortune'||x.value.bodyB==='partoffortune');
-      expect(hits.length).toBeGreaterThan(0);
+    for(const hits of pofAspectHits){
+      expect(hits).toBeGreaterThan(0);
     }
   });
 
@@ -48,7 +72,7 @@ describe('fifteenth independent semantic probes',()=>{
   });
 
   test('raw common.houses order cannot redefine every published house',async()=>{
-    const v:any=clone(await buildVerifiedFactsV2('natal',ALL_FIXTURES.find(x=>x.name==='known-ordinary')!.birth));
+    const v:any=clone(knownOrdinaryFacts);
     [v.common.houses[10],v.common.houses[11]]=[v.common.houses[11],v.common.houses[10]];
     const cusps=[0,...v.common.houses.map((h:any)=>h.cuspLongitude)];
     for(const e of POSITION_REGISTRY){

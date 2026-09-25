@@ -103,7 +103,7 @@ describe('LB-PUBLIC: resume route — secure post-checkout return path', () => {
   });
 
   it('returns 403 when session is not a loveblueprint purchase', async () => {
-    getBySession.mockResolvedValue({ ...PAID_PURCHASE, reportType: 'transit', sku: 'report-transit', stripeSessionId: 'si-1' });
+    getBySession.mockResolvedValue({ ...PAID_PURCHASE, reportType: 'vocation', sku: 'report-vocation', stripeSessionId: 'si-1' });
     const res = await resumeCall({ sessionId: 'si-1' });
     expect(res.status).toBe(403);
     expect(verifyPaid).not.toHaveBeenCalled();

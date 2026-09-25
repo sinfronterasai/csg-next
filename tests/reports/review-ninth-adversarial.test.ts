@@ -7,37 +7,56 @@ import { QUERY_LOG, SOURCE_METADATA } from './fixtures/independentReferenceCorpu
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const result = (rt: any, v: any) => preflightReport(rt, v);
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
+
+type FactsCache = Record<'natal' | 'relationship' | 'karmicshadow' | 'vocation', any>;
+let factsCache: Partial<FactsCache> = {};
+
+const freshFacts = (reportType: keyof FactsCache) => clone(factsCache[reportType]);
 
 describe('ninth independent review — fresh semantic and corpus integrity cases', () => {
+  beforeAll(async () => {
+    factsCache = {
+      natal: await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH),
+      relationship: await buildVerifiedFactsV2('relationship', DETERMINISTIC_PARIS_BIRTH),
+      karmicshadow: await buildVerifiedFactsV2('karmicshadow', DETERMINISTIC_PARIS_BIRTH),
+      vocation: await buildVerifiedFactsV2('vocation', DETERMINISTIC_PARIS_BIRTH),
+    };
+  }, 30000);
   test('common position alias display must equal its canonical fact display', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('natal');
     v.common.juno.display = 'False display with otherwise valid fields';
     expect(result('natal', v).status).toBe('input_incomplete');
   });
 
   test('both POF wrappers require canonical source and display semantics', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('natal');
     v.common.partOfFortune.source = 'swiss-ephemeris';
     v.common.partOfFortune.display = 'False POF display';
     expect(result('natal', v).status).toBe('input_incomplete');
   });
 
   test('cusp wrapper source and provenance must be canonical, not merely typed', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('relationship');
     v.facts['common.cusp.7'].source = 'swiss-ephemeris';
     v.facts['common.cusp.7'].provenance = ['natal.venus.position'];
     expect(result('relationship', v).status).toBe('input_incomplete');
   });
 
   test('common aspect serialization requires exact provenance order', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('natal');
     expect(v.common.aspects[0].provenance.length).toBe(2);
     v.common.aspects[0].provenance.reverse();
     expect(result('natal', v).status).toBe('input_incomplete');
   });
 
   test('coordinated canonical/common aspect source corruption fails closed', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('natal');
     const a = v.common.aspects[0];
     a.source = 'swiss-ephemeris';
     v.facts[a.id].source = 'swiss-ephemeris';
@@ -45,21 +64,21 @@ describe('ninth independent review — fresh semantic and corpus integrity cases
   });
 
   test('root position wrapper source/provenance semantics are validated', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('natal');
     v.facts['natal.sun.position'].source = 'derived-deterministic';
     v.facts['natal.sun.position'].provenance = ['natal.venus.position'];
     expect(result('natal', v).status).toBe('input_incomplete');
   });
 
   test('missing node context returns incomplete instead of throwing', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('karmicshadow', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('karmicshadow');
     delete v.facts['natal.northnode.position'];
     expect(() => result('karmicshadow', v)).not.toThrow();
     expect(result('karmicshadow', v).status).toBe('input_incomplete');
   });
 
   test('missing Vocation ruler returns incomplete instead of throwing', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('vocation', KNOWN_TIME_ORDINARY.birth));
+    const v: any = freshFacts('vocation');
     delete v.reportData.vocationEvidence.secondRuler;
     expect(() => result('vocation', v)).not.toThrow();
     const r = result('vocation', v);

@@ -1,0 +1,93 @@
+name: Production Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  production-build:
+    name: production-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/csg_test
+      TZ: America/Los_Angeles
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: csg_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d csg_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Lint when configured
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck:test
+
+      - name: Prepare test database
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/ci-test-db.sql
+          npm run db:migrate
+
+      - name: Tests
+        run: |
+          set +e
+          npm test -- --runInBand --json --outputFile=test-results.json > test-output.txt 2>&1
+          status=$?
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('test-results.json').read_text())
+          for suite in result.get('testResults', []):
+              if suite.get('numFailingTests', 0):
+                  print(f"::error file={suite.get('name','unknown')}::failed tests: {suite['numFailingTests']}")
+          print(f"Test suites: {result.get('numPassedTestSuites', 0)} passed, {result.get('numFailedTestSuites', 0)} failed")
+          print(f"Tests: {result.get('numPassedTests', 0)} passed, {result.get('numFailedTests', 0)} failed")
+          PY
+          if [ "$status" -ne 0 ]; then
+            tail -n 80 test-output.txt
+          fi
+          exit "$status"
+
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results.json
+            test-output.txt
+          if-no-files-found: warn
+
+      - name: Production build
+        run: npm run build

@@ -21,13 +21,29 @@ import { JPL_MANIFEST, QUERY_LOG, deriveStepMinutes } from './fixtures/independe
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const ordinal = (n: number) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const JPL_DIR = path.join(__dirname, 'fixtures', 'jpl-raw');
+const DETERMINISTIC_PARIS_BIRTH={...KNOWN_TIME_ORDINARY.birth,latitude:48.8566,longitude:2.3522,timezone:'Europe/Paris'};
+const DETERMINISTIC_BERLIN_BIRTH={...UNKNOWN_TIME_SOLAR.birth,latitude:52.52,longitude:13.405,timezone:'Europe/Berlin'};
 const readJpl = (name: string) => JSON.parse(fs.readFileSync(path.join(JPL_DIR, name), 'utf8'));
 
 describe('thirteenth independent adversarial probes', () => {
+  let natalFacts:any;
+  let unknownFacts:any;
+  let ordinaryChart:any;
+  let ordinaryCommon:any;
+  let unknownStart:any;
+  let unknownEnd:any;
+  beforeAll(async()=>{
+    natalFacts=await buildVerifiedFactsV2('natal',DETERMINISTIC_PARIS_BIRTH);
+    unknownFacts=await buildVerifiedFactsV2('natal',DETERMINISTIC_BERLIN_BIRTH);
+    ordinaryChart=await computeChart(DETERMINISTIC_PARIS_BIRTH as any);
+    ordinaryCommon=await buildCommonDerived(ordinaryChart,false);
+    unknownStart=await computeChart({...DETERMINISTIC_BERLIN_BIRTH,time:'00:00',unknownTime:false} as any);
+    unknownEnd=await computeChart({...DETERMINISTIC_BERLIN_BIRTH,time:'23:59',unknownTime:false} as any);
+  },60000);
   // ---- F13-1: complete position registry, nested identity, escaped-position rejection ----
 
   test('every generated position wrapper is accounted for by the authoritative registry', async () => {
-    const v: any = await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth);
+    const v: any = clone(natalFacts);
     const registryKeys = new Set(POSITION_REGISTRY.map((e) => e.factsKey));
     // There must be exactly one position wrapper per registry key, and every position
     // wrapper key must be in the registry (no escapees).
@@ -44,7 +60,7 @@ describe('thirteenth independent adversarial probes', () => {
   });
 
   test('position wrapper rejects a non-registry (escaped) key', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     // Build a wrapper that escapes the registry but claims kind 'position'.
     v.facts['natal.false.position'] = {
       id: 'natal.false.position', kind: 'position', source: 'swiss-ephemeris',
@@ -54,13 +70,13 @@ describe('thirteenth independent adversarial probes', () => {
   });
 
   test('nested value.key binds to the registry, not a mutated false key', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.sun.position'].value.key = 'false-sun';
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('nested value.label binds to the registry canonical label', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.sun.position'].value.label = 'Sol';
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
@@ -68,25 +84,25 @@ describe('thirteenth independent adversarial probes', () => {
   // ---- F13-2: exact normalized longitude, dignity, uncertainty, house locks ----
 
   test('canonical position longitude must equal its normalized 2dp basis (no extra decimals)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.sun.position'].value.longitude += 0.001;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('canonical position dignity must equal dignityFor(key, sign)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.sun.position'].value.dignity = 'domicile';
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('known-time uncertainty must not be present (coordinated uncertain=true rejected)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.venus.position'].value.uncertain = true;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('known-time planet house is derived from validated cusps via the shared houseForLongitude', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.venus.position'].value.house = (v.facts['natal.venus.position'].value.house % 12) + 1;
     if (v.facts['natal.venus.position'].value.house === v.facts['natal.venus.position'].value.house) {
       // force a definitely-wrong house to defeat range-only checks
@@ -99,10 +115,10 @@ describe('thirteenth independent adversarial probes', () => {
   });
 
   test('angle houses are locked ASC/MC/DSC/IC = 1/10/7/4', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.ascendant.position'].value.house = 3;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
-    const v2: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v2: any = clone(natalFacts);
     v2.facts['natal.midheaven.position'].value.house = 5;
     expect(preflightReport('natal', v2).status).toBe('input_incomplete');
   });
@@ -110,19 +126,19 @@ describe('thirteenth independent adversarial probes', () => {
   // ---- F13-3: derived truth re-derived before alias equality ----
 
   test('South Node must equal North Node + 180 (re-derived, no tolerance)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.southnode.position'].value.longitude = ESCAPED_POSITION;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('Descendant must equal Ascendant + 180 (re-derived)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.descendant.position'].value.longitude = normDeg(v.facts['natal.ascendant.position'].value.longitude + 90);
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
 
   test('Imum Coeli must equal Midheaven + 180 (re-derived)', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.icumcoeli.position'].value.longitude = normDeg(v.facts['natal.midheaven.position'].value.longitude + 90);
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
   });
@@ -156,8 +172,8 @@ describe('thirteenth independent adversarial probes', () => {
   // ---- F13-5-style independent POF aspect expectation (production cross-check) ----
 
   test('POF longitude and aspect orbs derive independently from computeChart inputs', async () => {
-    const chart = await computeChart(KNOWN_TIME_ORDINARY.birth as any);
-    const common = await buildCommonDerived(chart, false);
+    const chart = ordinaryChart;
+    const common = ordinaryCommon;
     const normalize = (d: number) => ((Math.round(((d % 360) + 360) % 360 * 100) / 100) % 360 + 360) % 360;
     const ascLong = normalize(chart.ascendant.longitude);
     const sunLong = normalize(chart.sun.longitude);
@@ -183,16 +199,16 @@ describe('thirteenth independent adversarial probes', () => {
   // ---- second-review variants (accepted corruptions that must now be rejected) ----
 
   test('DSC/South Node +0.001° corruption is rejected by exact normalization', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     v.facts['natal.descendant.position'].value.longitude += 0.001;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
-    const v2: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v2: any = clone(natalFacts);
     v2.facts['natal.southnode.position'].value.longitude += 0.001;
     expect(preflightReport('natal', v2).status).toBe('input_incomplete');
   });
 
   test('derived South Node house is re-derived from validated cusps', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const correct = v.facts['natal.southnode.position'].value.house;
     v.facts['natal.southnode.position'].value.house = correct === 12 ? 1 : correct + 1;
     expect(preflightReport('natal', v).status).toBe('input_incomplete');
@@ -214,8 +230,8 @@ describe('thirteenth independent adversarial probes', () => {
   });
 
   test('independent POF aspect expectation rejects a corrupted POF longitude', async () => {
-    const chart = await computeChart(KNOWN_TIME_ORDINARY.birth as any);
-    const common = await buildCommonDerived(chart, false);
+    const chart = ordinaryChart;
+    const common = ordinaryCommon;
     const pof = (common.partOfFortune!.value as any).longitude;
     const def: any = { conjunction: 0, 'semi-sextile': 30, 'semi-square': 45, sextile: 60, square: 90, trine: 120, sesquisquare: 135, quincunx: 150, opposition: 180 };
     const a = common.aspects.find((x) => (x.value.bodyA === 'partoffortune' || x.value.bodyB === 'partoffortune'));
@@ -234,7 +250,7 @@ describe('thirteenth independent adversarial probes', () => {
   // validator must reject on POF house authority (houseForLongitude of recomputed longitude),
   // not on display drift. This is the unchanged coordinated parent case.
   test('parent POF house corruption (flat + alias) is rejected by house authority', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(natalFacts);
     const f = v.facts['natal.partoffortune.position'];
     const a = v.common.partOfFortune;
     const wrong = f.value.house === 12 ? 11 : f.value.house + 1;
