@@ -27,6 +27,7 @@ describe('fifth independent review adversarial cases',()=>{
   let facts:any;
   let charts=new Map<string,any>();
   let common=new Map<string,any>();
+  let relationshipByFixture=new Map<string,any>();
   let unknownStart:any;
   let unknownEnd:any;
   let unknownNatal:any;
@@ -43,6 +44,7 @@ describe('fifth independent review adversarial cases',()=>{
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
       const b=deterministicBirth(f.birth); const c=await computeChart(b as any);
       charts.set(f.name,c); common.set(f.name,await buildCommonDerived(c,false));
+      relationshipByFixture.set(f.name,await buildVerifiedFactsV2('relationship',b));
     }
     const ub=deterministicBirth(UNKNOWN_TIME_SOLAR.birth);
     unknownStart=await computeChart({...ub,time:'00:00',unknownTime:false} as any);
@@ -103,7 +105,7 @@ describe('fifth independent review adversarial cases',()=>{
   test('evidence provenance must correspond to its real aspectId',async()=>{
     let exercised=false;
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
-      const v=clone(facts.relationship);
+      const v=clone(relationshipByFixture.get(f.name)!);
       const aspects:any=(v.reportData as any).relationshipEvidence.aspects;
       const e:any=Object.values(aspects).find((x:any)=>x.aspectId!==null);
       if(!e) continue;
