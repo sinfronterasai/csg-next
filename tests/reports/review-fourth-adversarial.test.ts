@@ -7,13 +7,38 @@ import { ALL_FIXTURES, BOUNDARY_NEAR_29, KNOWN_TIME_ORDINARY, UNKNOWN_TIME_SOLAR
 const norm = (x:number) => ((x % 360) + 360) % 360;
 const dist = (a:number,b:number) => { const d=Math.abs(norm(a)-norm(b)); return Math.min(d,360-d); };
 const dignityLabel:any={domicile:'in domicile',exaltation:'exalted',detriment:'in detriment',fall:'in fall'};
+const LOCATION_ANCHORS: Record<string,{latitude:number;longitude:number;timezone:string}> = {
+  paris:{latitude:48.8566,longitude:2.3522,timezone:'Europe/Paris'}, berlin:{latitude:52.52,longitude:13.405,timezone:'Europe/Berlin'},
+  london:{latitude:51.5074,longitude:-0.1278,timezone:'Europe/London'}, tokyo:{latitude:35.6762,longitude:139.6503,timezone:'Asia/Tokyo'},
+  'new york':{latitude:40.7128,longitude:-74.006,timezone:'America/New_York'}, sydney:{latitude:-33.8688,longitude:151.2093,timezone:'Australia/Sydney'},
+  'mexico city, mexico':{latitude:19.4326,longitude:-99.1332,timezone:'America/Mexico_City'},
+};
+const deterministicBirth=(birth:any)=>({...birth,...(LOCATION_ANCHORS[birth.location.toLowerCase()]??{})});
+const clone=<T>(x:T):T=>JSON.parse(JSON.stringify(x));
 function bodies(xs:{key:string;longitude:number}[]):any {
   return xs.map(x=>({id:`natal.${x.key}.position`,key:x.key,label:x.key,longitude:x.longitude,full:x}));
 }
 
 describe('fourth independent review adversarial cases',()=>{
+  let ordinaryCommon:any;
+  let unknownCommon:any;
+  let relationshipFacts:any;
+  let karmicFacts:any;
+  let vocationFacts:any;
+  let fixtureCommons=new Map<string,any>();
+
+  beforeAll(async()=>{
+    ordinaryCommon=await computeVerifiedCommon(deterministicBirth(KNOWN_TIME_ORDINARY.birth));
+    unknownCommon=await computeVerifiedCommon(deterministicBirth(UNKNOWN_TIME_SOLAR.birth));
+    [relationshipFacts,karmicFacts,vocationFacts]=await Promise.all([
+      buildVerifiedFactsV2('relationship',deterministicBirth(KNOWN_TIME_ORDINARY.birth)),
+      buildVerifiedFactsV2('karmicshadow',deterministicBirth(KNOWN_TIME_ORDINARY.birth)),
+      buildVerifiedFactsV2('vocation',deterministicBirth(KNOWN_TIME_ORDINARY.birth)),
+    ]);
+    for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)) fixtureCommons.set(f.name,await computeVerifiedCommon(deterministicBirth(f.birth)));
+  },120000);
   test('nodal ruler condition and provenance use actual ruler planet placement',async()=>{
-    const c=await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const c=ordinaryCommon;
     for(const nr of [c.nodalRulers!.north,c.nodalRulers!.south]){
       const p:any=c.positions.find((x:any)=>x.id===`natal.${nr.ruler}.position`)!.value;
       const d=dignityFor(nr.ruler,p.sign);
@@ -26,7 +51,7 @@ describe('fourth independent review adversarial cases',()=>{
   test('night Part-of-Fortune aspects use the same longitude as the emitted POF fact',async()=>{
     let checked=0;
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
-      const c=await computeVerifiedCommon(f.birth);
+      const c=fixtureCommons.get(f.name)!;
       const sun:any=c.positions.find((x:any)=>x.id==='natal.sun.position')!.value;
       if(sun.house>=7 && sun.house<=12) continue;
       const pof:any=c.partOfFortune!.value;
@@ -44,7 +69,7 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('unknown-time ledger does not retain artificial-noon houses',async()=>{
-    const c=await computeVerifiedCommon(UNKNOWN_TIME_SOLAR.birth);
+    const c=unknownCommon;
     for(const p of c.positions) expect((p.value as any).house).toBeNull();
     expect(c.houses).toBeUndefined();
     expect(c.ascendant).toBeUndefined();
@@ -52,13 +77,13 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('relationship evidence requires the exact pair for each named field',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(relationshipFacts);
     (v.reportData as any).relationshipEvidence.aspects.venusMars.pair='sun-pluto';
     expect(preflightReport('relationship',v).status).toBe('input_incomplete');
   });
 
   test('ID arrays in karmic evidence reject dangling nodal/chiron references',async()=>{
-    const v=await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(karmicFacts);
     const e:any=(v.reportData as any).karmicEvidence;
     e.nodalAspects=['natal.aspect.fake-node'];
     e.nodalSquares=['natal.aspect.fake-square'];
@@ -68,7 +93,7 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('vocation evidence names actual MC pairs rather than Sun substitutes',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(vocationFacts);
     const e:any=(v.reportData as any).vocationEvidence;
     expect(e.saturnAspect.pair).toBe('saturn-midheaven');
     expect(e.jupiterAspect.pair).toBe('jupiter-midheaven');
@@ -76,7 +101,7 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('wealth indicators are structured resolvable evidence, not unchecked labels',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(vocationFacts);
     (v.reportData as any).vocationEvidence.wealthIndicators=['fake-wealth-indicator'];
     expect(validateFactResolution(v).ok).toBe(false);
   });
@@ -106,7 +131,7 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('ruler facts carry the actual placement fields promised by T3-4',async()=>{
-    const c=await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const c=ordinaryCommon;
     for(const r of [c.rulers!.dsc!,c.rulers!.second!,c.rulers!.sixth!,c.rulers!.tenth!,c.nodalRulers!.north,c.nodalRulers!.south]){
       const x:any=r;
       expect(typeof x.degreeInSign).toBe('number');
@@ -118,7 +143,7 @@ describe('fourth independent review adversarial cases',()=>{
   });
 
   test('Part-of-Fortune records which sect/formula generated the point',async()=>{
-    const c=await computeVerifiedCommon(KNOWN_TIME_ORDINARY.birth);
+    const c=ordinaryCommon;
     const p:any=c.partOfFortune!.value;
     expect(['day','night']).toContain(p.sect);
     expect(typeof p.formula).toBe('string');

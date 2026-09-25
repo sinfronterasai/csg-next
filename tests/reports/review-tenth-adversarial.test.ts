@@ -8,8 +8,17 @@ import { QUERY_LOG, EXTERNAL_CHART_REQUEST, FIXED_EXPECTED, JPL_MANIFEST } from 
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const run = (rt: any, v: any) => preflightReport(rt, v);
+const DETERMINISTIC_PARIS_BIRTH={...KNOWN_TIME_ORDINARY.birth,latitude:48.8566,longitude:2.3522,timezone:'Europe/Paris'};
 
 describe('tenth independent review — fresh semantic and corpus-integrity cases', () => {
+  let facts:any;
+  beforeAll(async()=>{
+    facts={
+      natal:await buildVerifiedFactsV2('natal',DETERMINISTIC_PARIS_BIRTH),
+      relationship:await buildVerifiedFactsV2('relationship',DETERMINISTIC_PARIS_BIRTH),
+      karmicshadow:await buildVerifiedFactsV2('karmicshadow',DETERMINISTIC_PARIS_BIRTH),
+    };
+  },60000);
   // Every QUERY_LOG window must equal the window in its own committed raw artifact header.
   // The artifact is read here independently of the manifest, so a drifting constant fails.
   test('every JPL query window equals its committed raw artifact header window', () => {
@@ -55,38 +64,38 @@ describe('tenth independent review — fresh semantic and corpus-integrity cases
   });
 
   test('flat POF wrapper requires exact canonical id', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     v.facts['natal.partoffortune.position'].id = 'natal.false.position';
     expect(run('natal', v).status).toBe('input_incomplete');
   });
 
   test('common POF wrapper rejects unexpected wrapper metadata', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     v.common.partOfFortune.injected = 'not contract data';
     expect(run('natal', v).status).toBe('input_incomplete');
   });
 
   test('flat POF wrapper rejects unexpected wrapper metadata', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     v.facts['natal.partoffortune.position'].injected = 'not contract data';
     expect(run('natal', v).status).toBe('input_incomplete');
   });
 
   test('coordinated false POF displays cannot establish deterministic truth', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     v.common.partOfFortune.display = 'Coordinated but false POF display';
     v.facts['natal.partoffortune.position'].display = 'Coordinated but false POF display';
     expect(run('natal', v).status).toBe('input_incomplete');
   });
 
   test('cusp display is canonical and cannot be independently corrupted', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.relationship);
     v.facts['common.cusp.7'].display = 'False cusp display';
     expect(run('relationship', v).status).toBe('input_incomplete');
   });
 
   test('coordinated common/canonical aspect id corruption cannot establish authority', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     const original = v.common.aspects[0];
     const oldId = original.id;
     const falseId = 'natal.aspect.false-but-coordinated';
@@ -96,7 +105,7 @@ describe('tenth independent review — fresh semantic and corpus-integrity cases
   });
 
   test('coordinated common/canonical invalid aspect type cannot establish authority', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     const a = v.common.aspects[0];
     a.value.aspectType = 'invented-aspect';
     v.facts[a.id].value.aspectType = 'invented-aspect';
@@ -104,21 +113,21 @@ describe('tenth independent review — fresh semantic and corpus-integrity cases
   });
 
   test('malformed ruler provenance fails closed without throwing', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.relationship);
     delete v.reportData.relationshipEvidence.seventhHouseRuler.provenance;
     expect(() => run('relationship', v)).not.toThrow();
     expect(run('relationship', v).status).toBe('input_incomplete');
   });
 
   test('null node context value fails closed without throwing', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('karmicshadow', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.karmicshadow);
     v.facts['natal.northnode.position'].value = null;
     expect(() => run('karmicshadow', v)).not.toThrow();
     expect(run('karmicshadow', v).status).toBe('input_incomplete');
   });
 
   test('non-array common aspects fails closed without throwing', async () => {
-    const v: any = clone(await buildVerifiedFactsV2('natal', KNOWN_TIME_ORDINARY.birth));
+    const v: any = clone(facts.natal);
     v.common.aspects = { malformed: true };
     expect(() => run('natal', v)).not.toThrow();
     expect(run('natal', v).status).toBe('input_incomplete');

@@ -14,23 +14,55 @@ function pattern(order:{key:string;longitude:number}[],name:'Yod'|'TSquare'){
   return buildPatterns(chart,aspects,new Set(planets.map(p=>`natal.${p.key}.position`))).find((p:any)=>p.value.name===name)!;
 }
 function perms<T>(a:T[]):T[][]{return a.length<2?[a]:a.flatMap((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).map(p=>[x,...p]));}
+const clone=<T>(x:T):T=>JSON.parse(JSON.stringify(x));
+const LOCATION_ANCHORS:Record<string,{latitude:number;longitude:number;timezone:string}>={
+  paris:{latitude:48.8566,longitude:2.3522,timezone:'Europe/Paris'}, berlin:{latitude:52.52,longitude:13.405,timezone:'Europe/Berlin'},
+  london:{latitude:51.5074,longitude:-0.1278,timezone:'Europe/London'}, tokyo:{latitude:35.6762,longitude:139.6503,timezone:'Asia/Tokyo'},
+  'new york':{latitude:40.7128,longitude:-74.006,timezone:'America/New_York'}, sydney:{latitude:-33.8688,longitude:151.2093,timezone:'Australia/Sydney'},
+  'mexico city, mexico':{latitude:19.4326,longitude:-99.1332,timezone:'America/Mexico_City'},
+};
+const deterministicBirth=(birth:any)=>({...birth,...(LOCATION_ANCHORS[birth.location.toLowerCase()]??{})});
 
 describe('fifth independent review adversarial cases',()=>{
+  let facts:any;
+  let charts=new Map<string,any>();
+  let common=new Map<string,any>();
+  let unknownStart:any;
+  let unknownEnd:any;
+  let unknownNatal:any;
+  beforeAll(async()=>{
+    const ordinary=deterministicBirth(KNOWN_TIME_ORDINARY.birth);
+    facts={
+      loveblueprint:await buildVerifiedFactsV2('loveblueprint',ordinary),
+      vocation:await buildVerifiedFactsV2('vocation',ordinary),
+      karmicshadow:await buildVerifiedFactsV2('karmicshadow',ordinary),
+      relationship:await buildVerifiedFactsV2('relationship',ordinary),
+      natal:await buildVerifiedFactsV2('natal',ordinary),
+    };
+    unknownNatal=await buildVerifiedFactsV2('natal',deterministicBirth(UNKNOWN_TIME_SOLAR.birth));
+    for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
+      const b=deterministicBirth(f.birth); const c=await computeChart(b as any);
+      charts.set(f.name,c); common.set(f.name,await buildCommonDerived(c,false));
+    }
+    const ub=deterministicBirth(UNKNOWN_TIME_SOLAR.birth);
+    unknownStart=await computeChart({...ub,time:'00:00',unknownTime:false} as any);
+    unknownEnd=await computeChart({...ub,time:'23:59',unknownTime:false} as any);
+  },120000);
   test('Love Blueprint named fields reject a nonempty but wrong pair',async()=>{
-    const v=await buildVerifiedFactsV2('loveblueprint',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.loveblueprint);
     (v.reportData as any).loveBlueprintEvidence.aspects.moonVenus.pair='sun-pluto';
     expect(preflightReport('loveblueprint',v).status).toBe('input_incomplete');
   });
 
   test('Vocation named MC fields reject a wrong pair before the window gate',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.vocation);
     (v.reportData as any).vocationEvidence.saturnAspect.pair='saturn-sun';
     const r=preflightReport('vocation',v);
     expect(r.missing.some(x=>x.includes('saturnAspect'))).toBe(true);
   });
 
   test('nodal and Chiron arrays reject real aspects with wrong semantic endpoints',async()=>{
-    const v=await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.karmicshadow);
     const unrelated=v.common.aspects.find(a=>!a.value.bodyA.includes('node')&&!a.value.bodyB.includes('node')&&a.value.bodyA!=='chiron'&&a.value.bodyB!=='chiron')!;
     const e:any=(v.reportData as any).karmicEvidence;
     e.nodalAspects=[unrelated.id];
@@ -41,28 +73,28 @@ describe('fifth independent review adversarial cases',()=>{
   });
 
   test('optional Chiron state enforces present/ids/reason consistency',async()=>{
-    const v=await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.karmicshadow);
     const e:any=(v.reportData as any).karmicEvidence;
     e.chironEvidence={present:false,ids:e.chironAspects,reason:undefined};
     expect(preflightReport('karmicshadow',v).status).toBe('input_incomplete');
   });
 
   test('Love Blueprint exposes explicit Chiron present-or-absent state',async()=>{
-    const v=await buildVerifiedFactsV2('loveblueprint',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.loveblueprint);
     const e:any=(v.reportData as any).loveBlueprintEvidence;
     expect(e.chironEvidence).toBeDefined();
     expect(typeof e.chironEvidence.present).toBe('boolean');
   });
 
   test('RulerFact structured fields are actually schema-validated',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.relationship);
     (v.reportData as any).relationshipEvidence.seventhHouseRuler.degreeInSign=undefined;
     (v.reportData as any).relationshipEvidence.seventhHouseRuler.retrograde='no';
     expect(preflightReport('relationship',v).status).toBe('input_incomplete');
   });
 
   test('Part-of-Fortune sect/formula metadata is schema-validated',async()=>{
-    const v=await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.natal);
     (v.common.partOfFortune!.value as any).sect='twilight';
     (v.common.partOfFortune!.value as any).formula='';
     expect(preflightReport('natal',v).status).toBe('input_incomplete');
@@ -71,7 +103,7 @@ describe('fifth independent review adversarial cases',()=>{
   test('evidence provenance must correspond to its real aspectId',async()=>{
     let exercised=false;
     for(const f of ALL_FIXTURES.filter(x=>x.expect.knownTime)){
-      const v=await buildVerifiedFactsV2('relationship',f.birth);
+      const v=clone(facts.relationship);
       const aspects:any=(v.reportData as any).relationshipEvidence.aspects;
       const e:any=Object.values(aspects).find((x:any)=>x.aspectId!==null);
       if(!e) continue;
@@ -126,8 +158,8 @@ describe('fifth independent review adversarial cases',()=>{
     };
     let checked = 0;
     for (const f of ALL_FIXTURES.filter((x) => x.expect.knownTime)) {
-      const chart = await computeChart(f.birth as any);
-      const common = await buildCommonDerived(chart, false);
+      const chart=charts.get(f.name)!;
+      const commonDerived=common.get(f.name)!;
 
       // Independent expected longitude map built ONLY from computeChart inputs.
       const normalize = (d: number) => ((Math.round(((d % 360) + 360) % 360 * 100) / 100) % 360 + 360) % 360;
@@ -147,13 +179,13 @@ describe('fifth independent review adversarial cases',()=>{
       const expectedPof = normalize(isDay ? ascLong + moonLong - sunLong : ascLong + sunLong - moonLong);
 
       // SUT: produced POF must equal the independently computed expected POF longitude.
-      const producedPof = (common.partOfFortune!.value as any).longitude;
+      const producedPof = (commonDerived.partOfFortune!.value as any).longitude;
       expect(producedPof).toBe(expectedPof);
-      expect((common.partOfFortune!.value as any).sect).toBe(isDay ? 'day' : 'night');
+      expect((commonDerived.partOfFortune!.value as any).sect).toBe(isDay ? 'day' : 'night');
 
       // SUT: for every produced POF aspect, orb must equal |angDist(expectedPof, expectedCounterpart) - angle|.
       // The counterpart longitude comes from the independent expected map, NOT common.positions.
-      for (const a of common.aspects.filter((x) => x.value.bodyA === 'partoffortune' || x.value.bodyB === 'partoffortune')) {
+      for (const a of commonDerived.aspects.filter((x) => x.value.bodyA === 'partoffortune' || x.value.bodyB === 'partoffortune')) {
         const other = a.value.bodyA === 'partoffortune' ? a.value.bodyB : a.value.bodyA;
         const otherLong = expectedLong[other];
         if (typeof otherLong !== 'number') continue;
@@ -168,15 +200,15 @@ describe('fifth independent review adversarial cases',()=>{
   });
 
   test('unknown-time fixture is a verified Moon sign-change date, not a conditional pass',async()=>{
-    const start=await computeChart({...UNKNOWN_TIME_SOLAR.birth,time:'00:00',unknownTime:false} as any);
-    const end=await computeChart({...UNKNOWN_TIME_SOLAR.birth,time:'23:59',unknownTime:false} as any);
+    const start=unknownStart;
+    const end=unknownEnd;
     expect(start.moon.sign).not.toBe(end.moon.sign);
-    const v=await buildVerifiedFactsV2('natal',UNKNOWN_TIME_SOLAR.birth);
+    const v=clone(unknownNatal);
     expect(v.common.solarSign?.moon).toBeUndefined();
   });
 
   test('Vocation emits MC sign/degree and the complete cited set of MC aspects',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=clone(facts.vocation);
     const e:any=(v.reportData as any).vocationEvidence;
     const expected=v.common.aspects.filter(a=>a.value.bodyA==='midheaven'||a.value.bodyB==='midheaven').map(a=>a.id).sort();
     expect(e.mcPositionId).toBe('natal.midheaven.position');
@@ -186,14 +218,14 @@ describe('fifth independent review adversarial cases',()=>{
   });
 
   test('report-specific Chiron evidence contains only the promised counterpart bodies',async()=>{
-    const k=await buildVerifiedFactsV2('karmicshadow',KNOWN_TIME_ORDINARY.birth);
+    const k=clone(facts.karmicshadow);
     const ke:any=(k.reportData as any).karmicEvidence;
     for(const id of ke.chironAspects){
       const a:any=k.facts[id].value;
       expect([a.bodyA,a.bodyB]).toContain('chiron');
       expect([a.bodyA,a.bodyB].some((b:string)=>b.includes('node'))).toBe(true);
     }
-    const l=await buildVerifiedFactsV2('loveblueprint',KNOWN_TIME_ORDINARY.birth);
+    const l=clone(facts.loveblueprint);
     const le:any=(l.reportData as any).loveBlueprintEvidence;
     for(const id of le.chironAspects){
       const a:any=l.facts[id].value;
