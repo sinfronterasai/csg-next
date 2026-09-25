@@ -7,6 +7,12 @@ import { QUERY_LOG, SOURCE_METADATA } from './fixtures/independentReferenceCorpu
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const result = (rt: any, v: any) => preflightReport(rt, v);
+const DETERMINISTIC_PARIS_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  timezone: 'Europe/Paris',
+};
 
 type FactsCache = Record<'natal' | 'relationship' | 'karmicshadow' | 'vocation', any>;
 let factsCache: Partial<FactsCache> = {};
@@ -15,12 +21,11 @@ const freshFacts = (reportType: keyof FactsCache) => clone(factsCache[reportType
 
 describe('ninth independent review — fresh semantic and corpus integrity cases', () => {
   beforeAll(async () => {
-    const birth = KNOWN_TIME_ORDINARY.birth;
     factsCache = {
-      natal: await buildVerifiedFactsV2('natal', birth),
-      relationship: await buildVerifiedFactsV2('relationship', birth),
-      karmicshadow: await buildVerifiedFactsV2('karmicshadow', birth),
-      vocation: await buildVerifiedFactsV2('vocation', birth),
+      natal: await buildVerifiedFactsV2('natal', DETERMINISTIC_PARIS_BIRTH),
+      relationship: await buildVerifiedFactsV2('relationship', DETERMINISTIC_PARIS_BIRTH),
+      karmicshadow: await buildVerifiedFactsV2('karmicshadow', DETERMINISTIC_PARIS_BIRTH),
+      vocation: await buildVerifiedFactsV2('vocation', DETERMINISTIC_PARIS_BIRTH),
     };
   }, 30000);
   test('common position alias display must equal its canonical fact display', async () => {
