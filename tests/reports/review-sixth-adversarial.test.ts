@@ -6,16 +6,34 @@ import { buildPatterns } from '@/lib/reportFacts/derived';
 import { KNOWN_TIME_ORDINARY, RETRO_NULL_DIGNITY } from './fixtures/factsFixtures';
 
 const missing=(rt:any,v:any)=>preflightReport(rt,v).missing.join(' | ');
+const DETERMINISTIC_BIRTH = {
+  ...KNOWN_TIME_ORDINARY.birth,
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+};
+const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+let factsCache: Record<'natal' | 'relationship' | 'vocation' | 'karmicshadow' | 'loveblueprint', any>;
+const freshFacts = (reportType: keyof typeof factsCache) => clone(factsCache[reportType]);
 
-describe('sixth independent review semantic cases',()=>{
+ describe('sixth independent review semantic cases',()=>{
+  beforeAll(async () => {
+    factsCache = {
+      natal: await buildVerifiedFactsV2('natal', DETERMINISTIC_BIRTH),
+      relationship: await buildVerifiedFactsV2('relationship', DETERMINISTIC_BIRTH),
+      vocation: await buildVerifiedFactsV2('vocation', DETERMINISTIC_BIRTH),
+      karmicshadow: await buildVerifiedFactsV2('karmicshadow', DETERMINISTIC_BIRTH),
+      loveblueprint: await buildVerifiedFactsV2('loveblueprint', DETERMINISTIC_BIRTH),
+    };
+  }, 60000);
   test('POF metadata is validated for every known-time report, not Natal only',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('relationship');
     (v.common.partOfFortune!.value as any).sect='twilight';
     expect(missing('relationship',v)).toContain('partOfFortune');
   });
 
   test('POF validator rejects impossible longitudes and mismatched sign/degree',async()=>{
-    const v=await buildVerifiedFactsV2('natal',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('natal');
     const p:any=v.common.partOfFortune!.value;
     p.longitude=999;
     p.sign='aries';
@@ -24,7 +42,7 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('ruler validator cross-checks all fields against cited ruler placement',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('relationship');
     const r:any=(v.reportData as any).relationshipEvidence.seventhHouseRuler;
     r.sign=r.sign==='aries'?'taurus':'aries';
     r.degreeInSign=12.34;
@@ -37,7 +55,7 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('aspect-hit evidence provenance is exactly the cited aspect id',async()=>{
-    const v=await buildVerifiedFactsV2('relationship',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('relationship');
     const all:any=Object.values((v.reportData as any).relationshipEvidence.aspects);
     const e:any=all.find((x:any)=>x.aspectId!==null);
     expect(e).toBeDefined();
@@ -46,7 +64,7 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('Vocation MC sign and degree must match the cited MC position fact',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('vocation');
     const e:any=(v.reportData as any).vocationEvidence;
     e.mcSign=e.mcSign==='aries'?'taurus':'aries';
     e.mcDegreeInSign=(e.mcDegreeInSign+5)%30;
@@ -55,7 +73,7 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('Vocation mcAspects must equal the complete authoritative set',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('vocation');
     const e:any=(v.reportData as any).vocationEvidence;
     expect(e.mcAspects.length).toBeGreaterThan(0);
     e.mcAspects=e.mcAspects.slice(1);
@@ -63,13 +81,13 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('wealthIndicators must equal unique 2nd/6th/10th ruler positions',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('vocation');
     (v.reportData as any).vocationEvidence.wealthIndicators=['natal.sun.position'];
     expect(missing('vocation',v)).toContain('wealthIndicators');
   });
 
   test('optional Chiron absence reason is the exact deterministic report reason',async()=>{
-    const v=await buildVerifiedFactsV2('loveblueprint',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('loveblueprint');
     const e:any=(v.reportData as any).loveBlueprintEvidence;
     if(e.chironEvidence.present){
       e.chironEvidence={present:false,ids:[],reason:'arbitrary but nonempty'};
@@ -79,7 +97,7 @@ describe('sixth independent review semantic cases',()=>{
   });
 
   test('Vocation surfaced evidence provenance remains equal to all evidence citations',async()=>{
-    const v=await buildVerifiedFactsV2('vocation',KNOWN_TIME_ORDINARY.birth);
+    const v=freshFacts('vocation');
     const f:any=v.facts['reportData.vocationEvidence'];
     f.provenance=f.provenance.filter((x:string)=>!x.startsWith('natal.aspect.'));
     expect(missing('vocation',v)).toMatch(/provenance|mcAspects.*complete|evidence citations/);
@@ -89,7 +107,7 @@ describe('sixth independent review semantic cases',()=>{
   // F6-9: karmic nodalAspects must EQUAL the complete authoritative set (not merely
   // contain valid members). Dropping or adding a member must fail.
   test('F6-9 karmic nodalAspects must equal the complete authoritative node-aspect set', async () => {
-    const v = await buildVerifiedFactsV2('karmicshadow', KNOWN_TIME_ORDINARY.birth);
+    const v = freshFacts('karmicshadow');
     const e: any = (v.reportData as any).karmicEvidence;
     expect(Array.isArray(e.nodalAspects) && e.nodalAspects.length > 0).toBe(true);
     // Drop one member -> omission must be caught.
@@ -97,14 +115,14 @@ describe('sixth independent review semantic cases',()=>{
     expect(preflightReport('karmicshadow', v).status).toBe('input_incomplete');
   });
   test('F6-9 karmic Chiron aspects must equal the complete authoritative (Chiron+node) set', async () => {
-    const v = await buildVerifiedFactsV2('karmicshadow', KNOWN_TIME_ORDINARY.birth);
+    const v = freshFacts('karmicshadow');
     const e: any = (v.reportData as any).karmicEvidence;
     // Add a bogus extra (duplicate of first) -> duplicate/extra must be caught.
     e.chironAspects = e.chironAspects.length ? [...e.chironAspects, e.chironAspects[0]] : ['natal.aspect.venus-mars-trine'];
     expect(preflightReport('karmicshadow', v).status).toBe('input_incomplete');
   });
   test('F6-9 love-blueprint Chiron aspects must equal the complete authoritative (Chiron+Venus/Moon) set', async () => {
-    const v = await buildVerifiedFactsV2('loveblueprint', KNOWN_TIME_ORDINARY.birth);
+    const v = freshFacts('loveblueprint');
     const e: any = (v.reportData as any).loveBlueprintEvidence;
     if (e.chironAspects && e.chironAspects.length) {
       e.chironAspects = e.chironAspects.slice(1); // omit one -> must fail
@@ -158,7 +176,7 @@ describe('sixth independent review semantic cases',()=>{
   // to bodies that do NOT match the structured expected [venus, mars] keys while leaving
   // ev.pair untouched: the structured-key identity check must reject it.
   test('F6-12 aspect identity uses structured endpoint keys, not pair-string recovery', async () => {
-    const v = await buildVerifiedFactsV2('relationship', KNOWN_TIME_ORDINARY.birth);
+    const v = freshFacts('relationship');
     const all: any = Object.values((v.reportData as any).relationshipEvidence.aspects);
     const e: any = all.find((x: any) => x.aspectId !== null && x.pair === 'venus-saturn');
     expect(e).toBeDefined();
