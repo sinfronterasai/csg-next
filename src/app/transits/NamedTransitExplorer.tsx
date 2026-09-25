@@ -96,7 +96,7 @@ export default function NamedTransitExplorer() {
                 <li key={window.id} className="rounded-lg border border-white/10 p-4">
                   <div className="font-medium">Exact hit: {window.exactUtc}</div>
                   <div className="mt-1 text-sm text-muted-foreground">Active window: {window.startUtc} → {window.endUtc}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Motion: {window.direction} · Minimum orb: {window.minimumOrbDegrees}°</div>
+                  <div className="mt-1 text-sm text-muted-foreground">Phase: {window.phase} · Motion: {window.motion} · Minimum orb: {window.minimumOrbDegrees}°</div>
                 </li>
               ))}
             </ul>

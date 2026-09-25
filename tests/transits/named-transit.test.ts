@@ -63,7 +63,7 @@ describe('named transit deterministic contract', () => {
     expect(first.contractVersion).toBe('named-transit.v1');
     expect(first.status).toBe('ready');
     expect(first.windows).toHaveLength(1);
-    expect(first.windows[0]).toMatchObject({ direction: 'applying', motion: 'direct', precisionSeconds: 1 });
+    expect(first.windows[0]).toMatchObject({ phase: 'exact', motion: 'direct', precisionSeconds: 1 });
     expect(first.windows[0].minimumOrbDegrees).toBeLessThanOrEqual(0.00001);
     expect(first.windows[0].startUtc).toBe('2026-01-01T00:00:00Z');
     expect(first.windows[0].exactUtc).toBe('2026-01-02T00:00:00Z');
@@ -78,6 +78,8 @@ describe('named transit deterministic contract', () => {
       '2026-01-05T00:00:00Z',
     ]);
     expect(result.windows.map((window) => window.motion)).toEqual(['direct', 'retrograde']);
+    expect(result.windows.map((window) => window.phase)).toEqual(['exact', 'exact']);
+    expect(result.windows.every((window) => !Object.prototype.hasOwnProperty.call(window, 'direction'))).toBe(true);
     expect(new Set(result.windows.map((window) => window.id)).size).toBe(2);
     expect(result.windows[0].startUtc).toBe(result.windows[1].startUtc);
     expect(result.windows[0].endUtc).toBe(result.windows[1].endUtc);
@@ -86,7 +88,7 @@ describe('named transit deterministic contract', () => {
   it('classifies genuinely near-stationary motion using the documented speed threshold', async () => {
     mockModel = 'stationary';
     const result = await calculateNamedTransit({ ...request, windowDays: 2 });
-    expect(result.windows[0]).toMatchObject({ direction: 'stationary', motion: 'stationary' });
+    expect(result.windows[0]).toMatchObject({ phase: 'exact', motion: 'stationary' });
     expect(result.calculation.stationarySpeedDegreesPerDay).toBe(0.01);
   });
 

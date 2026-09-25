@@ -15,7 +15,6 @@ const ROOT_ITERATIONS = 40;
 
 type NamedTransitMotion = 'direct' | 'retrograde' | 'stationary' | 'indeterminate';
 export type NamedTransitStatus = 'ready' | 'no-hit';
-export type NamedTransitDirection = 'applying' | 'separating' | 'stationary' | 'indeterminate';
 
 export interface NamedTransitBirthInput {
   date: string;
@@ -37,8 +36,8 @@ export interface NamedTransitWindow {
   startUtc: string;
   exactUtc: string;
   endUtc: string;
-  direction: NamedTransitDirection;
   motion: NamedTransitMotion;
+  phase: 'exact';
   minimumOrbDegrees: number;
   precisionSeconds: number;
 }
@@ -217,22 +216,6 @@ function motionForSpeed(speed: number): NamedTransitMotion {
   return speed > 0 ? 'direct' : 'retrograde';
 }
 
-async function classifyDirection(exact: Date, moonLongitude: number): Promise<{ direction: NamedTransitDirection; motion: NamedTransitMotion }> {
-  const exactSample = await evaluateAt(exact, moonLongitude);
-  const motion = motionForSpeed(exactSample.speed);
-  if (motion === 'indeterminate') return { direction: 'indeterminate', motion };
-  if (motion === 'stationary') return { direction: 'stationary', motion };
-
-  // Direction is the signed aspect-phase slope through the exact hit. This
-  // avoids mistaking symmetric orb error around an ordinary crossing for a
-  // stationary planet. The speed-derived motion remains separately exposed.
-  const before = await evaluateAt(new Date(exact.getTime() - 6 * 60 * 60 * 1000), moonLongitude);
-  const after = await evaluateAt(new Date(exact.getTime() + 6 * 60 * 60 * 1000), moonLongitude);
-  const slope = after.signedOffset - before.signedOffset;
-  if (!Number.isFinite(slope) || Math.abs(slope) < 1e-9) return { direction: 'indeterminate', motion };
-  return { direction: slope > 0 ? 'applying' : 'separating', motion };
-}
-
 async function exactCandidates(group: { first: number; last: number }, samples: TransitSample[], moonLongitude: number): Promise<Date[]> {
   const candidates: Date[] = [];
   for (let i = group.first; i < group.last; i += 1) {
@@ -314,15 +297,15 @@ export async function calculateNamedTransit(input: NamedTransitRequest): Promise
     const candidates = await exactCandidates(group, samples, moonLongitude);
     for (const exact of candidates) {
       const exactSample = await evaluateAt(exact, moonLongitude);
-      const classified = await classifyDirection(exact, moonLongitude);
+      const motion = motionForSpeed(exactSample.speed);
       const exactUtc = isoSecond(exact);
       windows.push({
         id: `${NAMED_TRANSIT_EXPERIMENT_ID}:${exactUtc}`,
         startUtc: isoSecond(start),
         exactUtc,
         endUtc: isoSecond(end),
-        direction: classified.direction,
-        motion: classified.motion,
+        motion,
+        phase: 'exact',
         minimumOrbDegrees: +exactSample.error.toFixed(6),
         precisionSeconds: 1,
       });
