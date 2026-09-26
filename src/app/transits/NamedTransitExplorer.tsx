@@ -102,6 +102,9 @@ export default function NamedTransitExplorer() {
             </ul>
           )}
           <p className="mt-4 text-xs text-muted-foreground">Contract {result.contractVersion} · {result.calculation.ephemeris} · no AI-generated astronomical facts.</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Want to keep your birth details handy for future transit readings? <a href="/birth-chart" className="underline">Save your birth chart</a> or <a href="/login" className="underline">sign in</a>.
+          </p>
         </div>
       )}
     </section>
