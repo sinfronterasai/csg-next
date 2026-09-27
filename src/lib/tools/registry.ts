@@ -12,11 +12,6 @@ export interface ToolDefinition {
   featured?: boolean;
 }
 
-export function isNamedTransitEnabled(): boolean {
-  return process.env.CSG_NAMED_TRANSIT_EXPERIMENT === 'true' ||
-    process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT === 'true';
-}
-
 export function getTools(): ToolDefinition[] {
   return [
     {
@@ -25,7 +20,7 @@ export function getTools(): ToolDefinition[] {
       description: 'Find exact Saturn square natal Moon windows from your known birth details, with deterministic Swiss Ephemeris timing and UTC-backed active windows.',
       href: '/transits',
       cta: 'Explore your transit window',
-      availability: isNamedTransitEnabled() ? 'available' : 'limited-rollout',
+      availability: 'available',
       featured: true,
     },
     {

@@ -4,7 +4,6 @@ import { FormEvent, useState } from 'react';
 import type { NamedTransitResult } from '@/lib/namedTransit';
 
 type ApiResponse = {
-  assignment?: 'treatment' | 'control';
   result?: NamedTransitResult;
   error?: string;
   events?: Array<Record<string, unknown>>;
@@ -28,7 +27,6 @@ export default function NamedTransitExplorer() {
     fromDate: new Date().toISOString().slice(0, 10),
   }));
   const [result, setResult] = useState<NamedTransitResult | null>(null);
-  const [assignment, setAssignment] = useState<ApiResponse['assignment']>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -45,12 +43,7 @@ export default function NamedTransitExplorer() {
       });
       const data = await response.json() as ApiResponse;
       recordEvents(data.events);
-      setAssignment(data.assignment);
       if (!response.ok) throw new Error(data.error || 'The named transit could not be calculated.');
-      if (data.assignment === 'control') {
-        setError('You are viewing the existing transit experience for this test.');
-        return;
-      }
       setResult(data.result || null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'The named transit could not be calculated.');
@@ -84,8 +77,7 @@ export default function NamedTransitExplorer() {
           </button>
         </div>
       </form>
-      {assignment === 'control' && <p role="status" className="mt-5 text-sm text-muted-foreground">{error}</p>}
-      {error && assignment !== 'control' && <p role="alert" className="mt-5 text-sm text-red-300">{error}</p>}
+      {error && <p role="alert" className="mt-5 text-sm text-red-300">{error}</p>}
       {result && (
         <div className="mt-6 border-t border-white/10 pt-5" aria-live="polite">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">{result.transit.label} square {result.transit.targetLabel}</p>
