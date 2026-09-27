@@ -1,8 +1,3 @@
-jest.mock('next/headers', () => ({
-  cookies: jest.fn(async () => ({
-    get: jest.fn(() => undefined),
-  })),
-}));
 jest.mock('@/lib/namedTransit', () => ({
   calculateNamedTransit: jest.fn(async () => ({
     contractVersion: 'named-transit.v1',
@@ -24,14 +19,11 @@ import { POST } from '@/app/api/transits/named/route';
 
 describe('named transit experiment route', () => {
   beforeEach(() => {
-    process.env.CSG_NAMED_TRANSIT_EXPERIMENT = 'true';
-  });
-
-  afterEach(() => {
     delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
+    delete process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT;
   });
 
-  it('assigns a persistent arm and emits versioned events', async () => {
+  it('returns the deterministic result for a valid public request', async () => {
     const response = await POST(new Request('http://localhost/api/transits/named', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -39,18 +31,23 @@ describe('named transit experiment route', () => {
     }));
     const body = await response.json();
     expect(response.status).toBe(200);
-    expect(['control', 'treatment']).toContain(body.assignment);
+    expect(body.assignment).toBe('treatment');
+    expect(body.result).toBeDefined();
     expect(body.events).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'named_transit_eligible', contractVersion: 'named-transit.v1' }),
       expect.objectContaining({ name: 'named_transit_assigned', contractVersion: 'named-transit.v1' }),
       expect.objectContaining({ name: 'named_transit_started', contractVersion: 'named-transit.v1' }),
     ]));
-    expect(response.headers.get('set-cookie')).toContain('csg_named_transit_assignment=');
+    expect(response.headers.get('set-cookie')).toBeNull();
   });
 
-  it('fails closed when the feature flag is disabled', async () => {
-    delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
-    const response = await POST(new Request('http://localhost/api/transits/named', { method: 'POST', body: '{}' }));
-    expect(response.status).toBe(404);
+  it('does not withhold the public calculation when rollout flags are absent', async () => {
+    const response = await POST(new Request('http://localhost/api/transits/named', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ date: '1980-03-09', time: '16:21', location: 'Santa Cruz, CA', fromDate: '2026-01-01' }),
+    }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).assignment).toBe('treatment');
   });
 });

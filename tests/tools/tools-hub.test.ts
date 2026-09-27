@@ -5,7 +5,7 @@ jest.mock('@/lib/blog/queries', () => ({
 import fs from 'node:fs';
 import sitemap from '@/app/sitemap';
 import toolsPage, { generateMetadata } from '@/app/tools/page';
-import { getToolById, getTools, isNamedTransitEnabled } from '@/lib/tools/registry';
+import { getToolById, getTools } from '@/lib/tools/registry';
 import { NAMED_TRANSIT_EXPERIMENT_ID } from '@/lib/namedTransit';
 
 describe('canonical Tools discovery hub', () => {
@@ -40,14 +40,12 @@ describe('canonical Tools discovery hub', () => {
     expect(NAMED_TRANSIT_EXPERIMENT_ID).toBe('R-016-saturn-square-natal-moon');
   });
 
-  it('preserves registry availability behavior for the R-016 flag', () => {
+  it('represents the public explorer as available without rollout configuration', () => {
     delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
     delete process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT;
-    expect(isNamedTransitEnabled()).toBe(false);
-    expect(getToolById('personalized-transit-explorer')?.availability).toBe('limited-rollout');
+    expect(getToolById('personalized-transit-explorer')?.availability).toBe('available');
 
     process.env.CSG_NAMED_TRANSIT_EXPERIMENT = 'true';
-    expect(isNamedTransitEnabled()).toBe(true);
     expect(getToolById('personalized-transit-explorer')?.availability).toBe('available');
 
     delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
