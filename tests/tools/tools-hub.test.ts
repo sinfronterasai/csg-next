@@ -5,6 +5,7 @@ jest.mock('@/lib/blog/queries', () => ({
 import fs from 'node:fs';
 import sitemap from '@/app/sitemap';
 import toolsPage, { generateMetadata } from '@/app/tools/page';
+import moonCalculatorPage from '@/app/moon-calculator/page';
 import { getToolById, getTools } from '@/lib/tools/registry';
 import { NAMED_TRANSIT_EXPERIMENT_ID } from '@/lib/namedTransit';
 
@@ -40,6 +41,20 @@ describe('canonical Tools discovery hub', () => {
     expect(NAMED_TRANSIT_EXPERIMENT_ID).toBe('R-016-saturn-square-natal-moon');
   });
 
+  it('registers the Moon calculator with a truthful reachable destination', () => {
+    const tool = getToolById('moon-sign-phase-calculator');
+    expect(tool).toEqual({
+      id: 'moon-sign-phase-calculator',
+      name: 'Moon Sign & Phase Calculator',
+      description: 'Calculate your natal Moon sign from your birth date, time, and location using Swiss Ephemeris, and see the current lunar phase and illumination.',
+      href: '/moon-calculator',
+      cta: 'Calculate Your Moon Sign',
+      availability: 'available',
+    });
+    expect(getTools().map((entry) => entry.href)).toContain('/moon-calculator');
+    expect(typeof moonCalculatorPage).toBe('function');
+  });
+
   it('represents the public explorer as available without rollout configuration', () => {
     delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
     delete process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT;
@@ -51,7 +66,7 @@ describe('canonical Tools discovery hub', () => {
     delete process.env.CSG_NAMED_TRANSIT_EXPERIMENT;
     process.env.NEXT_PUBLIC_NAMED_TRANSIT_EXPERIMENT = 'true';
     expect(getToolById('personalized-transit-explorer')?.availability).toBe('available');
-    expect(getTools()).toHaveLength(2);
+    expect(getTools()).toHaveLength(3);
   });
 
   it('adds Tools to the primary desktop/mobile navigation architecture', () => {

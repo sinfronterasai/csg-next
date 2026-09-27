@@ -1,6 +1,6 @@
 export type ToolAvailability = 'available' | 'limited-rollout';
 
-export type ToolId = 'personalized-transit-explorer' | 'cosmic-navigator';
+export type ToolId = 'personalized-transit-explorer' | 'cosmic-navigator' | 'moon-sign-phase-calculator';
 
 export interface ToolDefinition {
   id: ToolId;
@@ -29,6 +29,14 @@ export function getTools(): ToolDefinition[] {
       description: 'Explore an interactive celestial map and see the named stars and astronomical markers around you.',
       href: '/constellations',
       cta: 'Open Cosmic Navigator',
+      availability: 'available',
+    },
+    {
+      id: 'moon-sign-phase-calculator',
+      name: 'Moon Sign & Phase Calculator',
+      description: 'Calculate your natal Moon sign from your birth date, time, and location using Swiss Ephemeris, and see the current lunar phase and illumination.',
+      href: '/moon-calculator',
+      cta: 'Calculate Your Moon Sign',
       availability: 'available',
     },
   ];
