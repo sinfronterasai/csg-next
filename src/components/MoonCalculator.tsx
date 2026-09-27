@@ -17,6 +17,8 @@ interface MoonSign {
 interface MoonPhase {
   phase: number;
   label: string;
+  illuminationPercent: number;
+  evaluatedAtUtc: string;
 }
 interface MoonResult {
   birth: { date: string; time: string; location: string; unknownTime: boolean };
@@ -24,16 +26,12 @@ interface MoonResult {
   moonPhase: MoonPhase;
 }
 
-function formatDegree(degree: number): string {
+export function formatDegree(degree: number): string {
   const norm = ((degree % 360) + 360) % 360;
-  const deg = Math.floor(norm);
-  const min = Math.floor((norm - deg) * 60);
+  const roundedMinutes = Math.round(norm * 60);
+  const deg = Math.floor(roundedMinutes / 60) % 360;
+  const min = roundedMinutes % 60;
   return `${deg}°${String(min).padStart(2, '0')}'`;
-}
-
-// Illumination % from the phase fraction: 0.5 (full) = 100%.
-function illumination(phase: number): number {
-  return Math.round(Math.abs(phase - 0.5) * 2 * 100);
 }
 
 export default function MoonCalculator() {
@@ -180,7 +178,7 @@ export default function MoonCalculator() {
                         className="w-full bg-white/5 border border-white/20 focus:border-gold rounded-2xl px-5 h-14 text-white outline-none" placeholder="Sedona, Arizona" />
                       <div className="text-[10px] text-white/30 mt-1.5 flex items-center gap-x-1">
                         <i className="fa-solid fa-info-circle" />
-                        <span>Used for precise lunar positioning</span>
+                        <span>Used to determine the correct timezone for your birth time.</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xs">
@@ -188,7 +186,7 @@ export default function MoonCalculator() {
                         <input type="checkbox" id="mc-unknown" checked={form.unknownTime}
                           onChange={(e) => setForm({ ...form, unknownTime: e.target.checked })}
                           className="w-4 h-4 accent-gold" />
-                        <label htmlFor="mc-unknown" className="cursor-pointer text-white/70">Include birth time for accuracy</label>
+                        <label htmlFor="mc-unknown" className="cursor-pointer text-white/70">I don&apos;t know my exact birth time</label>
                       </div>
                     </div>
                     <button type="submit" disabled={loading}
@@ -234,6 +232,11 @@ export default function MoonCalculator() {
                       </div>
                     </div>
                     <p className="text-white/80 text-[15px] leading-relaxed">{sign.explanation}</p>
+                    {result.birth.unknownTime && (
+                      <p className="text-amber-200/80 text-xs">
+                        Birth time unknown — calculated using 12:00 PM local time. Because the Moon can change signs during a day, your Moon sign may be uncertain near a sign change.
+                      </p>
+                    )}
                     <div>
                       <div className="text-xs uppercase font-medium text-white/50 mb-3">KEY TRAITS</div>
                       <div className="grid grid-cols-3 gap-3 text-center">
@@ -255,11 +258,16 @@ export default function MoonCalculator() {
                     <div className="font-serif text-3xl text-white">{result.moonPhase.label}</div>
                     <div className="flex items-center justify-center gap-x-3 text-sm">
                       <span className="text-white/50">Illumination</span>
-                      <span className="text-gold font-medium">{illumination(result.moonPhase.phase)}%</span>
+                      <span className="text-gold font-medium">{result.moonPhase.illuminationPercent}%</span>
                     </div>
                     <p className="text-white/70 text-sm max-w-md mx-auto">
-                      The moon was {Math.round(result.moonPhase.phase * 100)}% through its cycle from new to new at this moment.
+                      Current Moon phase — calculated {new Date(result.moonPhase.evaluatedAtUtc).toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' })} UTC.
                     </p>
+                    {result.birth.unknownTime && (
+                      <p className="text-amber-200/80 text-xs max-w-md mx-auto">
+                        Birth time unknown — calculated using 12:00 PM local time. Because the Moon can change signs during a day, your Moon sign may be uncertain near a sign change.
+                      </p>
+                    )}
                     <button onClick={reset} className="border border-white/30 hover:border-white/60 py-4 px-8 rounded-3xl text-sm font-medium transition-colors">NEW CALCULATION</button>
                   </div>
                 )}
