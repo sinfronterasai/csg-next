@@ -12,7 +12,7 @@
 //   - natal     (FREE gateway product; summary-first)
 //   - transit   ($49, 12-month forward ephemeris)
 //   - synastry  ($65, two-chart overlay)
-//   - vocation  ($39, career/finance from 2nd/6th/10th + MC + Saturn/Jupiter)
+//   - vocation  ($55, career/finance from 2nd/6th/10th + MC + Saturn/Jupiter)
 // Tarot keeps its own engine (src/lib/tarot/*). Zoom is booking-only.
 // Daily Dispatch reuses buildTransitBodies/moonPhase from this module.
 // ============================================================================
@@ -25,6 +25,7 @@ import {
 } from '@/lib/astrology';
 import { computeTransitBodies, findAspects, moonPhase, dateToJulianDay, type TransitBody, type TransitBodyKey, type Aspect } from '@/lib/transit';
 import { makeSeed, seededScore, seededUnit } from '@/lib/random';
+import { getProduct } from '@/lib/productCatalog';
 
 // ---- Shared types ---------------------------------------------------------
 
@@ -62,15 +63,15 @@ export interface ReportRow {
 
 export const REPORT_META: Record<ReportType, { title: string; price: number }> = {
   natal: { title: 'Natal Birth Chart Report', price: 0 },
-  natalpremium: { title: 'Premium Natal Report', price: 39 },
+  natalpremium: { title: getProduct('natalpremium').displayName, price: getProduct('natalpremium').priceCents / 100 },
   relationship: { title: 'Relationship Matrix', price: 0 },
-  transit: { title: 'Yearly Transit Forecast', price: 49 },
-  loveblueprint: { title: 'Love Blueprint', price: 39 },
+  transit: { title: getProduct('transit').displayName, price: getProduct('transit').priceCents / 100 },
+  loveblueprint: { title: getProduct('loveblueprint').displayName, price: getProduct('loveblueprint').priceCents / 100 },
   lovetiming: { title: 'Love Timing Forecast', price: 29 },
   synastry: { title: 'Synastry Love Report', price: 49 },
   composite: { title: 'Composite Chart Report', price: 29 },
   couples: { title: 'Couples Cosmic Profile', price: 89 },
-  vocation: { title: 'Vocation and Wealth Map', price: 39 },
+  vocation: { title: getProduct('vocation').displayName, price: getProduct('vocation').priceCents / 100 },
   karmicshadow: { title: 'Karmic & Shadow Work', price: 19 },
   fullcosmic: { title: 'Full Cosmic Profile', price: 89 },
 };

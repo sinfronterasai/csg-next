@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getProduct } from '@/lib/productCatalog';
 
 export default function SiteHeader() {
   const router = useRouter();
@@ -52,12 +53,11 @@ export default function SiteHeader() {
         <div className="absolute left-1/2 -translate-x-1/2 mt-3 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
           <div className="glass-panel rounded-2xl border border-gold/20 p-2" style={{ background: '#1E1B4B' }}>
             {[
-              { label: 'Birth Chart Report', price: 'FREE', href: '/reports' },
-              { label: 'Yearly Transit Forecast', price: '$49', href: '/reports' },
-              { label: 'Synastry Love Report', price: '$65', href: '/reports' },
-              { label: 'Vocation & Wealth Map', price: '$39', href: '/reports' },
-              { label: 'Tarot Spreads', price: 'from $4.99', href: '/tarot' },
-              { label: 'Book a Live Zoom', price: '$120', href: '/reports' },
+              { label: getProduct('natal').displayName, price: getProduct('natal').formattedPrice.toUpperCase(), href: getProduct('natal').reportRoute },
+              { label: getProduct('transit').displayName, price: getProduct('transit').formattedPrice, href: getProduct('transit').reportRoute },
+              { label: getProduct('loveblueprint').displayName, price: getProduct('loveblueprint').formattedPrice, href: getProduct('loveblueprint').reportRoute },
+              { label: getProduct('vocation').displayName, price: getProduct('vocation').formattedPrice, href: getProduct('vocation').reportRoute },
+              { label: 'Tarot Spreads', price: `from ${getProduct('celtic-cross-tarot').formattedPrice}`, href: '/tarot/pricing' },
             ].map((r) => (
               <a key={r.label} href={r.href} className="flex items-center justify-between px-4 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
                 <span className="text-sm text-gray-200">{r.label}</span>

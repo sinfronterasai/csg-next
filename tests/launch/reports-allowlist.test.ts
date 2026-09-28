@@ -64,12 +64,12 @@ describe("public /reports UI hides non-launch SKUs (C7 defense-in-depth)", () =>
   }
   it("renders the authorized launch reports", () => {
     expect(src).toContain("Birth Chart Report");
-    expect(src).toContain("Premium Natal Report");
-    expect(src).toContain("Love Blueprint");
-    expect(src).toContain("Yearly Transit Forecast");
-    expect(src).toContain("Vocation & Wealth Map");
+    expect(src).toContain("getProduct('natalpremium').displayName");
+    expect(src).toContain("getProduct('loveblueprint').displayName");
+    expect(src).toContain("getProduct('transit').displayName");
+    expect(src).toContain("getProduct('vocation').displayName");
   });
-  it("renders Love Blueprint with its $39 price (public paid product)", () => {
-    expect(src).toContain("$39");
+  it("derives Love Blueprint pricing from the canonical catalog", () => {
+    expect(src).toContain("getProduct('loveblueprint').formattedPrice");
   });
 });

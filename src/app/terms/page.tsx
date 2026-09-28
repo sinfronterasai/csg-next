@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
 import { organizationJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
+import { getProduct } from "@/lib/productCatalog";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
@@ -63,7 +64,7 @@ export default function TermsPage() {
         <h2 className="text-xl font-medium">4. Products and purchases</h2>
         <p className="mt-2">
           The <strong>free Natal chart</strong> is available to every visitor. The{" "}
-          <strong>Love Blueprint</strong> is a one-time $39 purchase. Other premium reports are
+          <strong>{getProduct('loveblueprint').displayName}</strong> is a one-time {getProduct('loveblueprint').formattedPrice} purchase. Other premium reports are
           introduced over time and shown on the site; the catalog may change.
         </p>
         <p className="mt-2">
