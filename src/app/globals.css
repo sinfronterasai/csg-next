@@ -20,6 +20,16 @@
     --gold-400: #e7c477;
     --gold: #DFB76C;
     --gold-600: #b88942;
+
+    /* Form controls use explicit compatible foreground/background pairs. */
+    --form-light-background: #ffffff;
+    --form-light-foreground: #111827;
+    --form-light-placeholder: #4b5563;
+    --form-light-border: #6b7280;
+    --form-dark-background: #12072b;
+    --form-dark-foreground: #f9fafb;
+    --form-dark-placeholder: #d1d5db;
+    --form-dark-border: #bbaecc;
   }
 
   html {
@@ -35,6 +45,92 @@
 
   h1, h2, h3, .font-serif {
     font-family: 'Cinzel', serif;
+  }
+
+  /* Ordinary controls are intentionally light with dark entered text. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    background-color: var(--form-light-background);
+    color: var(--form-light-foreground);
+    border-color: var(--form-light-border);
+    color-scheme: light;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"])::placeholder,
+  textarea::placeholder,
+  select:invalid {
+    color: var(--form-light-placeholder);
+    opacity: 1;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):disabled,
+  textarea:disabled,
+  select:disabled,
+  input:not([type="checkbox"]):not([type="radio"]):read-only,
+  textarea:read-only,
+  select:read-only {
+    color: var(--form-light-placeholder);
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 1px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"])[aria-invalid="true"],
+  textarea[aria-invalid="true"],
+  select[aria-invalid="true"] {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 1px #b91c1c;
+  }
+
+  option {
+    background-color: var(--form-light-background);
+    color: var(--form-light-foreground);
+  }
+
+  /* Explicit opt-in for intentionally dark controls. */
+  .form-dark-control,
+  .form-dark-control option {
+    background-color: var(--form-dark-background);
+    color: var(--form-dark-foreground);
+    border-color: var(--form-dark-border);
+    color-scheme: dark;
+  }
+
+  .form-dark-control::placeholder {
+    color: var(--form-dark-placeholder);
+    opacity: 1;
+  }
+
+  .form-dark-control:disabled,
+  .form-dark-control:read-only {
+    color: var(--form-dark-placeholder);
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: var(--form-light-foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--form-light-background) inset;
+    box-shadow: 0 0 0 1000px var(--form-light-background) inset;
+    caret-color: var(--form-light-foreground);
+  }
+
+  .form-dark-control:-webkit-autofill,
+  .form-dark-control:-webkit-autofill:hover,
+  .form-dark-control:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--form-dark-foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--form-dark-background) inset;
+    box-shadow: 0 0 0 1000px var(--form-dark-background) inset;
+    caret-color: var(--form-dark-foreground);
   }
 }
 

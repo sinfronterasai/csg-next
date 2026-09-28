@@ -1,3 +1,36 @@
+import { getProduct } from '@/lib/productCatalog';
+
+const services = [
+  {
+    product: getProduct('transit'),
+    icon: 'fa-clock-rotate-left',
+    description: 'Map planetary movements relative to your life nodes over the next 12 months.',
+    action: 'Request',
+    href: undefined,
+  },
+  {
+    product: getProduct('loveblueprint'),
+    icon: 'fa-heart-circle-bolt',
+    description: 'Explore your Venus, Mars and Moon signature with the real love aspects colouring your chart.',
+    action: 'Request',
+    href: undefined,
+  },
+  {
+    product: getProduct('vocation'),
+    icon: 'fa-briefcase',
+    description: 'Decode Midheaven aspects and 2nd/10th House dynamics for professional alignment.',
+    action: 'Request',
+    href: undefined,
+  },
+  {
+    product: getProduct('celtic-cross-tarot'),
+    icon: 'fa-wand-magic-sparkles',
+    description: 'A one-time ten-card deep dive into the forces shaping your question.',
+    action: 'Explore',
+    href: '/tarot/pricing',
+  },
+] as const;
+
 export default function Services() {
   return (
     <section id="services" className="py-24 relative z-10 bg-cosmic-900/40 border-t border-white/5">
@@ -9,53 +42,19 @@ export default function Services() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="glass-panel p-6 rounded-3xl border border-white/5 hover:border-gold/30 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-lg mb-6"><i className="fa-solid fa-clock-rotate-left"></i></div>
-              <h3 className="text-xl font-serif text-white mb-2 group-hover:text-gold transition-colors">Yearly Transit Forecast</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">Map planetary movements relative to your life nodes over the next 12 months.</p>
+          {services.map(({ product, icon, description, action, href }) => (
+            <div key={product.id} className="glass-panel p-6 rounded-3xl border border-white/5 hover:border-gold/30 transition-all duration-300 flex flex-col justify-between group">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-lg mb-6"><i className={`fa-solid ${icon}`}></i></div>
+                <h3 className="text-xl font-serif text-white mb-2 group-hover:text-gold transition-colors">{product.displayName}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+              </div>
+              <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
+                <span className="font-serif text-gold">{product.formattedPrice}</span>
+                <a href={href ?? product.reportRoute} className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">{action} <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
+              </div>
             </div>
-            <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
-              <span className="font-serif text-gold">$49</span>
-              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
-            </div>
-          </div>
-
-          <div className="glass-panel p-6 rounded-3xl border border-white/5 hover:border-gold/30 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-lg mb-6"><i className="fa-solid fa-heart-circle-bolt"></i></div>
-              <h3 className="text-xl font-serif text-white mb-2 group-hover:text-gold transition-colors">Synastry Love Report</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">Overlay two charts to unlock structural compatibility, friction zones, and soul-contract links.</p>
-            </div>
-            <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
-              <span className="font-serif text-gold">$65</span>
-              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
-            </div>
-          </div>
-
-          <div className="glass-panel p-6 rounded-3xl border border-white/5 hover:border-gold/30 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-lg mb-6"><i className="fa-solid fa-briefcase"></i></div>
-              <h3 className="text-xl font-serif text-white mb-2 group-hover:text-gold transition-colors">Vocation and Wealth Map</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">Decode Midheaven aspects and 2nd/10th House dynamics for perfect professional alignment.</p>
-            </div>
-            <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
-              <span className="font-serif text-gold">$39</span>
-              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Request <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
-            </div>
-          </div>
-
-          <div className="glass-panel p-6 rounded-3xl border border-white/5 hover:border-gold/30 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold text-lg mb-6"><i className="fa-solid fa-wand-magic-sparkles"></i></div>
-              <h3 className="text-xl font-serif text-white mb-2 group-hover:text-gold transition-colors">Tarot and Astrological Zoom</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">A live, 60-minute virtual session with a certified cosmic high-priestess addressing career and destiny.</p>
-            </div>
-            <div className="pt-6 border-t border-white/5 flex justify-between items-center mt-6">
-              <span className="font-serif text-gold">$120</span>
-              <a href="/reports" className="text-xs uppercase tracking-wider text-white hover:text-gold font-semibold flex items-center gap-1.5">Book Live <i className="fa-solid fa-arrow-right text-[10px]"></i></a>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

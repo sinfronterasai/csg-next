@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
+import { getProduct } from "@/lib/productCatalog";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
@@ -44,7 +45,7 @@ export default function ServicesPage() {
           <Link className="mt-2 inline-block underline" href="/tarot">Read tarot</Link>
         </li>
         <li className="rounded-lg border p-4">
-          <h2 className="text-xl font-medium">Love Blueprint — $39</h2>
+          <h2 className="text-xl font-medium">{getProduct('loveblueprint').displayName} — {getProduct('loveblueprint').formattedPrice}</h2>
           <p className="mt-2">
             Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
             One-time purchase, yours forever. Available now.

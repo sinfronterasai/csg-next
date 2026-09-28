@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Spread } from "@/lib/tarot/spreads";
+import { getProduct } from "@/lib/productCatalog";
 
 const EXAMPLES: Record<string, string[]> = {
   past_present_future: [
@@ -142,14 +143,14 @@ export default function QuestionModal({
         {upgrade ? (
           <div className="mt-5 rounded-lg border border-gold/30 bg-cosmic-900/70 p-4">
             <p className="text-sm text-cosmic-100">
-              This is a Member reading &mdash; $4.99 or Cosmic Pass. Unlock every Premium spread and the full
+              This is a Member reading &mdash; {getProduct('celtic-cross-tarot').formattedPrice} or Cosmic Pass. Unlock every Premium spread and the full
               deep-dive readings.
             </p>
             <a
               href="/tarot/pricing"
               className="mt-4 block w-full rounded-lg bg-gold/90 px-4 py-3 text-center font-medium text-cosmic-950 hover:bg-gold min-h-[44px]"
             >
-              Become a Member &middot; $4.99
+              Become a Member &middot; {getProduct('celtic-cross-tarot').formattedPrice}
             </a>
           </div>
         ) : (

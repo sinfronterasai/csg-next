@@ -109,7 +109,7 @@ describe('report engine: single-source determinism', () => {
     const a = await buildVocationReport({ natal: JOHN });
     const b = await buildVocationReport({ natal: JOHN });
     expect(a.markdown).toEqual(b.markdown);
-    expect(a.pricePaid).toBe(39);
+    expect(a.pricePaid).toBe(55);
     expect(a.overview.some((r) => r.label === 'Vocation Archetype')).toBe(true);
   });
 });
@@ -173,7 +173,7 @@ describe('report engine: new premium reports (master-index catalog)', () => {
     expect(solo.sections.some((s) => /Full Cosmic Synthesis/.test(s.heading))).toBe(true);
     expect(solo.markdown).toContain('Natal Birth Chart Report');
     expect(solo.markdown).toContain('Yearly Transit Forecast');
-    expect(solo.markdown).toContain('Vocation and Wealth Map');
+    expect(solo.markdown).toContain('Vocation & Wealth Map');
     const withPartner = await buildFullCosmicBundleReport({ natal: JOHN, partner: PARTNER });
     expect(withPartner.generatedFor).toBe('partner');
     expect(withPartner.markdown).toContain('Synastry');
@@ -182,7 +182,7 @@ describe('report engine: new premium reports (master-index catalog)', () => {
     expect(REPORT_META).toMatchObject({
       natal: { price: 0 }, relationship: { price: 0 }, transit: { price: 49 },
       loveblueprint: { price: 39 }, lovetiming: { price: 29 }, synastry: { price: 49 },
-      composite: { price: 29 }, couples: { price: 89 }, vocation: { price: 39 },
+      composite: { price: 29 }, couples: { price: 89 }, vocation: { price: 55 },
       karmicshadow: { price: 19 }, fullcosmic: { price: 89 },
     });
   });
