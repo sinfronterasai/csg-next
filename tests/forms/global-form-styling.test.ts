@@ -45,6 +45,8 @@ describe('global form styling contract', () => {
     expect(css).toContain('color: var(--form-light-foreground)');
     expect(css).toContain('color: var(--form-dark-foreground)');
     expect(css).toContain('.form-dark-control:-webkit-autofill');
+    expect(css).toContain('[class~="bg-white/5"]:-webkit-autofill');
+    expect(css).toContain('[class~="bg-cosmic-950"]:-webkit-autofill');
     expect(css).toContain('-webkit-text-fill-color: var(--form-dark-foreground)');
     expect(css).toContain('0 0 0 1000px var(--form-dark-background) inset');
   });
