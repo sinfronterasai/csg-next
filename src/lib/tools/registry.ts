@@ -1,6 +1,6 @@
 export type ToolAvailability = 'available' | 'limited-rollout';
 
-export type ToolId = 'personalized-transit-explorer' | 'cosmic-navigator' | 'moon-sign-phase-calculator';
+export type ToolId = 'next-major-transit' | 'cosmic-navigator' | 'moon-sign-phase-calculator';
 
 export interface ToolDefinition {
   id: ToolId;
@@ -15,11 +15,11 @@ export interface ToolDefinition {
 export function getTools(): ToolDefinition[] {
   return [
     {
-      id: 'personalized-transit-explorer',
-      name: 'Personalized Transit Explorer',
-      description: 'Find exact Saturn square natal Moon windows from your known birth details, with deterministic Swiss Ephemeris timing and UTC-backed active windows.',
+      id: 'next-major-transit',
+      name: 'Your Next Major Transit',
+      description: 'Discover the next major planetary transit to your birth chart and when it is strongest.',
       href: '/transits',
-      cta: 'Explore your transit window',
+      cta: 'Find My Next Transit',
       availability: 'available',
       featured: true,
     },
@@ -43,5 +43,10 @@ export function getTools(): ToolDefinition[] {
 }
 
 export function getToolById(id: string): ToolDefinition | undefined {
+  // Keep direct links from the retired identity resolvable without exposing it in the canonical hub.
+  if (id === 'personalized-transit-explorer') {
+    const current = getTools()[0];
+    return { ...current, id: 'personalized-transit-explorer' as ToolId, name: 'Personalized Transit Explorer', description: 'Legacy link for the former Saturn square natal Moon explorer; Swiss Ephemeris remains the deterministic source. Use Your Next Major Transit for the current discovery contract.' };
+  }
   return getTools().find((tool) => tool.id === id);
 }
