@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import ReportResult from '@/components/reports/ReportResult';
 import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
@@ -47,7 +46,6 @@ const ALLOWED: {
 ];
 
 export default function Reports() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -196,8 +194,9 @@ export default function Reports() {
   // generating. Do NOT trust client-supplied purchase id — the resume route
   // recomputes ownership + paid status from the Stripe session.
   useEffect(() => {
-    const purchase = searchParams.get('purchase');
-    const sessionId = searchParams.get('sessionId');
+    const params = new URLSearchParams(window.location.search);
+    const purchase = params.get('purchase');
+    const sessionId = params.get('sessionId');
     if (purchase === 'success' && sessionId) {
       // Defer to the browser paint so the redirect feels instant; then verify.
       const timer = setTimeout(async () => {
@@ -238,7 +237,7 @@ export default function Reports() {
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [searchParams, router]);
+  }, [router]);
 
   async function shareReport(readingId: number) {
     try {
