@@ -167,7 +167,7 @@ export default function QuestionModal({
               }}
               placeholder="What's your question?"
               rows={3}
-              className="mt-2 w-full rounded-lg border border-cosmic-700 bg-cosmic-950/80 p-3 text-cosmic-100 placeholder-cosmic-500 focus:border-gold focus:outline-none"
+              className="form-dark-control mt-2 w-full rounded-lg border border-cosmic-700 bg-cosmic-950/80 p-3 focus:border-gold focus:outline-none"
             />
             {examples && (
               <ul className="mt-2 space-y-0.5 text-xs text-cosmic-300/80">
