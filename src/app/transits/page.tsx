@@ -7,9 +7,9 @@ import NamedTransitExplorer from "./NamedTransitExplorer";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata } = buildMetadata({
-    title: "Transits | Cosmic Spirit Guide",
+    title: "Your Next Major Transit | Cosmic Spirit Guide",
     description:
-      "Understand astrological transits: how the moving planets color your days, and what each transit means in plain language. Real ephemeris, updated nightly.",
+      "Discover the next major planetary transit to your birth chart and when it is strongest.",
     path: "/transits",
     type: "website",
     jsonLd: mergeJsonLd(
@@ -31,16 +31,9 @@ export default function TransitsHub() {
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <Link href="/">Home</Link> / <span>Transits</span>
       </nav>
-      <h1 className="mt-4 text-3xl font-semibold">Transits</h1>
-      <p className="mt-3 text-lg">
-        Transits are the moving planets, measured against the zodiac and against your birth chart.
-        This hub explains how to read them; dated pages carry the real positions once the nightly
-        batch is live.
-      </p>
-      <p className="mt-6 text-sm text-muted-foreground">
-        Get your <Link className="underline" href="/birth-chart">free birth chart</Link> to see where
-        transits land for you.
-      </p>
+      <h1 className="mt-4 text-3xl font-semibold">YOUR NEXT MAJOR TRANSIT</h1>
+      <p className="mt-3 text-lg">Discover the next major planetary transit to your birth chart and when it is strongest.</p>
+      <p className="mt-6 text-sm text-muted-foreground">Use your birth date, time, and location to find your next meaningful sky-to-chart connection.</p>
       <NamedTransitExplorer />
     </main>
   );
