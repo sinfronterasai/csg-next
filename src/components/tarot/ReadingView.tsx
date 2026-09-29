@@ -59,7 +59,7 @@ export default function ReadingView({ reading }: { reading: ReadingViewModel }) 
             onChange={(e) => { setReflection(e.target.value); setSaved(false); }}
             rows={3}
             placeholder="What resonated? What will you do next?"
-            className="mt-2 w-full rounded-lg bg-cosmic-950/80 border border-cosmic-700 p-3 text-cosmic-100 placeholder-cosmic-500 focus:border-gold focus:outline-none"
+            className="form-dark-control mt-2 w-full rounded-lg border border-cosmic-700 bg-cosmic-950/80 p-3 focus:border-gold focus:outline-none"
           />
           <button type="button" onClick={saveReflection} className="mt-2 rounded-lg bg-gold/90 px-4 py-2 text-sm font-medium text-cosmic-950 hover:bg-gold">
             {saved ? "Saved" : "Save reflection"}
