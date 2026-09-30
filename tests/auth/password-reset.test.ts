@@ -29,7 +29,7 @@ function setupForgot(opts: { user?: any; emailCount?: number; ipCount?: number }
   return tx;
 }
 
-function request(body: unknown, headers: Record<string, string> = { 'x-forwarded-for': '203.0.113.10' }) {
+function request(body: unknown, headers: Record<string, string> = { 'cf-connecting-ip': '203.0.113.10' }) {
   return new Request('https://attacker.example/api/auth/forgot-password', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
@@ -55,11 +55,14 @@ describe('password reset security primitives', () => {
     process.env.APP_BASE_URL = 'https://cosmicspiritguide.com';
     const url = buildPasswordResetUrl('raw-token');
     expect(url).toBe('https://cosmicspiritguide.com/reset-password?token=raw-token');
+    process.env.APP_BASE_URL = 'https://attacker.example';
+    expect(() => buildPasswordResetUrl('raw-token')).toThrow('approved application origin');
   });
 
-  it('uses the first valid Render forwarded IP and rejects malformed values', () => {
-    expect(getTrustedClientIp(new Request('https://example.com', { headers: { 'x-forwarded-for': '203.0.113.8, 10.0.0.1' } }))).toBe('203.0.113.8');
-    expect(getTrustedClientIp(new Request('https://example.com', { headers: { 'x-forwarded-for': 'not-an-ip' } }))).toBeNull();
+  it('uses only the trusted Cloudflare client-IP header', () => {
+    expect(getTrustedClientIp(new Request('https://example.com', { headers: { 'cf-connecting-ip': '203.0.113.8', 'x-forwarded-for': '198.51.100.4' } }))).toBe('203.0.113.8');
+    expect(getTrustedClientIp(new Request('https://example.com', { headers: { 'x-forwarded-for': '203.0.113.8' } }))).toBeNull();
+    expect(getTrustedClientIp(new Request('https://example.com', { headers: { 'cf-connecting-ip': 'not-an-ip' } }))).toBeNull();
   });
 });
 

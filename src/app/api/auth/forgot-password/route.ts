@@ -39,6 +39,10 @@ export async function POST(request: Request) {
   }
 
   const clientIp = getTrustedClientIp(request);
+  if (process.env.NODE_ENV === 'production' && !clientIp) {
+    console.error('[auth/forgot-password] trusted client IP is unavailable');
+    return genericResponse();
+  }
   const emailHash = hashRateLimitIdentifier(email);
   const ipHash = clientIp ? hashRateLimitIdentifier(clientIp) : null;
   let issued: { tokenId: number; rawToken: string; email: string } | null = null;

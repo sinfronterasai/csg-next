@@ -6,6 +6,7 @@ export const PASSWORD_RESET_GENERIC_MESSAGE = "If an account exists for that ema
 export const PASSWORD_RESET_FROM = 'Cosmic Spirit Guide <noreply@cosmicspiritguide.com>';
 export const PASSWORD_RESET_EMAIL_LIMIT = 3;
 export const PASSWORD_RESET_IP_LIMIT = 10;
+export const APPROVED_APP_BASE_URL = 'https://cosmicspiritguide.com';
 
 export function normalizeResetEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -30,6 +31,7 @@ export function hashRateLimitIdentifier(value: string): string {
 export function getConfiguredAppBaseUrl(): URL {
   const configured = process.env.APP_BASE_URL;
   if (!configured) throw new Error('APP_BASE_URL is required for password reset links');
+  if (configured !== APPROVED_APP_BASE_URL) throw new Error('APP_BASE_URL does not match the approved application origin');
   let parsed: URL;
   try {
     parsed = new URL(configured);
@@ -49,19 +51,14 @@ export function buildPasswordResetUrl(rawToken: string): string {
 }
 
 /**
- * Render's managed HTTPS proxy supplies X-Forwarded-For. We accept only the
- * first syntactically valid address from that proxy header, then fall back to
- * X-Real-IP. If neither is available, the IP limiter is skipped rather than
- * trusting an arbitrary request-controlled host or inventing an identifier.
+ * Render's public web-service traffic passes through Cloudflare. Cloudflare's
+ * CF-Connecting-IP is only sent on Cloudflare-to-origin traffic and is the
+ * trusted client-IP source for this limiter. Do not accept X-Forwarded-For or
+ * X-Real-IP: both can preserve caller-supplied values across proxy chains.
  */
 export function getTrustedClientIp(request: Request): string | null {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim() ?? '';
-    if (isIP(first)) return first;
-  }
-  const realIp = request.headers.get('x-real-ip')?.trim() ?? '';
-  return isIP(realIp) ? realIp : null;
+  const cloudflareIp = request.headers.get('cf-connecting-ip')?.trim() ?? '';
+  return isIP(cloudflareIp) ? cloudflareIp : null;
 }
 
 export function isValidResetPassword(value: unknown): value is string {
