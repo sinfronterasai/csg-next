@@ -165,32 +165,172 @@ CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
 
 -- ============================================================================
 -- Password reset tokens and bounded forgot-password abuse controls.
--- Raw reset tokens are never stored: token_hash is SHA-256(raw token).
--- Email/IP identifiers are hashed and request rows are retained only for the
--- rolling-window limiter plus a short operational cleanup horizon.
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
-  id          bigserial PRIMARY KEY,
-  user_id     integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash  text NOT NULL UNIQUE,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  expires_at  timestamptz NOT NULL,
-  consumed_at timestamptz,
-  revoked_at  timestamptz
-);
+--
+-- This block intentionally handles both the clean M11A schema and the legacy
+-- production table that stored raw tokens in `token` with a `used` flag.
+-- Legacy raw token values are hashed inside PostgreSQL and then removed; the
+-- resulting rows are explicitly consumed/revoked and can never authenticate.
+-- Legacy timestamp-without-time-zone values are interpreted as UTC only when
+-- the database session timezone is UTC. The production database was verified
+-- with SHOW timezone = UTC before this reconciliation was authored.
+DO $$
+DECLARE
+  has_token boolean;
+  has_used boolean;
+  has_token_hash boolean;
+  has_user_id boolean;
+  has_id boolean;
+  has_consumed_at boolean;
+  has_revoked_at boolean;
+  created_type text;
+  expires_type text;
+  constraint_exists boolean;
+BEGIN
+  IF to_regclass('public.password_reset_tokens') IS NULL THEN
+    CREATE TABLE password_reset_tokens (
+      id          bigserial PRIMARY KEY,
+      user_id     integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash  text NOT NULL UNIQUE,
+      created_at  timestamptz NOT NULL DEFAULT now(),
+      expires_at  timestamptz NOT NULL,
+      consumed_at timestamptz,
+      revoked_at  timestamptz
+    );
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'token'
+    ) INTO has_token;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'used'
+    ) INTO has_used;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'token_hash'
+    ) INTO has_token_hash;
 
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_active
-  ON password_reset_tokens (user_id, expires_at)
-  WHERE consumed_at IS NULL AND revoked_at IS NULL;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'user_id'
+    ) INTO has_user_id;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'id'
+    ) INTO has_id;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'consumed_at'
+    ) INTO has_consumed_at;
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'revoked_at'
+    ) INTO has_revoked_at;
 
-CREATE TABLE IF NOT EXISTS password_reset_requests (
-  id             bigserial PRIMARY KEY,
-  email_hash     text NOT NULL,
-  ip_hash        text,
-  requested_at   timestamptz NOT NULL DEFAULT now()
-);
+    IF has_token AND NOT has_token_hash THEN
+      ALTER TABLE password_reset_tokens ADD COLUMN token_hash text;
+      IF current_setting('TIMEZONE') <> 'UTC' THEN
+        RAISE EXCEPTION 'Legacy password reset timestamp conversion requires UTC database timezone';
+      END IF;
+      UPDATE password_reset_tokens
+         SET token_hash = encode(digest(token, 'sha256'), 'hex')
+       WHERE token_hash IS NULL;
+      ALTER TABLE password_reset_tokens DROP CONSTRAINT IF EXISTS password_reset_tokens_token_key;
+      DROP INDEX IF EXISTS idx_password_reset_tokens_token;
+      ALTER TABLE password_reset_tokens DROP COLUMN token;
+    ELSIF NOT has_token_hash THEN
+      ALTER TABLE password_reset_tokens ADD COLUMN token_hash text;
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_password_reset_requests_email_window
-  ON password_reset_requests (email_hash, requested_at);
-CREATE INDEX IF NOT EXISTS idx_password_reset_requests_ip_window
-  ON password_reset_requests (ip_hash, requested_at)
-  WHERE ip_hash IS NOT NULL;
+    IF NOT has_consumed_at THEN ALTER TABLE password_reset_tokens ADD COLUMN consumed_at timestamptz; END IF;
+    IF NOT has_revoked_at THEN ALTER TABLE password_reset_tokens ADD COLUMN revoked_at timestamptz; END IF;
+
+    IF has_used THEN
+      UPDATE password_reset_tokens
+         SET consumed_at = COALESCE(created_at, now())
+       WHERE used IS TRUE AND consumed_at IS NULL;
+      UPDATE password_reset_tokens
+         SET revoked_at = COALESCE(created_at, now())
+       WHERE used IS NOT TRUE AND revoked_at IS NULL;
+      ALTER TABLE password_reset_tokens DROP COLUMN used;
+    END IF;
+
+    SELECT data_type INTO created_type
+      FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'created_at';
+    IF created_type = 'timestamp without time zone' THEN
+      IF current_setting('TIMEZONE') <> 'UTC' THEN
+        RAISE EXCEPTION 'Legacy password reset timestamp conversion requires UTC database timezone';
+      END IF;
+      ALTER TABLE password_reset_tokens
+        ALTER COLUMN created_at TYPE timestamptz USING COALESCE(created_at, now()::timestamp) AT TIME ZONE 'UTC';
+    END IF;
+    ALTER TABLE password_reset_tokens ALTER COLUMN created_at SET DEFAULT now();
+    UPDATE password_reset_tokens SET created_at = now() WHERE created_at IS NULL;
+    ALTER TABLE password_reset_tokens ALTER COLUMN created_at SET NOT NULL;
+
+    SELECT data_type INTO expires_type
+      FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'password_reset_tokens' AND column_name = 'expires_at';
+    IF expires_type = 'timestamp without time zone' THEN
+      IF current_setting('TIMEZONE') <> 'UTC' THEN
+        RAISE EXCEPTION 'Legacy password reset timestamp conversion requires UTC database timezone';
+      END IF;
+      ALTER TABLE password_reset_tokens
+        ALTER COLUMN expires_at TYPE timestamptz USING expires_at AT TIME ZONE 'UTC';
+    END IF;
+
+    IF has_id THEN
+      ALTER TABLE password_reset_tokens ALTER COLUMN id TYPE bigint;
+      IF to_regclass('public.password_reset_tokens_id_seq') IS NOT NULL THEN
+        ALTER SEQUENCE password_reset_tokens_id_seq AS bigint;
+      END IF;
+    END IF;
+    IF has_user_id THEN
+      IF EXISTS (SELECT 1 FROM password_reset_tokens WHERE user_id IS NULL) THEN
+        RAISE EXCEPTION 'Cannot reconcile password reset tokens with NULL user_id values';
+      END IF;
+      ALTER TABLE password_reset_tokens ALTER COLUMN user_id SET NOT NULL;
+    END IF;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM password_reset_tokens WHERE token_hash IS NULL) THEN
+    RAISE EXCEPTION 'Cannot reconcile password reset tokens with NULL token_hash values';
+  END IF;
+  ALTER TABLE password_reset_tokens ALTER COLUMN token_hash SET NOT NULL;
+
+  SELECT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.password_reset_tokens'::regclass
+       AND conname = 'password_reset_tokens_token_hash_key'
+  ) INTO constraint_exists;
+  IF NOT constraint_exists THEN
+    ALTER TABLE password_reset_tokens ADD CONSTRAINT password_reset_tokens_token_hash_key UNIQUE (token_hash);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.password_reset_tokens'::regclass
+       AND contype = 'f'
+       AND conkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'public.password_reset_tokens'::regclass AND attname = 'user_id')::smallint]
+  ) THEN
+    ALTER TABLE password_reset_tokens
+      ADD CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_active
+    ON password_reset_tokens (user_id, expires_at)
+    WHERE consumed_at IS NULL AND revoked_at IS NULL;
+
+  CREATE TABLE IF NOT EXISTS password_reset_requests (
+    id             bigserial PRIMARY KEY,
+    email_hash     text NOT NULL,
+    ip_hash        text,
+    requested_at   timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_password_reset_requests_email_window
+    ON password_reset_requests (email_hash, requested_at);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_requests_ip_window
+    ON password_reset_requests (ip_hash, requested_at)
+    WHERE ip_hash IS NOT NULL;
+END $$;
