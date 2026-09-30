@@ -162,3 +162,35 @@ CREATE INDEX IF NOT EXISTS idx_whop_entitlements_user_offer
   ON whop_entitlements (user_id, offer, status);
 CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
   ON whop_entitlements (lower(email));
+
+-- ============================================================================
+-- Password reset tokens and bounded forgot-password abuse controls.
+-- Raw reset tokens are never stored: token_hash is SHA-256(raw token).
+-- Email/IP identifiers are hashed and request rows are retained only for the
+-- rolling-window limiter plus a short operational cleanup horizon.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id          bigserial PRIMARY KEY,
+  user_id     integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash  text NOT NULL UNIQUE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  expires_at  timestamptz NOT NULL,
+  consumed_at timestamptz,
+  revoked_at  timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_active
+  ON password_reset_tokens (user_id, expires_at)
+  WHERE consumed_at IS NULL AND revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS password_reset_requests (
+  id             bigserial PRIMARY KEY,
+  email_hash     text NOT NULL,
+  ip_hash        text,
+  requested_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_email_window
+  ON password_reset_requests (email_hash, requested_at);
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_ip_window
+  ON password_reset_requests (ip_hash, requested_at)
+  WHERE ip_hash IS NOT NULL;
