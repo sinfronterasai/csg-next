@@ -14,7 +14,7 @@ export default function SiteHeader() {
       try {
         const res = await fetch('/api/auth/user');
         const data = await res.json().catch(() => null);
-        setUserRole(res.ok ? data?.user?.role ?? 'user' : null);
+        setUserRole(res.ok ? data?.user?.role ?? null : null);
       } catch {
         setUserRole(null);
       }
