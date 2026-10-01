@@ -185,6 +185,21 @@ CREATE INDEX IF NOT EXISTS idx_whop_entitlements_user_offer
 CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
   ON whop_entitlements (lower(email));
 
+-- Whop payment lifecycle tombstones. This closes the out-of-order refund race:
+-- a refund received before payment.succeeded must prevent a later success event
+-- from creating a fresh entitlement or report order for the same payment.
+CREATE TABLE IF NOT EXISTS whop_payment_events (
+  payment_id  text PRIMARY KEY,
+  state       text NOT NULL,
+  plan_id     text,
+  email       text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_whop_payment_events_state CHECK (state IN ('succeeded', 'refunded'))
+);
+CREATE INDEX IF NOT EXISTS idx_whop_payment_events_state
+  ON whop_payment_events (state);
+
 -- ============================================================================
 -- Password reset tokens and bounded forgot-password abuse controls.
 --

@@ -18,9 +18,10 @@ const REPORT_PLANS = [
   ['plan_H6o8FSjDvpw7Y', 'vocation', 'report-vocation', 5500],
 ] as const;
 
-function makeTx() {
+function makeTx(refunded = false) {
   return jest.fn(async (sql: string) => {
     if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [], rowCount: 0 };
+    if (refunded && sql.includes('SELECT state FROM whop_payment_events')) return { rows: [{ state: 'refunded' }], rowCount: 1 };
     if (sql.includes("SET status = 'refunded'")) return { rows: [], rowCount: 1 };
     if (sql.includes('INSERT INTO whop_entitlements')) return { rows: [{ id: 1 }], rowCount: 1 };
     return { rows: [], rowCount: 0 };
@@ -92,6 +93,20 @@ describe('Whop paid-report fulfillment', () => {
     });
     expect(result.applied).toBe(true);
     expect(tx.mock.calls.some(([sql]) => String(sql).includes("SET status = 'refunded'"))).toBe(true);
+    expect(purchaseStore.insertWhopReportPurchase).not.toHaveBeenCalled();
+  });
+
+  test('a payment.succeeded replay after an earlier refund cannot recreate fulfillment', async () => {
+    const tx = makeTx(true);
+    db.transaction.mockImplementationOnce(async (fn: any) => fn(tx));
+    const result = await processWhopPayment({
+      eventType: 'payment.succeeded',
+      paymentId: 'pay-refunded-first',
+      email: 'buyer@example.com',
+      planId: 'plan_CCmKCXfGGPpvo',
+    });
+    expect(result).toEqual({ applied: false, reason: 'already-refunded', offer: 'love_blueprint' });
+    expect(tx.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO whop_entitlements'))).toBe(false);
     expect(purchaseStore.insertWhopReportPurchase).not.toHaveBeenCalled();
   });
 });

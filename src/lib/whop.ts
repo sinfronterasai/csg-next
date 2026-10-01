@@ -49,8 +49,25 @@ export async function processWhopPayment(input: {
   return transaction(async (tx) => {
     await tx('BEGIN');
     try {
-      if (input.eventType === 'payment.succeeded') {
-        const entitlement = await tx(
+    if (input.eventType === 'payment.succeeded') {
+      const lifecycle = await tx(
+        `INSERT INTO whop_payment_events (payment_id, state, plan_id, email, created_at, updated_at)
+         VALUES ($1, 'succeeded', $2, $3, now(), now())
+         ON CONFLICT (payment_id) DO NOTHING
+         RETURNING state`,
+        [input.paymentId, paidPlanId, email],
+      );
+      if (lifecycle.rowCount !== 1) {
+        const prior = await tx(
+          'SELECT state FROM whop_payment_events WHERE payment_id = $1 FOR UPDATE',
+          [input.paymentId],
+        );
+        if (prior.rows[0]?.state === 'refunded') {
+          await tx('COMMIT');
+          return { applied: false, reason: 'already-refunded', offer };
+        }
+      }
+      const entitlement = await tx(
           `INSERT INTO whop_entitlements (user_id, email, offer, plan_id, payment_id, status, granted_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, 'active', now(), now())
            ON CONFLICT (payment_id) DO NOTHING
@@ -80,6 +97,14 @@ export async function processWhopPayment(input: {
         };
       }
 
+      await tx(
+        `INSERT INTO whop_payment_events (payment_id, state, plan_id, email, created_at, updated_at)
+         VALUES ($1, 'refunded', $2, NULLIF($3, ''), now(), now())
+         ON CONFLICT (payment_id)
+         DO UPDATE SET state = 'refunded', plan_id = COALESCE(EXCLUDED.plan_id, whop_payment_events.plan_id),
+                       email = COALESCE(EXCLUDED.email, whop_payment_events.email), updated_at = now()`,
+        [input.paymentId, input.planId, email],
+      );
       const revoked = await tx(
         `UPDATE whop_entitlements
             SET status = 'revoked', revoked_at = COALESCE(revoked_at, now()), updated_at = now()

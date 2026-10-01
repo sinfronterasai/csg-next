@@ -10,6 +10,7 @@ describe('Whop report purchase migration contract', () => {
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS provider_plan_id');
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS purchaser_email');
     expect(sql).toContain('ux_report_orders_provider_payment');
+    expect(sql).toContain('whop_payment_events');
     expect(sql).toContain("provider IN ('stripe','whop')");
     expect(sql).toContain("status IN ('pending','paid','consumed','failed','refunded')");
   });

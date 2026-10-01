@@ -1,4 +1,4 @@
-import { after, NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { offerForPlan, processWhopPayment, resolveWhopPlanId } from '@/lib/whop';
 import { verifyWhopSignature } from '@/lib/whopSignature';
 
@@ -31,13 +31,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Malformed JSON' }, { status: 400 });
   }
 
-  // Acknowledge immediately; Whop retries are safe because payment_id is unique.
-  after(async () => {
-    try {
-      await handleWhopEvent(event);
-    } catch (error) {
-      console.error('[whop/webhook] background processing failed:', error instanceof Error ? error.message : 'unknown error');
-    }
-  });
+  try {
+    await handleWhopEvent(event);
+  } catch (error) {
+    console.error('[whop/webhook] processing failed:', error instanceof Error ? error.message : 'unknown error');
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
   return new Response('OK', { status: 200 });
 }

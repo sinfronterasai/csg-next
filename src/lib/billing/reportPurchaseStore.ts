@@ -101,7 +101,7 @@ export async function insertWhopReportPurchase(
     `INSERT INTO report_orders
        (user_id, report_type, sku, amount, currency, status, provider, provider_payment_id, provider_plan_id, purchaser_email)
      VALUES ($1, $2, $3, $4, $5, 'paid', 'whop', $6, $7, $8)
-     ON CONFLICT (provider, provider_payment_id) DO NOTHING
+     ON CONFLICT (provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL DO NOTHING
      RETURNING purchase_id`,
     [
       input.userId,
