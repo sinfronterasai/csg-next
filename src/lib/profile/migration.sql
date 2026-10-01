@@ -173,6 +173,8 @@ CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
 -- Legacy timestamp-without-time-zone values are interpreted as UTC only when
 -- the database session timezone is UTC. The production database was verified
 -- with SHOW timezone = UTC before this reconciliation was authored.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 DO $$
 DECLARE
   has_token boolean;
