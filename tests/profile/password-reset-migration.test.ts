@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const migration = readFileSync(join(__dirname, '../../src/lib/profile/migration.sql'), 'utf8');
-const passwordResetMigration = migration.slice(migration.indexOf('-- Password reset tokens and bounded forgot-password abuse controls.'));
+const passwordResetMigration = migration
+  .slice(migration.indexOf('-- Password reset tokens and bounded forgot-password abuse controls.'))
+  .replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;', '');
 
 async function applyPasswordResetMigration(db: PGlite) {
   await db.exec(passwordResetMigration);
