@@ -26,9 +26,11 @@ jest.mock('@/lib/profile/store', () => ({
   setReadingDispatchFailed: jest.fn(async () => {}),
 }));
 jest.mock('@/lib/billing/reportPurchase', () => ({
+  reportSku: (type: string) => `report-${type}`,
   verifyPurchasePaidViaStripe: jest.fn(),
 }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
+  claimWhopReportPurchaseForUser: jest.fn(),
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),
   isValidPurchaseId: jest.fn((id: any) => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)),
@@ -37,6 +39,7 @@ jest.mock('@/lib/billing/reportPurchaseStore', () => ({
 let dispatched: jest.Mock;
 let query: jest.Mock;
 let getPurchase: jest.Mock;
+let claim: jest.Mock;
 let consume: jest.Mock;
 
 jest.mock('@/lib/reportPipeline', () => ({
@@ -60,8 +63,10 @@ beforeEach(() => {
 function setup(opts: { purchase?: any; consumeResult?: any; dispatchResult?: any } = {}) {
   dispatched = jest.fn(async () => opts.dispatchResult ?? { ok: true, status: 200 });
   getPurchase = require('@/lib/billing/reportPurchaseStore').getReportPurchase;
+  claim = require('@/lib/billing/reportPurchaseStore').claimWhopReportPurchaseForUser;
   consume = require('@/lib/billing/reportPurchaseStore').consumeReportPurchase;
   getPurchase.mockResolvedValue(opts.purchase ?? null);
+  claim.mockResolvedValue(null);
   consume.mockResolvedValue(opts.consumeResult ?? { outcome: 'consumed', readingId: 99, reportId: 'rid-1', readingStatus: 'queued' });
   query = require('@/lib/db').query;
   query.mockImplementation(async (text: string) => {
@@ -85,6 +90,13 @@ describe('commercial model: subscription/tarot do NOT grant reports', () => {
     const res = await call({ type: 'loveblueprint' });
     expect(res.status).toBe(402);
     expect(dispatched).not.toHaveBeenCalled();
+  });
+  it('claims a verified Whop order by exact authenticated email when purchaseId is omitted', async () => {
+    setup({ purchase: { userId: 7, reportType: 'loveblueprint', sku: 'report-loveblueprint', status: 'paid', readingId: null, reportId: null } });
+    claim.mockResolvedValue({ purchaseId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' });
+    const res = await call({ type: 'loveblueprint' });
+    expect(res.status).toBe(200);
+    expect(claim).toHaveBeenCalledWith({ userId: 7, email: 'a@x.com', reportType: 'loveblueprint' });
   });
   it('paid report with bogus (non-UUID) purchaseId -> 400, no DB call', async () => {
     setup();

@@ -208,6 +208,7 @@ jest.mock('@/lib/reportFacts/integrate', () => ({
   buildVerifiedFactsForReport: async () => ({ ok: true, ledger: {} as any }),
 }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
+  claimWhopReportPurchaseForUser: jest.fn(),
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),
   getReportPurchaseByUserIdAndType: jest.fn(),

@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { query } from '@/lib/db';
 import { REPORT_META, type ReportType } from '@/lib/reportEngine';
 import { SITE_BASE_URL } from '@/lib/seo';
+import { getProduct } from '@/lib/productCatalog';
 import {
   createReportPurchase, ReportCheckoutConflictError, verifyAndMarkReportPurchasePaid, getReportPurchase,
   type ReportPurchaseRow,
@@ -14,7 +15,9 @@ const secret = process.env.STRIPE_SECRET_KEY;
 const stripe: any = secret ? new Stripe(secret) : null;
 
 export function reportSku(type: ReportType): string {
-  return `report-${type}`;
+  const product = getProduct(type as 'natalpremium' | 'loveblueprint' | 'transit' | 'vocation');
+  if (!product.sku) throw new Error(`No canonical SKU configured for report type '${type}'.`);
+  return product.sku;
 }
 
 // Paid pipeline reports only. Free reports (price 0) have no purchase.

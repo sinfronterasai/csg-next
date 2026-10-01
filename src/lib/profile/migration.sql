@@ -84,7 +84,7 @@ ALTER TABLE readings
 CREATE TABLE IF NOT EXISTS report_orders (
   id                bigserial PRIMARY KEY,
   purchase_id       uuid UNIQUE NOT NULL DEFAULT gen_random_uuid(),
-  user_id           integer NOT NULL,
+  user_id           integer,
   report_type       text NOT NULL,
   sku               text NOT NULL,
   amount            integer NOT NULL,            -- amount in minor units (cents)
@@ -103,6 +103,20 @@ CREATE INDEX IF NOT EXISTS idx_report_orders_user_type
 CREATE INDEX IF NOT EXISTS idx_report_orders_reading
   ON report_orders (reading_id) WHERE reading_id IS NOT NULL;
 
+-- Provider-neutral payment provenance. Existing Stripe rows remain intact;
+-- Whop rows use these fields instead of pretending Whop IDs are Stripe IDs.
+ALTER TABLE report_orders ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE report_orders ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'stripe';
+ALTER TABLE report_orders ADD COLUMN IF NOT EXISTS provider_payment_id text;
+ALTER TABLE report_orders ADD COLUMN IF NOT EXISTS provider_plan_id text;
+ALTER TABLE report_orders ADD COLUMN IF NOT EXISTS purchaser_email text;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_report_orders_provider_payment
+  ON report_orders (provider, provider_payment_id)
+  WHERE provider_payment_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_report_orders_purchaser_email
+  ON report_orders (lower(purchaser_email))
+  WHERE purchaser_email IS NOT NULL;
+
 -- ============================================================================
 -- report_orders schema integrity (idempotent; legacy report_purchases untouched).
 -- Adds foreign keys to users + readings and CHECK constraints. A DO block guards
@@ -120,15 +134,23 @@ BEGIN
       ADD CONSTRAINT fk_report_orders_reading FOREIGN KEY (reading_id) REFERENCES readings(id);
   END IF;
 
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_status') THEN
+    ALTER TABLE report_orders DROP CONSTRAINT ck_report_orders_status;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_status') THEN
     ALTER TABLE report_orders
       ADD CONSTRAINT ck_report_orders_status
-      CHECK (status IN ('pending','paid','consumed','failed'));
+      CHECK (status IN ('pending','paid','consumed','failed','refunded'));
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_currency') THEN
     ALTER TABLE report_orders
       ADD CONSTRAINT ck_report_orders_currency CHECK (currency IN ('usd'));
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_provider') THEN
+    ALTER TABLE report_orders
+      ADD CONSTRAINT ck_report_orders_provider CHECK (provider IN ('stripe','whop'));
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_report_orders_amount') THEN
@@ -162,6 +184,21 @@ CREATE INDEX IF NOT EXISTS idx_whop_entitlements_user_offer
   ON whop_entitlements (user_id, offer, status);
 CREATE INDEX IF NOT EXISTS idx_whop_entitlements_email
   ON whop_entitlements (lower(email));
+
+-- Whop payment lifecycle tombstones. This closes the out-of-order refund race:
+-- a refund received before payment.succeeded must prevent a later success event
+-- from creating a fresh entitlement or report order for the same payment.
+CREATE TABLE IF NOT EXISTS whop_payment_events (
+  payment_id  text PRIMARY KEY,
+  state       text NOT NULL,
+  plan_id     text,
+  email       text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_whop_payment_events_state CHECK (state IN ('succeeded', 'refunded'))
+);
+CREATE INDEX IF NOT EXISTS idx_whop_payment_events_state
+  ON whop_payment_events (state);
 
 -- ============================================================================
 -- Password reset tokens and bounded forgot-password abuse controls.

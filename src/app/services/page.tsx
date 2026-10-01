@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { metadata, jsonLd } = buildMetadata({
     title: "Services | Cosmic Spirit Guide",
     description:
-      "Cosmic Spirit Guide services: free birth-chart computation, tarot readings, and the Love Blueprint — your Venus, Mars and Moon signature. Other services are not yet offered.",
+      "Cosmic Spirit Guide services: free birth-chart computation, Premium Natal, Love Blueprint, Yearly Transit, Vocation & Wealth, and one-time Tarot readings.",
     path: "/services",
     jsonLd: [
       organizationJsonLd(),
@@ -45,12 +45,27 @@ export default function ServicesPage() {
           <Link className="mt-2 inline-block underline" href="/tarot">Read tarot</Link>
         </li>
         <li className="rounded-lg border p-4">
+          <h2 className="text-xl font-medium">{getProduct('natalpremium').displayName} — {getProduct('natalpremium').formattedPrice}</h2>
+          <p className="mt-2">A complete, quality-gated natal story with verified placements and a downloadable PDF. One-time purchase, yours forever. Available now.</p>
+          <Link className="mt-2 inline-block underline" href="/reports">Get Premium Natal Report</Link>
+        </li>
+        <li className="rounded-lg border p-4">
           <h2 className="text-xl font-medium">{getProduct('loveblueprint').displayName} — {getProduct('loveblueprint').formattedPrice}</h2>
           <p className="mt-2">
             Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
             One-time purchase, yours forever. Available now.
           </p>
           <Link className="mt-2 inline-block underline" href="/reports">Get Love Blueprint</Link>
+        </li>
+        <li className="rounded-lg border p-4">
+          <h2 className="text-xl font-medium">{getProduct('transit').displayName} — {getProduct('transit').formattedPrice}</h2>
+          <p className="mt-2">A deterministic twelve-month map of your strongest transit windows, exact hits, eclipses, and practical timing. One-time purchase, yours forever. Available now.</p>
+          <Link className="mt-2 inline-block underline" href="/reports">Get Yearly Transit Forecast</Link>
+        </li>
+        <li className="rounded-lg border p-4">
+          <h2 className="text-xl font-medium">{getProduct('vocation').displayName} — {getProduct('vocation').formattedPrice}</h2>
+          <p className="mt-2">A deterministic 24-month professional timing map for your public role, work, money patterns, and next launch windows. One-time purchase, yours forever. Available now.</p>
+          <Link className="mt-2 inline-block underline" href="/reports">Get Vocation &amp; Wealth Map</Link>
         </li>
       </ul>
     </main>

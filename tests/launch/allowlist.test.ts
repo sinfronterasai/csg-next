@@ -78,6 +78,7 @@ jest.mock('@/lib/auth', () => ({
   getUserById: jest.fn(async () => ({ id: 7, first_name: 'A', email: 'a@x.com', role: 'customer' })),
 }));
 jest.mock('@/lib/billing/reportPurchaseStore', () => ({
+  claimWhopReportPurchaseForUser: jest.fn(),
   getReportPurchaseByUserIdAndType: jest.fn(),
   getReportPurchase: jest.fn(),
   consumeReportPurchase: jest.fn(),

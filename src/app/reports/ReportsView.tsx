@@ -262,7 +262,7 @@ export default function Reports() {
           <span className="text-xs uppercase tracking-[0.4em] text-gold block mb-4">Astrology Reports</span>
           <h1 className="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">Your Sky, Decoded Into a Report</h1>
           <p className="text-cosmic-200 mt-6 font-light text-lg max-w-2xl mx-auto">
-            Start with your free birth chart. Additional reports open as they are released.
+            Choose a report below. Each paid report is a one-time purchase fulfilled through Whop and prepared by our astrology engine.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a href="#gateway" className="px-8 py-3 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] transform hover:-translate-y-0.5">

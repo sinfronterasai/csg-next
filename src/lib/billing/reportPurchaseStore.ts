@@ -19,12 +19,13 @@ import { query, transaction } from '@/lib/db';
 import { LAUNCH_PAID_TYPES, gateGeneration } from '@/lib/launch/allowlist';
 import { buildVerifiedFactsForReport } from '@/lib/reportFacts/integrate';
 import crypto from 'crypto';
+import { PRODUCT_CATALOG, PAID_PRODUCT_IDS } from '@/lib/productCatalog';
 
 const KNOWN_INVALID_REPORT_ID = '6deeb156-4f6d-40e2-988d-a714ff966c39';
 // Audited server-side correction profile; never accepted from a request body.
 const CORRECTED_1160 = { timezone: 'America/Los_Angeles', latitude: 36.97412, longitude: -122.0308 } as const;
 
-export type ReportPurchaseStatus = 'pending' | 'paid' | 'consumed' | 'failed';
+export type ReportPurchaseStatus = 'pending' | 'paid' | 'consumed' | 'failed' | 'refunded';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -36,7 +37,7 @@ export function isValidPurchaseId(id: unknown): id is string {
 export interface ReportPurchaseRow {
   id: number;
   purchaseId: string;
-  userId: number;
+  userId: number | null;
   reportType: string;
   sku: string;
   amount: number;
@@ -44,6 +45,10 @@ export interface ReportPurchaseRow {
   status: ReportPurchaseStatus;
   stripeSessionId: string | null;
   stripePaymentId: string | null;
+  provider: 'stripe' | 'whop';
+  providerPaymentId: string | null;
+  providerPlanId: string | null;
+  purchaserEmail: string | null;
   readingId: number | null;
   reportId: string | null;
   createdAt: Date;
@@ -54,7 +59,7 @@ function hydrate(row: any): ReportPurchaseRow {
   return {
     id: row.id,
     purchaseId: row.purchase_id,
-    userId: Number(row.user_id),
+    userId: row.user_id == null ? null : Number(row.user_id),
     reportType: row.report_type,
     sku: row.sku,
     amount: Number(row.amount),
@@ -62,6 +67,10 @@ function hydrate(row: any): ReportPurchaseRow {
     status: row.status,
     stripeSessionId: row.stripe_session_id ?? null,
     stripePaymentId: row.stripe_payment_id ?? null,
+    provider: row.provider === 'whop' ? 'whop' : 'stripe',
+    providerPaymentId: row.provider_payment_id ?? null,
+    providerPlanId: row.provider_plan_id ?? null,
+    purchaserEmail: row.purchaser_email ?? null,
     readingId: row.reading_id != null ? Number(row.reading_id) : null,
     reportId: row.report_id ?? null,
     createdAt: row.created_at,
@@ -69,9 +78,85 @@ function hydrate(row: any): ReportPurchaseRow {
   };
 }
 
+export interface WhopReportPurchaseInput {
+  reportType: string;
+  sku: string;
+  amount: number;
+  currency: string;
+  providerPaymentId: string;
+  providerPlanId: string;
+  purchaserEmail: string;
+  userId: number | null;
+}
+
+/** Insert the provider-neutral report order for a verified Whop payment. */
+export async function insertWhopReportPurchase(
+  tx: (text: string, params?: any[]) => Promise<{ rows: any[]; rowCount: number | null }>,
+  input: WhopReportPurchaseInput,
+): Promise<{ purchaseId: string | null; created: boolean }> {
+  if (!isValidSkuPair(input.reportType, input.sku)) {
+    throw new Error(`Invalid report_type/sku pairing: ${input.reportType}/${input.sku}`);
+  }
+  const result = await tx(
+    `INSERT INTO report_orders
+       (user_id, report_type, sku, amount, currency, status, provider, provider_payment_id, provider_plan_id, purchaser_email)
+     VALUES ($1, $2, $3, $4, $5, 'paid', 'whop', $6, $7, $8)
+     ON CONFLICT (provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL DO NOTHING
+     RETURNING purchase_id`,
+    [
+      input.userId,
+      input.reportType,
+      input.sku,
+      input.amount,
+      input.currency,
+      input.providerPaymentId,
+      input.providerPlanId,
+      input.purchaserEmail,
+    ],
+  );
+  return {
+    purchaseId: result.rows[0]?.purchase_id ?? null,
+    created: result.rowCount === 1,
+  };
+}
+
+/** Bind an unassociated Whop order only to the exact authenticated account email. */
+export async function claimWhopReportPurchaseForUser(input: {
+  userId: number | string;
+  email: string;
+  reportType: string;
+}): Promise<ReportPurchaseRow | null> {
+  const email = input.email.trim().toLowerCase();
+  if (!email) return null;
+  return transaction(async (tx) => {
+    await tx('BEGIN');
+    try {
+      const result = await tx(
+        `UPDATE report_orders
+            SET user_id = $1, updated_at = now()
+          WHERE provider = 'whop'
+            AND user_id IS NULL
+            AND lower(purchaser_email) = $2
+            AND report_type = $3
+            AND status IN ('paid', 'consumed')
+          RETURNING *`,
+        [Number(input.userId), email, input.reportType],
+      );
+      await tx('COMMIT');
+      return result.rows[0] ? hydrate(result.rows[0]) : null;
+    } catch (error) {
+      await tx('ROLLBACK');
+      throw error;
+    }
+  });
+}
+
 /** Validate the report_type/sku pairing server-side (defense against bad input). */
 export function isValidSkuPair(reportType: string, sku: string): boolean {
-  return sku === `report-${reportType}`;
+  return PAID_PRODUCT_IDS.some((id) => {
+    const product = PRODUCT_CATALOG[id];
+    return product.reportType === reportType && product.sku === sku;
+  });
 }
 
 export class ReportCheckoutConflictError extends Error {
