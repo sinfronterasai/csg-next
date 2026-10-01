@@ -47,7 +47,7 @@ export default function ReadingView({ reading }: { reading: ReadingViewModel }) 
           Download PDF
         </button>
         {reading.readingId != null && (
-          <span className="text-xs text-cosmic-300/70">Premium Plus: journal your reflection below.</span>
+          <span className="text-xs text-cosmic-300/70">Reflection journal: add your notes below.</span>
         )}
       </div>
 

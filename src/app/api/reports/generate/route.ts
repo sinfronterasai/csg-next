@@ -10,7 +10,8 @@ import {
 import { buildVerifiedFactsForReport, V2PreflightError, V2BuildError } from '@/lib/reportFacts/integrate';
 import { geocodeLocation, geocodeCoordinates, computeChart } from '@/lib/chartEngine';
 import { verifyPurchasePaidViaStripe } from '@/lib/billing/reportPurchase';
-import { consumeReportPurchase, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
+import { getProduct } from '@/lib/productCatalog';
+import { consumeReportPurchase, claimWhopReportPurchaseForUser, getReportPurchase, isValidPurchaseId } from '@/lib/billing/reportPurchaseStore';
 import crypto from 'crypto';
 import { mapAsyncSectionsToPdf } from '@/lib/reportPdfAdapter';
 import { compilePremiumNatalReport, buildNarrativeFactPacks } from '@/lib/deterministicReportCompiler';
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     const user = await getUserById(decoded.userId);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
-    const { type: rawType, partner, purchaseId, fromDate } = body;
+    const { type: rawType, partner, purchaseId: requestedPurchaseId, fromDate } = body;
     const type = rawType as ReportType;
 
     // Launch allowlist gate (L3): server-authoritative. Rejects non-launch types.
@@ -78,10 +79,21 @@ export async function POST(request: Request) {
     // Entitlement is NEVER inferred from subscription tier or tarot entitlements.
     // Free reports (Natal / Relationship) continue without any purchase.
     if (isPaid) {
-      // #3 — validate purchaseId BEFORE any DB call. A missing purchaseId is a
-      // payment-required condition (402); a present but malformed (non-UUID)
-      // value is a bad request (400) and must never reach the uuid column
-      // (which would otherwise throw an invalid-UUID Postgres error -> 500).
+      // Whop checkout returns directly to its own hosted page. If the caller did
+      // not provide a purchase id, bind any verified Whop order to this already
+      // authenticated account by exact normalized email, then continue through
+      // the same purchase/SKU/ownership gates as the legacy path.
+      let purchaseId = requestedPurchaseId as unknown;
+      if (!purchaseId) {
+        const claimed = await claimWhopReportPurchaseForUser({
+          userId: Number(decoded.userId),
+          email: user.email,
+          reportType: type,
+        });
+        purchaseId = claimed?.purchaseId ?? null;
+      }
+      // A missing purchaseId is a payment-required condition (402); a present
+      // but malformed value is a bad request (400) and must never reach uuid SQL.
       if (!purchaseId) {
         return NextResponse.json(
           { error: 'A purchase is required to generate this report', requiresPurchase: true },
@@ -101,7 +113,7 @@ export async function POST(request: Request) {
           { status: 402 },
         );
       }
-      const expectedSku = `report-${type}`;
+      const expectedSku = getProduct(type as 'natalpremium' | 'loveblueprint' | 'transit' | 'vocation').sku;
       if (purchase.reportType !== type || purchase.sku !== expectedSku) {
         return NextResponse.json(
           { error: 'Purchase does not match the requested report type and SKU', requiresPurchase: true },

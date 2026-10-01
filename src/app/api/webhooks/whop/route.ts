@@ -9,7 +9,8 @@ async function handleWhopEvent(event: any): Promise<void> {
   const paymentId = typeof payment?.id === 'string' ? payment.id : '';
   const email = typeof payment?.customer_email === 'string' ? payment.customer_email : '';
   const planId = resolveWhopPlanId(payment);
-  if (!paymentId || !email || !planId || !offerForPlan(planId)) return;
+  if (!paymentId) return;
+  if (eventType === 'payment.succeeded' && (!email || !planId || !offerForPlan(planId))) return;
   await processWhopPayment({ eventType, paymentId, email, planId });
 }
 
