@@ -47,7 +47,7 @@ export default function ReportLandingPage({ content, price }: ReportLandingPageP
             <div className="mt-7 space-y-4 border-t border-white/10 pt-6 text-sm leading-6 text-cosmic-200">
               <p><span className="text-gold">Account:</span> sign in or create one before checkout.</p>
               <p><span className="text-gold">Chart:</span> uses the saved birth chart in your profile.</p>
-              <p><span className="text-gold">Retrieval:</span> Profile → Reports after approval.</p>
+              <p><span className="text-gold">Purchase email:</span> use the same email for Cosmic Spirit Guide and Whop so fulfillment can attach the payment to your account.</p>
             </div>
           </div>
         </div>
