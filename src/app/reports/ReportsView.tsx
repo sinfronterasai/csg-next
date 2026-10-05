@@ -7,6 +7,7 @@ import ReportResult from '@/components/reports/ReportResult';
 import type { CustomerYearlyTransitPresentation } from '@/lib/yearlyTransit/presentation';
 import { WHOP_CHECKOUT_URLS } from '@/lib/whopCatalog';
 import { getProduct } from '@/lib/productCatalog';
+import { REPORT_LANDING_ROUTE_BY_TYPE, isLandingProductType, type LandingProductType } from '@/lib/reportLandingPages';
 
 // Launch allowlist (C7): the public reports surface exposes ONLY the authorized
 // launch slice. Free Natal is available to everyone. Love Blueprint is a paid
@@ -81,7 +82,7 @@ export default function Reports() {
       const data = await res.json();
       if (!res.ok) {
         if (data.requiresBirthChart) {
-          setError('Create your birth chart first, then return here.');
+          window.location.href = `/birth-chart?returnTo=${encodeURIComponent(`/reports?product=${encodeURIComponent(id)}`)}`;
         } else if (data.requiresPurchase) {
           // Payment-required: do NOT generate; return the entitlement error so the
           // UI can tell the buyer to complete checkout rather than spinning forever.
@@ -144,7 +145,30 @@ export default function Reports() {
   async function startCheckout(id: string) {
     const product = ALLOWED.find((item) => item.id === id);
     if (product?.whopOffer && WHOP_CHECKOUT_URLS[product.whopOffer]) {
-      window.location.href = WHOP_CHECKOUT_URLS[product.whopOffer];
+      setCheckoutLoading(id);
+      try {
+        const auth = await fetch('/api/auth/user', { cache: 'no-store' });
+        const authData = await auth.json().catch(() => null);
+        if (!auth.ok || !authData?.user) {
+          window.location.href = `/login?returnTo=${encodeURIComponent(`/reports?product=${encodeURIComponent(id)}`)}`;
+          return;
+        }
+        const chart = await fetch('/api/birth-chart', { cache: 'no-store' });
+        if (!chart.ok) {
+          setError('We could not confirm your saved birth chart. Please try again.');
+          return;
+        }
+        const chartData = await chart.json();
+        if (!chartData.hasChart) {
+          window.location.href = `/birth-chart?returnTo=${encodeURIComponent(`/reports?product=${encodeURIComponent(id)}`)}`;
+          return;
+        }
+        window.location.href = WHOP_CHECKOUT_URLS[product.whopOffer];
+      } catch {
+        setError('We could not confirm your account before checkout. Please try again.');
+      } finally {
+        setCheckoutLoading(null);
+      }
       return;
     }
     setCheckoutLoading(id);
@@ -239,6 +263,12 @@ export default function Reports() {
     }
   }, [router]);
 
+  useEffect(() => {
+    const product = new URLSearchParams(window.location.search).get('product');
+    if (!product || !isLandingProductType(product)) return;
+    void startCheckout(product as LandingProductType);
+  }, []);
+
   async function shareReport(readingId: number) {
     try {
       const res = await fetch(`/api/reports/${readingId}/share`, { method: 'POST' });
@@ -328,13 +358,20 @@ export default function Reports() {
                     {loading === p.id ? 'Generating…' : p.cta}
                   </button>
                 ) : (
-                  <button
-                    onClick={() => startCheckout(p.id)}
-                    disabled={checkoutLoading === p.id}
-                    className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
-                  >
-                    {checkoutLoading === p.id ? 'Loading…' : p.cta}
-                  </button>
+                  <div className="space-y-3">
+                    {isLandingProductType(p.id) && (
+                      <Link href={REPORT_LANDING_ROUTE_BY_TYPE[p.id]} className="block text-center text-xs uppercase tracking-widest text-gold underline underline-offset-4 hover:text-white">
+                        Learn more
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => startCheckout(p.id)}
+                      disabled={checkoutLoading === p.id}
+                      className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
+                    >
+                      {checkoutLoading === p.id ? 'Loading…' : p.cta}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

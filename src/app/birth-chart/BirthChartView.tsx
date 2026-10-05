@@ -82,6 +82,7 @@ export default function BirthChart() {
         const chart: ChartData = await res.json();
         setResult(chart);
         // Persist: update the existing chart if we were editing one, else create.
+        let savedSuccessfully = false;
         try {
           const saveRes = await fetch('/api/birth-chart', {
             method: 'POST',
@@ -101,8 +102,15 @@ export default function BirthChart() {
           if (saveJson.chartId) setSavedChartId(saveJson.chartId);
           setFreeReport((saveJson.report as FreeBirthChartReport) ?? null);
           setSavedToProfile(saveRes.ok);
+          savedSuccessfully = saveRes.ok;
         } catch {
           setSavedToProfile(false);
+        }
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+        const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : null;
+        if (savedSuccessfully && safeReturnTo) {
+          window.location.href = safeReturnTo;
+          return;
         }
         setMode('view');
       } catch {
