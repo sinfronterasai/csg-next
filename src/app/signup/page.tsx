@@ -28,7 +28,9 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      router.push('/profile');
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/profile';
+      router.push(safeReturnTo);
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
