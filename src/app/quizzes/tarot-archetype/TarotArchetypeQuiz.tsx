@@ -90,7 +90,18 @@ export default function TarotArchetypeQuiz() {
   const currentAnswer = answers[index];
   const why = useMemo(() => resultKey ? answers.map((answer, questionIndex) => ({ answer, questionIndex, weight: answer >= 0 ? QUESTIONS[questionIndex].answers[answer].weights[resultKey] || 0 : 0 })).filter((item) => item.weight > 0).sort((a, b) => b.weight - a.weight).slice(0, 2) : [], [answers, resultKey]);
 
-  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); if (saved?.answers?.length === QUESTIONS.length) { setAnswers(saved.answers); setIndex(Math.min(Math.max(0, saved.index || 0), QUESTIONS.length - 1)); } } catch {} }, []);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const savedAnswers = Array.isArray(saved?.answers) ? saved.answers : null;
+      const validAnswers = savedAnswers?.length === QUESTIONS.length && savedAnswers.every((answer: unknown) => Number.isInteger(answer) && (answer as number) >= -1 && (answer as number) < 4);
+      const validIndex = Number.isInteger(saved?.index) && saved.index >= 0 && saved.index < QUESTIONS.length;
+      if (validAnswers) {
+        setAnswers(savedAnswers as number[]);
+        setIndex(validIndex ? saved.index : 0);
+      }
+    } catch {}
+  }, []);
   useEffect(() => { if (screen === "result" && resultKey && canvasRef.current) drawCard(canvasRef.current, resultKey); }, [screen, resultKey]);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2400); return () => window.clearTimeout(timer); }, [toast]);
 
