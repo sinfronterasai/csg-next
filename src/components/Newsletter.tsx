@@ -1,4 +1,32 @@
+"use client";
+
+import { useState } from 'react';
+
 export default function Newsletter() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function subscribe(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setStatus(null);
+    try {
+      const res = await fetch('/api/marketing/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `newsletter:${email.trim().toLowerCase()}` },
+        body: JSON.stringify({ email, source: 'newsletter_form', language: 'en' }),
+      });
+      const data = await res.json();
+      setStatus(data.message || (res.ok ? 'Check your email to confirm.' : 'Please try again.'));
+      if (res.ok) setEmail('');
+    } catch {
+      setStatus('Please try again shortly.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <section className="py-24 relative z-10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-16 relative">
@@ -13,12 +41,13 @@ export default function Newsletter() {
             Receive direct planet transits, retrograde survival manuals, and customized astrology readings matching your exact birth metrics straight to your inbox.
           </p>
 
-          <form onSubmit={(e) => { e.preventDefault(); alert('Subscribed!'); }} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input type="email" required placeholder="Enter cosmic coordinates (email)" className="bg-white/5 border border-white/15 rounded-full px-6 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-gold flex-grow text-sm" />
-            <button type="submit" className="bg-gradient-to-r from-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(223,183,108,0.4)]">
-              Subscribe
+          <form onSubmit={subscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter cosmic coordinates (email)" className="bg-white/5 border border-white/15 rounded-full px-6 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-gold flex-grow text-sm" />
+            <button type="submit" disabled={loading} className="bg-gradient-to-r from-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(223,183,108,0.4)] disabled:opacity-50">
+              {loading ? 'Sending…' : 'Subscribe'}
             </button>
           </form>
+          {status && <p role="status" className="mt-4 text-sm text-cosmic-200">{status}</p>}
         </div>
       </div>
     </section>
