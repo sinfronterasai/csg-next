@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +21,7 @@ export default function SignupPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, firstName, lastName }),
+        body: JSON.stringify({ email, password, firstName, lastName, newsletterOptIn }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -67,6 +68,10 @@ export default function SignupPage() {
             <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
               className="mt-1 w-full rounded-lg border border-cosmic-700 bg-cosmic-950 px-3 py-2 text-cosmic-100 outline-none focus:border-gold" />
           </div>
+          <label className="flex items-start gap-3 text-sm text-cosmic-300">
+            <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)} className="mt-1 accent-gold" />
+            <span>Send me weekly astrology and tarot insights, plus occasional Cosmic Spirit Guide offers.</span>
+          </label>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button type="submit" disabled={loading}
             className="w-full rounded-full border border-gold bg-gradient-to-r from-cosmic-primary to-cosmic-secondary py-2.5 text-sm font-semibold uppercase tracking-widest text-white transition hover:opacity-90 disabled:opacity-50">

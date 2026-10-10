@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createUser, generateToken, getUserByEmail } from '@/lib/auth';
+import { recordExplicitOptIn } from '@/lib/email/subscriptions';
 
 export async function POST(request: Request) {
   try {
-    const { email, password, firstName, lastName } = await request.json();
+    const { email, password, firstName, lastName, newsletterOptIn } = await request.json();
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
@@ -12,6 +13,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
     }
     const user = await createUser({ email, password, firstName, lastName });
+    if (newsletterOptIn === true) {
+      try {
+        await recordExplicitOptIn({ email, source: 'account_signup', userId: Number(user.id), language: 'en', idempotencyKey: `account-signup:${user.id}` });
+      } catch (error) {
+        console.error('[auth/register] newsletter enrollment deferred:', error instanceof Error ? error.message : 'unknown error');
+      }
+    }
     const token = generateToken(user.id);
     const res = NextResponse.json({
       success: true,

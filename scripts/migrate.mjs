@@ -1,5 +1,5 @@
-// Idempotent DB migration runner for the Cosmic Profile Hub.
-// Applies src/lib/profile/migration.sql safely:
+// Idempotent DB migration runner for the Cosmic Profile Hub and CSG email subscriptions.
+// Applies both migration files safely:
 //  - strips SQL comments so statements are never split on ';' inside a comment
 //  - respects $$ dollar-quoted strings (used in DO blocks)
 //  - runs each statement in its OWN autocommit query (pg default), so
@@ -11,8 +11,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const sqlPath = join(__dirname, '..', 'src', 'lib', 'profile', 'migration.sql');
-const sql = readFileSync(sqlPath, 'utf8');
+const sqlPaths = [
+  join(__dirname, '..', 'src', 'lib', 'profile', 'migration.sql'),
+  join(__dirname, '..', 'src', 'lib', 'email', 'migration.sql'),
+];
+const sql = sqlPaths.map((path) => readFileSync(path, 'utf8')).join('\n');
 
 const noBlock = sql.replace(/\/\*[\s\S]*?\*\//g, ' ');
 const noLine = noBlock.replace(/--[^\n]*/g, ' ');
