@@ -9,6 +9,19 @@ export type SequenceKey = 'general_welcome' | 'tarot_welcome';
 const CONSENT_COPY_VERSION = '2026-10-10.v1';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://cosmicspiritguide.com';
 
+function safeOutboxError(error: unknown) {
+  const raw = error instanceof Error ? error.message : 'Unknown Resend error';
+  return {
+    errorName: error instanceof Error ? error.name : 'UnknownError',
+    errorMessage: raw
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+      .replace(/https?:\/\/\S+/gi, '[redacted-url]')
+      .replace(/bearer\s+\S+/gi, 'Bearer [redacted]')
+      .replace(/[A-Za-z0-9_-]{32,}/g, '[redacted-token]')
+      .slice(0, 240),
+  };
+}
+
 export function normalizeEmail(value: unknown): string {
   return String(value || '').trim().toLowerCase();
 }
@@ -317,6 +330,11 @@ export async function processEmailOutbox(limit = 20) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown Resend error';
       await query(`UPDATE csg_email_outbox SET status='failed', last_error=$2, next_attempt_at=now() + interval '15 minutes', updated_at=now() WHERE id=$1`, [item.id, message.slice(0, 1000)]);
+      console.error('[marketing/outbox] item failed', {
+        operation: item.operation,
+        attempts: item.attempts + 1,
+        ...safeOutboxError(error),
+      });
     }
   }
   return processed;
