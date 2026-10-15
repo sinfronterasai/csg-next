@@ -373,3 +373,37 @@ BEGIN
     ON password_reset_requests (ip_hash, requested_at)
     WHERE ip_hash IS NOT NULL;
 END $$;
+
+-- Archetype Drop campaign state. Transactional result delivery and promotional
+-- consent are intentionally separate fields; campaign sends must query both
+-- marketing_opt_in = true and unsubscribed_at IS NULL.
+CREATE TABLE IF NOT EXISTS csg_campaign_subscribers (
+  email text PRIMARY KEY,
+  send_result boolean NOT NULL DEFAULT false,
+  marketing_opt_in boolean NOT NULL DEFAULT false,
+  consent_source text NOT NULL,
+  archetype text,
+  content_id text,
+  utm_source text,
+  utm_campaign text,
+  unsubscribed_at timestamptz,
+  purchaser_confirmed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_csg_campaign_marketing
+  ON csg_campaign_subscribers (marketing_opt_in, unsubscribed_at)
+  WHERE marketing_opt_in = true AND unsubscribed_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS csg_campaign_events (
+  id bigserial PRIMARY KEY,
+  event_name text NOT NULL,
+  content_id text,
+  archetype text,
+  event_params jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_csg_campaign_events_name_created
+  ON csg_campaign_events (event_name, created_at);
