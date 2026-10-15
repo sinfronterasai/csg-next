@@ -35,6 +35,24 @@ export async function POST(request: Request) {
     const email = normalizeEmail(body.email);
     if (!validEmail(email)) return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 });
 
+    if (typeof body.contentId === 'string' || typeof body.archetype === 'string') {
+      await query(
+        `INSERT INTO csg_campaign_subscribers
+          (email, send_result, marketing_opt_in, consent_source, archetype, content_id, utm_source, utm_campaign, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now())
+         ON CONFLICT (email) DO UPDATE SET
+           send_result = csg_campaign_subscribers.send_result OR EXCLUDED.send_result,
+           marketing_opt_in = csg_campaign_subscribers.marketing_opt_in OR EXCLUDED.marketing_opt_in,
+           consent_source = EXCLUDED.consent_source,
+           archetype = COALESCE(EXCLUDED.archetype, csg_campaign_subscribers.archetype),
+           content_id = COALESCE(EXCLUDED.content_id, csg_campaign_subscribers.content_id),
+           utm_source = COALESCE(EXCLUDED.utm_source, csg_campaign_subscribers.utm_source),
+           utm_campaign = COALESCE(EXCLUDED.utm_campaign, csg_campaign_subscribers.utm_campaign),
+           updated_at = now()` ,
+        [email, body.sendResult === true, body.marketingOptIn === true, body.marketingOptIn === true ? 'tarot_quiz' : 'result_request', body.archetype || null, body.contentId || null, body.utmSource || null, body.utmCampaign || null],
+      );
+    }
+
     const source = body.source === 'tarot_quiz' ? 'tarot_quiz' : 'newsletter_form';
     const language = body.language === 'es' ? 'es' : 'en';
 
