@@ -25,7 +25,15 @@ export function campaignAttribution(): CampaignAttribution {
 
 export function campaignEvent(name: string, params: Record<string, string | null | undefined> = {}) {
   if (typeof window === 'undefined') return;
-  const data = { ...params, ...campaignAttribution() };
+  const attribution = campaignAttribution();
+  const data = {
+    ...params,
+    content_id: attribution.contentId || 'direct',
+    channel: attribution.source || 'direct',
+    campaign: attribution.campaign || null,
+    contentId: attribution.contentId,
+    source: attribution.source,
+  };
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: name, ...data });
   window.gtag?.('event', name, data);
