@@ -20,6 +20,8 @@ export async function POST(request: Request) {
 
     const contentId = safeText(body.content_id || body.contentId);
     const archetype = safeText(body.archetype, 80);
+    const volume = await query(`SELECT COUNT(*)::int AS count FROM csg_campaign_events WHERE created_at > now() - interval '1 minute'`);
+    if (Number(volume.rows[0]?.count || 0) >= 60) return NextResponse.json({ error: 'Too many campaign events' }, { status: 429 });
     const params = {
       source: safeText(body.utm_source || body.source, 80),
       campaign: safeText(body.utm_campaign || body.campaign, 120),

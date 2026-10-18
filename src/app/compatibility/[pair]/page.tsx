@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SeoJsonLd } from "@/components/seo/SeoJsonLd";
@@ -38,9 +38,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
-  if (parts.length !== 2) return { title: "Compatibility Not Found" };
+  if (parts.length !== 2) notFound();
   const data = compatibilityData(parts[0], parts[1]);
-  if (!data) return { title: "Compatibility Not Found" };
+  if (!data) notFound();
   const label = data.a.label + " and " + data.b.label;
   const title = label + " Love Compatibility: How Your Signs Connect";
   const description =
@@ -75,9 +75,9 @@ export default async function CompatibilityPage({
 }) {
   const { pair: slug } = await params;
   const parts = slug.split("-and-");
-  if (parts.length !== 2) return null;
+  if (parts.length !== 2) notFound();
   const data = compatibilityData(parts[0], parts[1]);
-  if (!data) return null;
+  if (!data) notFound();
   const canonicalSlug = data.canonical.replace("/compatibility/", "");
   if (slug !== canonicalSlug) redirect("/compatibility/" + canonicalSlug);
 

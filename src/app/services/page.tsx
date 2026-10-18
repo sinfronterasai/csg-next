@@ -55,7 +55,7 @@ export default function ServicesPage() {
             Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
             One-time purchase, yours forever. Available now.
           </p>
-          <Link className="mt-2 inline-block underline" href="/reports">Get Love Blueprint</Link>
+          <Link className="mt-2 inline-block underline" href="/love-blueprint">Get Love Blueprint</Link>
         </li>
         <li className="rounded-lg border p-4">
           <h2 className="text-xl font-medium">{getProduct('transit').displayName} — {getProduct('transit').formattedPrice}</h2>

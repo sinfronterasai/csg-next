@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/birth-chart", 0.8, "weekly");
   add(map, PROD + "/blog", 0.8, "weekly");
   add(map, PROD + "/reports", 0.7, "weekly");
+  add(map, PROD + "/love-blueprint", 0.7, "monthly");
+  add(map, PROD + "/quizzes", 0.6, "monthly");
   add(map, PROD + "/constellations", 0.6, "monthly");
   add(map, PROD + "/tools", 0.6, "monthly");
   // Honest, launch-ready entity/commercial pages (indexable).

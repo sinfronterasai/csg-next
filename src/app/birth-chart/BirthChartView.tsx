@@ -5,6 +5,7 @@ import BirthChartWheel from '../../components/BirthChartWheel';
 import type { ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
 import type { FreeBirthChartReport } from '../../lib/freeBirthChart';
+import { getProduct } from '../../lib/productCatalog';
 
 export default function BirthChart() {
   const [formData, setFormData] = useState({ name: '', date: '', time: '', location: '', unknownTime: false });
@@ -13,12 +14,29 @@ export default function BirthChart() {
   const [savedToProfile, setSavedToProfile] = useState<null | boolean>(null);
   const [savedChartId, setSavedChartId] = useState<number | null>(null);
   const [freeReport, setFreeReport] = useState<FreeBirthChartReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'view' | 'edit'>('edit');
   const [initialLoad, setInitialLoad] = useState(true);
 
   // On mount, load any existing saved chart so a returning user sees it
   // (with Update / Create Another) instead of a blank calculator.
   useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('csg-pending-birth-input-v1');
+      if (pending) {
+        const parsed = JSON.parse(pending);
+        if (parsed && typeof parsed === 'object') {
+          setFormData({
+            name: typeof parsed.name === 'string' ? parsed.name : '',
+            date: typeof parsed.date === 'string' ? parsed.date : '',
+            time: typeof parsed.time === 'string' ? parsed.time : '',
+            location: typeof parsed.location === 'string' ? parsed.location : '',
+            unknownTime: parsed.unknownTime === true,
+          });
+        }
+        sessionStorage.removeItem('csg-pending-birth-input-v1');
+      }
+    } catch { /* ignore malformed transfer state */ }
     (async () => {
       try {
         const res = await fetch('/api/birth-chart');
@@ -62,6 +80,8 @@ export default function BirthChart() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
+    setError(null);
     setLoading(true);
     setResult(null);
     setSavedToProfile(null);
@@ -78,8 +98,9 @@ export default function BirthChart() {
             unknownTime: formData.unknownTime,
           }),
         });
-        if (!res.ok) throw new Error('chart request failed');
-        const chart: ChartData = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.details || data.error || 'Chart calculation failed');
+        const chart: ChartData = data;
         setResult(chart);
         // Persist: update the existing chart if we were editing one, else create.
         let savedSuccessfully = false;
@@ -113,16 +134,17 @@ export default function BirthChart() {
           return;
         }
         setMode('view');
-      } catch {
+      } catch (err: any) {
         setResult(null);
+        setError(err?.message || 'The chart could not be calculated. Check your entries and try again.');
       } finally {
         setLoading(false);
       }
     }, 400);
   };
 
-  const coreSign = result ? getSign(result.sun.sign) : null;
-  const emoSign = result ? getSign(result.moon.sign) : null;
+  const coreSign = result?.sun ? getSign(result.sun.sign) : null;
+  const emoSign = result?.moon ? getSign(result.moon.sign) : null;
 
   // VIEW mode: show the saved chart with management actions.
   if (mode === 'view' && result) {
@@ -138,16 +160,17 @@ export default function BirthChart() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="glass-panel-light p-4 rounded-2xl">
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Core Signature</span>
-                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'sun')?.body} in {freeReport?.placements.find((p) => p.key === 'sun')?.sign}</span>
+                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'sun')?.body || result.sun.label} in {freeReport?.placements.find((p) => p.key === 'sun')?.sign || result.sun.signLabel}</span>
                 <span className="text-xs text-gold">{coreSign?.element} • {coreSign?.modality}</span>
               </div>
               <div className="glass-panel-light p-4 rounded-2xl">
                 <span className="text-[10px] text-gray-400 uppercase tracking-widest block">Emotional Self</span>
-                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'moon')?.body} in {freeReport?.placements.find((p) => p.key === 'moon')?.sign}</span>
+                <span className="text-base font-serif text-white block mt-1">{freeReport?.placements.find((p) => p.key === 'moon')?.body || result.moon.label} in {freeReport?.placements.find((p) => p.key === 'moon')?.sign || result.moon.signLabel}</span>
                 <span className="text-xs text-gold">{emoSign?.element} • {emoSign?.modality}</span>
               </div>
             </div>
             <BirthChartWheel chartData={result} interactive />
+            {result.birth.unknownTime && <p className="mt-4 text-xs text-amber-200/80">Birth time was not provided. Houses, Ascendant, and Midheaven are omitted because they depend on the exact time. The Moon sign may also change during the date.</p>}
             {freeReport && (
               <div className="mt-8" data-testid="free-birth-chart-report">
                 <div className="flex items-center justify-between mb-3"><span className="text-xs text-gold tracking-wider uppercase">Verified Placements</span><span className="text-[10px] text-gray-500 uppercase tracking-wider">{freeReport.asOfDate}</span></div>
@@ -165,6 +188,12 @@ export default function BirthChart() {
             {savedToProfile === true && (
               <p className="text-center text-xs text-gold tracking-wider uppercase mt-4">✓ Saved to your profile</p>
             )}
+            <div className="mt-8 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+              <p className="text-xs uppercase tracking-wider text-gold">Go deeper</p>
+              <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${getProduct('natalpremium').priceCents / 100}</h5>
+              <p className="mt-2 text-sm text-gray-300">The free chart shows your verified placements. The premium report adds a cohesive, personalized interpretation, practical integration, quality-gated narrative, and downloadable PDF.</p>
+              <a href="/reports" className="mt-4 inline-block rounded-full bg-gold px-5 py-2 text-xs font-bold uppercase tracking-wider text-cosmic-950">Explore Premium Natal</a>
+            </div>
           </div>
         </div>
       </section>
@@ -215,9 +244,10 @@ export default function BirthChart() {
                     className="rounded bg-white/5 border-white/10 text-gold focus:ring-0" />
                   <label htmlFor="rectified" className="text-xs text-gray-400 cursor-pointer">I don&apos;t know my exact time of birth (Use Solar Houses)</label>
                 </div>
-                <button type="submit" className="w-full py-4 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)]">
+                <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)] disabled:cursor-wait disabled:opacity-60">
                   {savedChartId ? 'Update Chart' : 'Cast Celestial Chart'}
                 </button>
+                {error && <p role="alert" className="text-sm text-rose-300" aria-live="polite">{error}</p>}
               </form>
             </div>
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center space-x-4 text-xs text-gray-400">
@@ -273,14 +303,14 @@ export default function BirthChart() {
                   <div className="space-y-3">
                     <span className="text-xs text-gold tracking-wider uppercase block">Major Placements</span>
                     <div className="space-y-2 text-sm text-gray-300">
-                      <div className="flex justify-between border-b border-white/5 py-1">
+                      {!result.birth.unknownTime && <div className="flex justify-between border-b border-white/5 py-1">
                         <span>Ascendant (1st House)</span>
                         <span className="font-serif text-white">{result.ascendant.signLabel} {formatDegree(result.ascendant.longitude)}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-white/5 py-1">
+                      </div>}
+                      {!result.birth.unknownTime && <div className="flex justify-between border-b border-white/5 py-1">
                         <span>Midheaven (10th House)</span>
                         <span className="font-serif text-white">{result.midheaven.signLabel} {formatDegree(result.midheaven.longitude)}</span>
-                      </div>
+                      </div>}
                       <div className="flex justify-between border-b border-white/5 py-1">
                         <span>Sun (House {result.sun.house ?? '—'})</span>
                         <span className="font-serif text-white">{result.sun.signLabel} {formatDegree(result.sun.longitude)}</span>
@@ -290,6 +320,7 @@ export default function BirthChart() {
                         <span className="font-serif text-white">{result.moon.signLabel} {formatDegree(result.moon.longitude)}</span>
                       </div>
                     </div>
+                    {result.birth.unknownTime && <p className="text-xs text-amber-200/80">Birth time was not provided. Houses, Ascendant, and Midheaven are omitted because they depend on the exact time. The Moon sign may also change during the date.</p>}
                   </div>
                   {savedToProfile === true && (
                     <p className="text-xs text-gold tracking-wider uppercase">✓ Saved to your profile</p>
@@ -298,6 +329,12 @@ export default function BirthChart() {
                     <p className="text-xs text-gray-400 tracking-wider uppercase"><a href="/login" className="text-gold hover:text-white underline">Sign in</a> to save this chart</p>
                   )}
                   <button onClick={startUpdate} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Edit This Chart</button>
+                  <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+                    <p className="text-xs uppercase tracking-wider text-gold">Go deeper</p>
+                    <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${getProduct('natalpremium').priceCents / 100}</h5>
+                    <p className="mt-2 text-sm text-gray-300">The free chart shows your verified placements. The premium report adds a cohesive, personalized interpretation, practical integration, quality-gated narrative, and downloadable PDF.</p>
+                    <a href="/reports" className="mt-4 inline-block rounded-full bg-gold px-5 py-2 text-xs font-bold uppercase tracking-wider text-cosmic-950">Explore Premium Natal</a>
+                  </div>
                 </div>
               )}
             </div>

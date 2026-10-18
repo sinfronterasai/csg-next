@@ -75,8 +75,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
     const body = await request.json();
-    const { name, date, time, location, latitude, longitude, unknownTime, chartId } = body;
-    const inputCheck = validateFreeBirthInput({ date, time, location, latitude, longitude, unknownTime: Boolean(unknownTime) });
+    const { name, date, time, location, latitude, longitude, chartId } = body;
+    const rawUnknownTime = body?.unknownTime;
+    if (rawUnknownTime !== undefined && typeof rawUnknownTime !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid birth input', details: 'unknownTime must be a boolean.' }, { status: 400 });
+    }
+    const unknownTime = rawUnknownTime === true;
+    const inputCheck = validateFreeBirthInput({ date, time, location, latitude, longitude, unknownTime });
     if (!inputCheck.ok) return NextResponse.json({ error: 'Invalid birth input', details: inputCheck.error }, { status: 400 });
     // Resolve the zone at the exact coordinates used for calculation. A timezone
     // from a different forward-geocoded city must never be combined with them.
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
     if (!geo) {
       return NextResponse.json({ error: 'Location not recognized', details: 'Could not resolve coordinates for that location. Try "City, Country" or "lat,lon".' }, { status: 400 });
     }
-    const unknown = Boolean(unknownTime);
+    const unknown = unknownTime;
     // Compute from the verified server-side geocode, never by re-resolving the
     // raw place string. This makes the saved chart and its report eligibility use
     // exactly the validated coordinates and IANA timezone.
