@@ -76,7 +76,7 @@ export function buildMetadata(input: BuildMetadataInput): BuiltMetadata {
   const tw = input.twitter;
   const ogTitle = og ? og.title : undefined;
   const ogDesc = og ? og.description : undefined;
-  const ogImage = og ? og.image : undefined;
+  const ogImage = og?.image || "/brand/csg-og-card.png";
 
   const metaTitle = firstDefined(ogTitle, input.title) || input.title;
   const metaDesc = firstDefined(ogDesc, input.description) || input.description;
@@ -100,7 +100,7 @@ export function buildMetadata(input: BuildMetadataInput): BuiltMetadata {
       title: firstDefined(tw ? tw.title : undefined, ogTitle, input.title) || input.title,
       description: firstDefined(tw ? tw.description : undefined, ogDesc, input.description) ||
         input.description,
-      images: tw ? (tw.image ? [tw.image] : undefined) : undefined,
+      images: tw?.image ? [tw.image] : ["/brand/csg-og-card.png"],
     },
   };
 

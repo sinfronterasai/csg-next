@@ -38,7 +38,7 @@ export function organizationJsonLd(opts?: {
     url: url,
   };
   if (o) {
-    if (o.logo) out.logo = o.logo;
+    out.logo = o.logo || "https://cosmicspiritguide.com/brand/csg-logo-icon-ink-on-light.svg";
   }
   out.sameAs = o.sameAs || [];
   return out;

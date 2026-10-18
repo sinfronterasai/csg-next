@@ -73,13 +73,8 @@ export default function SiteHeader() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 lg:px-16 py-5">
       <div className="max-w-7xl mx-auto flex justify-between items-center glass-panel px-6 py-4 rounded-full border-opacity-20 glow-border">
-        <a href="/" className="flex items-center space-x-3 group">
-          <div className="relative w-10 h-10 flex items-center justify-center">
-            <span className="absolute inset-0 border border-gold rounded-full rotate-45 group-hover:rotate-180 transition-transform duration-1000"></span>
-            <span className="absolute inset-1 border border-dashed border-gold rounded-full -rotate-45 group-hover:-rotate-180 transition-transform duration-1000"></span>
-            <i className="fa-solid fa-moon text-gold text-lg absolute"></i>
-          </div>
-          <span className="font-serif text-xl tracking-widest text-white group-hover:text-gold transition-colors duration-300">COSMIC SPIRIT GUIDE</span>
+        <a href="/" className="flex items-center group" aria-label="Cosmic Spirit Guide home">
+          <img src="/brand/csg-logo-horizontal-gold-on-dark.svg" alt="Cosmic Spirit Guide" width={230} height={25} className="h-7 w-auto max-w-[min(56vw,230px)] object-contain transition-opacity duration-300 group-hover:opacity-85" />
         </a>
 
         <nav className="hidden md:flex items-center space-x-8 text-sm tracking-widest">
