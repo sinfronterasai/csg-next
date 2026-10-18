@@ -198,7 +198,7 @@ export default function BirthChartWheel({ chartData, interactive = false }: { ch
             <circle cx={centerX} cy={centerY} r={planetRadius} fill="none" stroke="rgba(223,183,108,0.25)" strokeWidth="1" />
             <circle cx={centerX} cy={centerY} r={innerRadius} fill="none" stroke="rgba(223,183,108,0.2)" strokeWidth="1" />
             {renderZodiacWheel()}
-            {renderHouses()}
+            {!chartData.birth.unknownTime && renderHouses()}
             {renderPlanets()}
           </svg>
         </div>

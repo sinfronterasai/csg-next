@@ -32,6 +32,8 @@ export async function POST(request: Request) {
   if (rateLimited(request)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   try {
     const body = await request.json();
+    if (body.sendResult !== true && body.sendResult !== false) return NextResponse.json({ error: 'sendResult must be explicitly true or false' }, { status: 400 });
+    if (body.marketingOptIn !== true && body.marketingOptIn !== false) return NextResponse.json({ error: 'marketingOptIn must be explicitly true or false' }, { status: 400 });
     const email = normalizeEmail(body.email);
     if (!validEmail(email)) return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 });
 

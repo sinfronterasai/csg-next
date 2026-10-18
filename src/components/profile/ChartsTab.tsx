@@ -11,6 +11,7 @@ interface BirthChart {
     location: string;
     latitude: number;
     longitude: number;
+    unknownTime?: boolean;
   };
 }
 
@@ -25,7 +26,7 @@ export default function ChartsTab() {
         if (res.ok) {
           const data = await res.json();
           if (data.hasChart) {
-            setChart({ chartId: data.chartId, birthInfo: data.birthInfo });
+            setChart({ chartId: data.chartId, birthInfo: data.chart?.birth ?? data.birthInfo });
           }
         }
       } catch {}

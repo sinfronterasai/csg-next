@@ -8,6 +8,9 @@ export default function robots(): MetadataRoute.Robots {
   try {
     const manifest = loadManifest();
     for (const r of manifest) {
+      // /reports is the public commercial catalog. Private report results are
+      // protected by their token/account routes and must not be blocked here.
+      if (r.oldPath === "/reports") continue;
       if (r.disposition === "RETIRE_410" || r.disposition === "NOINDEX_UTILITY") {
         if (!disallow.includes(r.oldPath)) disallow.push(r.oldPath);
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState } from "react";
 import type { TarotCard } from "@/lib/tarot/deck";
 import { CARD_BACK_URL } from "@/lib/tarot/deck";
 
@@ -13,6 +14,7 @@ export default function CardReveal({
   reversed: boolean;
   revealed: boolean;
 }) {
+  const [artFailed, setArtFailed] = useState(false);
   return (
     <div className="relative h-56 w-40 [perspective:1000px]">
       <motion.div
@@ -31,14 +33,18 @@ export default function CardReveal({
         <div
           className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gold/40 bg-cosmic-900 p-1.5 text-center [backface-visibility:hidden]"
         >
-          <img
-            src={card.artRef}
-            alt={card.name}
-            className="mb-1.5 min-h-0 w-full flex-1 rounded object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
+          {artFailed ? (
+            <div className="mb-1.5 flex min-h-0 w-full flex-1 items-center justify-center rounded bg-cosmic-950 px-3 text-center text-xs text-cosmic-200">
+              Artwork unavailable
+            </div>
+          ) : (
+            <img
+              src={card.artRef}
+              alt={card.name}
+              className="mb-1.5 min-h-0 w-full flex-1 rounded object-cover"
+              onError={() => setArtFailed(true)}
+            />
+          )}
           <p className="text-sm font-medium text-gold">{card.name}</p>
           {reversed && <p className="text-[10px] text-cosmic-300">Reversed</p>}
         </div>

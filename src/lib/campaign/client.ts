@@ -1,5 +1,13 @@
 export type CampaignAttribution = { contentId: string | null; source: string | null; campaign: string | null };
 const STORAGE_KEY = 'csg-campaign-attribution-v1';
+const ALLOWED_EVENTS = new Set(['quiz_view', 'quiz_start', 'quiz_complete', 'result_share', 'result_download', 'free_reading_click', 'offer_click', 'purchase', 'email_request', 'consent_granted']);
+
+function safeParam(value: unknown, max = 120): string | null {
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  if (!text || text.includes('@')) return null;
+  return text.slice(0, max);
+}
 
 export function campaignAttribution(): CampaignAttribution {
   if (typeof window === 'undefined') return { contentId: null, source: null, campaign: null };
@@ -25,7 +33,15 @@ export function campaignAttribution(): CampaignAttribution {
 
 export function campaignEvent(name: string, params: Record<string, string | null | undefined> = {}) {
   if (typeof window === 'undefined') return;
-  const data = { ...params, ...campaignAttribution() };
+  if (!ALLOWED_EVENTS.has(name)) return;
+  const cleanParams = Object.fromEntries(Object.entries(params).map(([key, value]) => [key, safeParam(value)]));
+  const attribution = campaignAttribution();
+  const data = {
+    ...cleanParams,
+    contentId: safeParam(attribution.contentId),
+    source: safeParam(attribution.source),
+    campaign: safeParam(attribution.campaign),
+  };
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: name, ...data });
   window.gtag?.('event', name, data);

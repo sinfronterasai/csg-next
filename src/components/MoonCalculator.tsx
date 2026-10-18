@@ -92,6 +92,18 @@ export default function MoonCalculator() {
     setError(null);
   };
 
+  const continueToChart = () => {
+    try {
+      sessionStorage.setItem('csg-pending-birth-input-v1', JSON.stringify({
+        date: form.date,
+        time: form.time,
+        location: form.location,
+        unknownTime: form.unknownTime,
+      }));
+    } catch { /* the chart form remains available for manual entry */ }
+    window.location.href = '/birth-chart';
+  };
+
   const sign = result?.moonSign;
 
   return (
@@ -245,8 +257,9 @@ export default function MoonCalculator() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex gap-x-4">
-                      <button onClick={reset} className="flex-1 border border-white/30 hover:border-white/60 py-5 rounded-3xl text-sm font-medium transition-colors">RECALCULATE</button>
+                    <div className="flex gap-x-4 flex-wrap">
+                      <button onClick={reset} className="flex-1 min-w-[10rem] border border-white/30 hover:border-white/60 py-5 rounded-3xl text-sm font-medium transition-colors">RECALCULATE</button>
+                      <button onClick={continueToChart} className="flex-1 min-w-[10rem] border border-gold/60 text-gold hover:bg-gold/10 py-5 rounded-3xl text-sm font-medium transition-colors">SEE MY FULL BIRTH CHART</button>
                     </div>
                   </div>
                 )}
@@ -279,7 +292,7 @@ export default function MoonCalculator() {
                   <div className="w-2 h-2 bg-current rounded-full animate-ping" />
                   CELESTIAL ALIGNMENT COMPLETE
                 </div>
-                <a href="/reports" className="text-white/30 hover:text-gold flex items-center gap-x-1"><i className="fa-solid fa-arrow-right" /><span className="hidden sm:inline">More</span></a>
+                <a href="/reports" className="text-white/30 hover:text-gold flex items-center gap-x-1"><i className="fa-solid fa-arrow-right" /><span>Explore reports</span></a>
               </div>
             </div>
           </div>
