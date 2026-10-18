@@ -5,12 +5,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="space-y-4">
-            <a href="#" className="flex items-center space-x-3">
-              <div className="relative w-8 h-8 flex items-center justify-center">
-                <span className="absolute inset-0 border border-gold rounded-full rotate-45"></span>
-                <i className="fa-solid fa-moon text-gold text-xs absolute"></i>
-              </div>
-              <span className="font-serif text-lg tracking-widest text-white">COSMIC SPIRIT GUIDE</span>
+            <a href="/" className="flex items-center" aria-label="Cosmic Spirit Guide home">
+              <img src="/brand/csg-logo-horizontal-gold-on-dark.svg" alt="Cosmic Spirit Guide" width={220} height={24} className="h-6 w-auto object-contain" />
             </a>
             <p className="text-[11px] text-gray-400 font-light leading-relaxed">
               Decoding cosmic geometry and mapping celestial cycles since retrogrades began. Connect to the sky above.

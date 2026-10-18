@@ -4,8 +4,27 @@ import SiteHeader from '../components/SiteHeader';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://cosmicspiritguide.com'),
   title: 'COSMIC SPIRIT GUIDE | Cosmic Astrology & Celestial Guidance',
   description: 'Interactive birth charts, celestial map explorer, and cosmic readings.',
+  icons: {
+    icon: '/brand/csg-favicon.svg',
+    shortcut: '/brand/csg-favicon.svg',
+    apple: '/brand/csg-logo-icon-gold-on-dark.svg',
+  },
+  openGraph: {
+    title: 'COSMIC SPIRIT GUIDE | Cosmic Astrology & Celestial Guidance',
+    description: 'Interactive birth charts, celestial map explorer, and cosmic readings.',
+    siteName: 'Cosmic Spirit Guide',
+    type: 'website',
+    images: [{ url: '/brand/csg-og-card.png', width: 1200, height: 630, alt: 'Cosmic Spirit Guide' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'COSMIC SPIRIT GUIDE | Cosmic Astrology & Celestial Guidance',
+    description: 'Interactive birth charts, celestial map explorer, and cosmic readings.',
+    images: ['/brand/csg-og-card.png'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
