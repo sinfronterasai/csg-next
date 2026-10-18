@@ -31,7 +31,7 @@ export function campaignAttribution(): CampaignAttribution {
   }
 }
 
-export function campaignEvent(name: string, params: Record<string, string | null | undefined> = {}) {
+export function campaignEvent(name: string, params: Record<string, string | null | undefined> = {}, serverParams: Record<string, string | null | undefined> = {}) {
   if (typeof window === 'undefined') return;
   if (!ALLOWED_EVENTS.has(name)) return;
   const cleanParams = Object.fromEntries(Object.entries(params).map(([key, value]) => [key, safeParam(value)]));
@@ -48,7 +48,7 @@ export function campaignEvent(name: string, params: Record<string, string | null
   void fetch('/api/marketing/event', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ event: name, ...data }),
+    body: JSON.stringify({ event: name, ...data, ...serverParams }),
     keepalive: true,
   }).catch(() => undefined);
 }

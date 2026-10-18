@@ -2,23 +2,11 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { buildResultEmail, normalizeEmail, processEmailOutbox, recordExplicitOptIn, validEmail } from '@/lib/email/subscriptions';
 
-const recent = new Map<string, { count: number; resetAt: number }>();
 const ARCHETYPES: Record<string, string> = {
   seeker: 'The Seeker', creator: 'The Creator', intuitive: 'The Intuitive', nurturer: 'The Nurturer',
   builder: 'The Builder', connector: 'The Connector', pathfinder: 'The Pathfinder', reflector: 'The Reflector',
 };
 
-function rateLimited(request: Request) {
-  const now = Date.now();
-  const key = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const current = recent.get(key);
-  if (!current || current.resetAt <= now) {
-    recent.set(key, { count: 1, resetAt: now + 60_000 });
-    return false;
-  }
-  current.count += 1;
-  return current.count > 10;
-}
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get('origin');
@@ -29,13 +17,16 @@ function sameOrigin(request: Request) {
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
-  if (rateLimited(request)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   try {
     const body = await request.json();
     if (body.sendResult !== true && body.sendResult !== false) return NextResponse.json({ error: 'sendResult must be explicitly true or false' }, { status: 400 });
     if (body.marketingOptIn !== true && body.marketingOptIn !== false) return NextResponse.json({ error: 'marketingOptIn must be explicitly true or false' }, { status: 400 });
     const email = normalizeEmail(body.email);
     if (!validEmail(email)) return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 });
+    const prior = await query(`SELECT updated_at FROM csg_campaign_subscribers WHERE email=$1`, [email]);
+    if (prior.rows[0]?.updated_at && Date.now() - new Date(prior.rows[0].updated_at).getTime() < 60_000) {
+      return NextResponse.json({ error: 'Please wait before submitting another request' }, { status: 429 });
+    }
 
     if (typeof body.contentId === 'string' || typeof body.archetype === 'string') {
       await query(

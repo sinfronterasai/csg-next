@@ -5,7 +5,7 @@ import BirthChartWheel from '../../components/BirthChartWheel';
 import type { ChartData } from '../../lib/chartEngine';
 import { getSign, formatDegree } from '../../lib/astrology';
 import type { FreeBirthChartReport } from '../../lib/freeBirthChart';
-import { REPORT_META } from '../../lib/reportCatalog';
+import { getProduct } from '../../lib/productCatalog';
 
 export default function BirthChart() {
   const [formData, setFormData] = useState({ name: '', date: '', time: '', location: '', unknownTime: false });
@@ -190,7 +190,7 @@ export default function BirthChart() {
             )}
             <div className="mt-8 rounded-2xl border border-gold/30 bg-gold/5 p-5">
               <p className="text-xs uppercase tracking-wider text-gold">Go deeper</p>
-              <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${REPORT_META.natalpremium.price}</h5>
+              <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${getProduct('natalpremium').priceCents / 100}</h5>
               <p className="mt-2 text-sm text-gray-300">The free chart shows your verified placements. The premium report adds a cohesive, personalized interpretation, practical integration, quality-gated narrative, and downloadable PDF.</p>
               <a href="/reports" className="mt-4 inline-block rounded-full bg-gold px-5 py-2 text-xs font-bold uppercase tracking-wider text-cosmic-950">Explore Premium Natal</a>
             </div>
@@ -331,7 +331,7 @@ export default function BirthChart() {
                   <button onClick={startUpdate} className="text-xs text-gold hover:text-white underline tracking-wider uppercase">Edit This Chart</button>
                   <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5">
                     <p className="text-xs uppercase tracking-wider text-gold">Go deeper</p>
-                    <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${REPORT_META.natalpremium.price}</h5>
+                    <h5 className="mt-1 text-lg font-serif text-white">Premium Natal Report · ${getProduct('natalpremium').priceCents / 100}</h5>
                     <p className="mt-2 text-sm text-gray-300">The free chart shows your verified placements. The premium report adds a cohesive, personalized interpretation, practical integration, quality-gated narrative, and downloadable PDF.</p>
                     <a href="/reports" className="mt-4 inline-block rounded-full bg-gold px-5 py-2 text-xs font-bold uppercase tracking-wider text-cosmic-950">Explore Premium Natal</a>
                   </div>

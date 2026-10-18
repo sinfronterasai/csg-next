@@ -94,10 +94,10 @@ export default function TarotArchetypeQuiz() {
   const currentAnswer = answers[index];
   const why = useMemo(() => resultKey ? answers.map((answer, questionIndex) => ({ answer, questionIndex, weight: answer >= 0 ? QUESTIONS[questionIndex].answers[answer].weights[resultKey] || 0 : 0 })).filter((item) => item.weight > 0).sort((a, b) => b.weight - a.weight).slice(0, 2) : [], [answers, resultKey]);
 
-  function emitOnce(key: string, name: string) {
+  function emitOnce(key: string, name: string, serverParams: Record<string, string | null | undefined> = {}) {
     if (emittedEvents.current.has(key)) return;
     emittedEvents.current.add(key);
-    campaignEvent(name);
+    campaignEvent(name, {}, serverParams);
   }
 
   useEffect(() => {
@@ -122,7 +122,7 @@ export default function TarotArchetypeQuiz() {
   function start() { if (answers.every((answer) => answer !== -1)) { finish(); return; } setScreen("quiz"); }
   function selectAnswer(answer: number) { const next = [...answers]; next[index] = answer; setAnswers(next); save(next, index); }
   function next() { if (currentAnswer === -1) return; if (index < QUESTIONS.length - 1) { const nextIndex = index + 1; setIndex(nextIndex); save(answers, nextIndex); } else finish(); }
-  function finish() { const scored = score(answers); setResultKey(scored.key); setScreen("result"); emitOnce("quiz_complete", "quiz_complete"); try { localStorage.removeItem(STORAGE_KEY); } catch {} }
+  function finish() { const scored = score(answers); setResultKey(scored.key); setScreen("result"); emitOnce("quiz_complete", "quiz_complete", { archetype: scored.key, card: ARCHETYPES[scored.key].card.toLowerCase().replace(/ /g, "_") }); try { localStorage.removeItem(STORAGE_KEY); } catch {} }
   function restart() { const blank = Array(QUESTIONS.length).fill(-1); setAnswers(blank); setIndex(0); setResultKey(null); setScreen("quiz"); try { localStorage.removeItem(STORAGE_KEY); } catch {} }
   function caption() { if (!resultKey) return ""; const a = ARCHETYPES[resultKey]; return `I'm ${a.name} — ${a.card} (${a.theme}). “${a.line}”\nFind your tarot archetype: ${QUIZ_URL}`; }
   async function copyCaption() { try { await navigator.clipboard.writeText(caption()); setToast("Caption & link copied"); } catch { setToast("Copy failed — select manually"); } }

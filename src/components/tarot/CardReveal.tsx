@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 import type { TarotCard } from "@/lib/tarot/deck";
 import { CARD_BACK_URL } from "@/lib/tarot/deck";
@@ -17,11 +16,9 @@ export default function CardReveal({
   const [artFailed, setArtFailed] = useState(false);
   return (
     <div className="relative h-56 w-40 [perspective:1000px]">
-      <motion.div
+      <div
         className="relative h-full w-full [transform-style:preserve-3d]"
-        initial={false}
-        animate={{ rotateY: revealed ? 0 : 180 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{ transform: `rotateY(${revealed ? 0 : 180}deg)`, transition: 'transform 0.6s ease-out' }}
       >
         <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <img
@@ -48,7 +45,7 @@ export default function CardReveal({
           <p className="text-sm font-medium text-gold">{card.name}</p>
           {reversed && <p className="text-[10px] text-cosmic-300">Reversed</p>}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
