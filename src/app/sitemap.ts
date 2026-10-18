@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/birth-chart", 0.8, "weekly");
   add(map, PROD + "/blog", 0.8, "weekly");
   add(map, PROD + "/reports", 0.7, "weekly");
+  add(map, PROD + "/love-blueprint", 0.7, "monthly");
+  add(map, PROD + "/quizzes", 0.6, "monthly");
   add(map, PROD + "/constellations", 0.6, "monthly");
   // Honest, launch-ready entity/commercial pages (indexable).
   add(map, PROD + "/about", 0.5, "yearly");
@@ -34,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/terms", 0.4, "yearly");
   add(map, PROD + "/pricing", 0.6, "monthly");
   add(map, PROD + "/services", 0.6, "monthly");
+  add(map, PROD + "/quizzes/tarot-archetype", 0.6, "monthly");
 
   // Programmatic routes enter the sitemap only after page-level approval.
   for (const sign of allSignKeys()) {

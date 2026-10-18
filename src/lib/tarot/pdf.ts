@@ -3,6 +3,15 @@
 import type { ReadingViewModel } from "@/lib/tarot/view";
 import { CARD_BACK_URL } from "@/lib/tarot/deck";
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Open a print-friendly window for the reading and trigger the print dialog.
  * Real, dependency-free PDF path (browser "Save as PDF"). Branded with the
@@ -19,19 +28,19 @@ export function exportReadingPdf(reading: ReadingViewModel) {
   const cards = reading.cards
     .map((c) => {
       const img = c.artRef
-        ? `<img src="${c.artRef}" alt="${c.name}" style="width:64px;height:auto;border-radius:8px;border:1px solid #c9a227;margin-right:12px;flex:0 0 auto" />`
+        ? `<img src="${escapeHtml(c.artRef)}" alt="${escapeHtml(c.name)}" style="width:64px;height:auto;border-radius:8px;border:1px solid #c9a227;margin-right:12px;flex:0 0 auto" />`
         : "";
       return `<li style="display:flex;align-items:center;margin-bottom:12px">
         ${img}
-        <span><strong style="color:#9a6b1f">${c.positionLabel}:</strong> ${c.name} ${
+        <span><strong style="color:#9a6b1f">${escapeHtml(c.positionLabel)}:</strong> ${escapeHtml(c.name)} ${
           c.reversed ? "(Reversed)" : ""
-        } &mdash; ${c.meaning}</span>
+        } &mdash; ${escapeHtml(c.meaning)}</span>
       </li>`;
     })
     .join("");
 
   const astro = reading.astrology
-    ? `<p style="color:#8a6d1f;margin-top:8px;font-style:italic">Astrology blend: ${reading.astrology.summary}</p>`
+    ? `<p style="color:#8a6d1f;margin-top:8px;font-style:italic">Astrology blend: ${escapeHtml(reading.astrology.summary)}</p>`
     : "";
 
   w.document.write(`<!doctype html><html><head><title>Cosmic Spirit Guide &mdash; Tarot Reading</title>
@@ -49,10 +58,10 @@ export function exportReadingPdf(reading: ReadingViewModel) {
       .foot{margin-top:28px;border-top:2px solid #c9a227;padding-top:12px;font-size:11px;color:#7a7f93;text-align:center;letter-spacing:.5px}
     </style></head><body>
     <div class="brand"><img src="${back}" alt="Cosmic Spirit Guide" /><div><h1>Cosmic Spirit Guide</h1><p>Tarot Reading</p></div></div>
-    <h1 class="q">${reading.question}</h1>
+    <h1 class="q">${escapeHtml(reading.question)}</h1>
     ${astro}
     <h2>Your Cards</h2><ul>${cards}</ul>
-    <h2>Reading</h2><div class="int">${reading.interpretation}</div>
+    <h2>Reading</h2><div class="int">${escapeHtml(reading.interpretation)}</div>
     <div class="foot">cosmicspiritguide.com</div>
     </body></html>`);
   w.document.close();

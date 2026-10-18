@@ -34,6 +34,8 @@ describe('Free Birth Chart deterministic vertical slice', () => {
   it('validates canonical birth inputs before computation', () => {
     expect(validateFreeBirthInput({ ...birth })).toEqual({ ok: true, value: expect.any(Object) });
     expect(validateFreeBirthInput({ ...birth, date: '1980-02-30' }).ok).toBe(false);
+    expect(validateFreeBirthInput({ ...birth, time: '25:61' }).ok).toBe(false);
+    expect(validateFreeBirthInput({ ...birth, time: undefined, unknownTime: true }).ok).toBe(true);
     expect(validateFreeBirthInput({ ...birth, timezone: 'UTC', latitude: 91 }).ok).toBe(false);
     expect(validateFreeBirthInput({ ...birth, latitude: 1, longitude: undefined }).ok).toBe(false);
   });

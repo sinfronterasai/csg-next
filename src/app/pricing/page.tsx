@@ -46,7 +46,7 @@ export default function PricingPage() {
           Your Venus, Mars and Moon signature with the real love aspects colouring your chart.
           One-time purchase, yours forever. Available now.
         </p>
-        <Link className="mt-2 inline-block underline" href="/reports">Get Love Blueprint</Link>
+        <Link className="mt-2 inline-block underline" href="/love-blueprint">Get Love Blueprint</Link>
       </section>
 
       <p className="mt-6 text-sm text-muted-foreground">

@@ -180,6 +180,11 @@ export default function Reports() {
   useEffect(() => {
     const purchase = searchParams.get('purchase');
     const sessionId = searchParams.get('sessionId');
+    if (purchase === 'canceled') {
+      setResumeState('failed');
+      setResumeMessage('Checkout was canceled. No report was generated or charged; you can try again when ready.');
+      return;
+    }
     if (purchase === 'success' && sessionId) {
       // Defer to the browser paint so the redirect feels instant; then verify.
       const timer = setTimeout(async () => {

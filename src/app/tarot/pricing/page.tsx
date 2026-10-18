@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PricingTable from "@/components/tarot/PricingTable";
 import type { Tier } from "@/lib/tarot/spreads";
 
 export default function TarotPricing() {
   const [selected, setSelected] = useState<Tier | null>(null);
+  const [canceled, setCanceled] = useState(false);
+  useEffect(() => {
+    setCanceled(new URLSearchParams(window.location.search).get('upgrade') === 'canceled');
+  }, []);
 
   async function handleSelect(tier: Tier) {
     setSelected(tier);
@@ -37,9 +41,14 @@ export default function TarotPricing() {
         <div className="mt-8">
           <PricingTable onSelectTier={handleSelect} />
         </div>
+        {canceled && (
+          <p role="status" className="mt-6 text-center text-sm text-amber-200">
+            Checkout was canceled. No subscription was created; you can choose a tier again whenever you are ready.
+          </p>
+        )}
         {selected && (
           <p className="mt-6 text-center text-sm text-cosmic-200/80">
-            Selected <span className="text-gold">{selected}</span>. Stripe Checkout will be wired in the billing workstream.
+            Selected <span className="text-gold">{selected}</span>. You&rsquo;ll see the configured Stripe price before confirming payment.
           </p>
         )}
       </div>
