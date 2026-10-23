@@ -1,0 +1,40 @@
+{
+  "status": "prepared_not_published",
+  "campaign": "relationship_first_sale_v1",
+  "offer": "Relationship Dynamics Tarot",
+  "price_usd": 4.99,
+  "spend_limit_usd": 0,
+  "destination": "https://cosmicspiritguide.com/tarot/relationship-dynamics",
+  "facebook_account": "857552134102238",
+  "posts": [
+    {
+      "id": "REL-FB-001",
+      "when": "After deployment and live verification; publish this one first",
+      "image": "/campaigns/relationship/offer-post.png",
+      "message": "Keep having the same relationship conversation in your head?\n\nTry a different question: What can I understand or communicate more clearly?\n\nRelationship Dynamics is a six-card, AI-assisted tarot reading from Cosmic Spirit Guide. It explores your perspective, the connection, its strengths and tensions, and a possible next step.\n\n$4.99, one-time payment. No subscription. You can read a full example before deciding.\n\nCards are prompts for reflection, not proof of another person's feelings or a prediction of what they will do.\n\nSee the example and what you get:",
+      "url": "https://cosmicspiritguide.com/tarot/relationship-dynamics?utm_source=facebook&utm_medium=social&utm_campaign=relationship_first_sale_v1&utm_content=REL-FB-001"
+    },
+    {
+      "id": "REL-FB-002",
+      "when": "Follow-up draft, not scheduled; review first-post results before use",
+      "image": "/campaigns/relationship/offer-social.png",
+      "message": "Before you buy a tarot reading, you should be able to see what it looks like.\n\nOur Relationship Dynamics page includes a clearly labelled six-card editorial example about approaching a conversation when you feel distance in a relationship.\n\nYour paid reading draws cards for your own question and uses AI to interpret them. The price is $4.99, one time, with no subscription.\n\nSee the example first:",
+      "url": "https://cosmicspiritguide.com/tarot/relationship-dynamics?utm_source=facebook&utm_medium=social&utm_campaign=relationship_first_sale_v1&utm_content=REL-FB-002"
+    },
+    {
+      "id": "REL-FB-003",
+      "when": "Follow-up draft, not scheduled; use only after review",
+      "image": "/campaigns/relationship/offer-post.png",
+      "message": "A more useful relationship question than ‘What are they secretly thinking?’\n\n‘What do I need to understand about this pattern—and what can I do next?’\n\nOur six-card Relationship Dynamics reading gives you symbolic perspectives to reflect on, with an AI-assisted interpretation connected to your question. It cannot read someone's mind.\n\n$4.99, one-time payment. No subscription. A full editorial example is available before checkout.\n\nExplore it here:",
+      "url": "https://cosmicspiritguide.com/tarot/relationship-dynamics?utm_source=facebook&utm_medium=social&utm_campaign=relationship_first_sale_v1&utm_content=REL-FB-003"
+    }
+  ],
+  "pinterest_draft": {
+    "title": "A Six-Card Tarot Spread for a Relationship Question",
+    "description": "See how a relationship-focused tarot spread explores You, Them, Connection, Strength, Tension and Path. Read a clearly labelled editorial example before deciding whether an AI-assisted reading fits your question. $4.99, one-time payment; no subscription. For reflection, not prediction.",
+    "image": "/campaigns/relationship/sample-pin.png",
+    "url": "https://cosmicspiritguide.com/tarot/relationship-dynamics?utm_source=pinterest&utm_medium=social&utm_campaign=relationship_first_sale_v1&utm_content=REL-PIN-001",
+    "status": "prepared_only; connected Pinterest interface is read-only"
+  },
+  "proposed_approval": "Merge/deploy the reviewed branch, run live verification without spending money, and publish REL-FB-001 to the Cosmic Spirit Guide Facebook Page only after the live gate passes. Do not publish follow-ups, post to personal Instagram, contact anyone, or spend money under this approval."
+}

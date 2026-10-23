@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [accountSwitchHref, setAccountSwitchHref] = useState('/signup');
+  useEffect(() => {
+    const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+      setAccountSwitchHref('/signup?returnTo=' + encodeURIComponent(returnTo));
+    }
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +73,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-cosmic-300">
           No account?{' '}
-          <a href="/signup" className="text-gold underline-offset-4 hover:underline">Create one</a>
+          <a href={accountSwitchHref} className="text-gold underline-offset-4 hover:underline">Create one</a>
         </p>
       </div>
     </main>

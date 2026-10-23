@@ -45,6 +45,10 @@ export function buildInterpretationPrompt(args: InterpretArgs): InterpretationPr
     lines.push(`- ${d.positionLabel}: ${d.card.name} [${orient}] — ${d.card[orient === "Reversed" ? "reversed" : "upright"]}`);
   }
 
+  if (args.spreadId === "relationship_dynamics") {
+    lines.push("Treat the Them position as a symbolic perspective-taking prompt, never as knowledge of another person’s thoughts, feelings, fidelity, or intentions. Do not present the Path as a guaranteed relationship outcome. End with one practical reflection or conversation prompt.");
+  }
+
   if (args.astrology && (args.astrology.summary || args.astrology.transits)) {
     lines.push("");
     lines.push("Astrology overlay (blend subtly):");

@@ -2,7 +2,8 @@ import SpreadMenu from "@/components/tarot/SpreadMenu";
 
 export const metadata = { title: "Tarot — Cosmic Spirit Guide" };
 
-export default function TarotPage() {
+export default async function TarotPage({ searchParams }: { searchParams: Promise<{ spread?: string }> }) {
+  const { spread } = await searchParams;
   return (
     <main className="min-h-screen bg-cosmic-950 px-4 text-cosmic-100">
       <div className="mx-auto max-w-4xl">
@@ -13,7 +14,7 @@ export default function TarotPage() {
           Pick a spread. We&rsquo;ll draw your cards and read them in context.
         </p>
         <div className="mt-8">
-          <SpreadMenu />
+          <SpreadMenu initialSpreadId={spread} />
         </div>
       </div>
     </main>

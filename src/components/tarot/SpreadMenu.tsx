@@ -6,6 +6,7 @@ import { spreads, type Spread } from "@/lib/tarot/spreads";
 import { buildReadingView, type ApiReading, type ReadingViewModel } from "@/lib/tarot/view";
 import QuestionModal from "./QuestionModal";
 import ReadingView from "./ReadingView";
+import { campaignEvent } from "@/lib/campaign/client";
 
 type Phase =
   | { kind: "menu" }
@@ -19,8 +20,11 @@ function cardCountLabel(spread: Spread): string {
   return `${n} card${n === 1 ? "" : "s"}`;
 }
 
-export default function SpreadMenu() {
-  const [phase, setPhase] = useState<Phase>({ kind: "menu" });
+export default function SpreadMenu({ initialSpreadId }: { initialSpreadId?: string } = {}) {
+  const [phase, setPhase] = useState<Phase>(() => {
+    const spread = spreads.find((s) => s.id === initialSpreadId);
+    return spread && !spread.fixedQuestion ? { kind: "modal", spread, question: "" } : { kind: "menu" };
+  });
 
   async function draw(spread: Spread, question: string) {
     // Fresh seed per draw so repeat readings vary (the previous "New reading"
@@ -28,6 +32,7 @@ export default function SpreadMenu() {
     // must rotate the seed here instead of once per mount).
     const seed = Math.random().toString(36).slice(2);
     setPhase({ kind: "drawing", spread, question });
+    if (spread.tier !== "free") campaignEvent("paid_reading_started", { product_id: spread.id });
     try {
       const res = await fetch("/api/tarot/generate", {
         method: "POST",
@@ -46,6 +51,7 @@ export default function SpreadMenu() {
         return;
       }
       const view = buildReadingView(data as ApiReading);
+      if (spread.tier !== "free") campaignEvent("paid_reading_completed", { product_id: spread.id });
       setPhase({ kind: "reading", view });
     } catch {
       setPhase({ kind: "modal", spread, question, error: "Network error. Please try again." });
@@ -65,6 +71,7 @@ export default function SpreadMenu() {
     return (
       <div>
         <ReadingView reading={phase.view} />
+        {phase.view.spreadId !== "relationship_dynamics" && <aside className="mx-auto mt-8 max-w-3xl rounded-xl border border-gold/30 p-5"><h2 className="font-serif text-xl text-gold">Have a relationship question?</h2><p className="mt-2 text-sm text-cosmic-200">Explore six perspectives with Relationship Dynamics. $4.99, one-time payment.</p><a href="/tarot/relationship-dynamics" onClick={() => campaignEvent("offer_click", { product_id: "relationship-dynamics-tarot" })} className="inline-flex min-h-[44px] items-center text-gold underline">See an example before you decide</a></aside>}
         <div className="mx-auto mt-8 flex max-w-3xl items-center justify-center gap-4 text-sm">
           <button
             type="button"
@@ -131,7 +138,7 @@ export default function SpreadMenu() {
             <div className="flex items-center justify-between gap-2">
               <span className="font-serif text-lg font-semibold text-gold">{s.name}</span>
               <span className="rounded-full border border-cosmic-700 px-2 py-0.5 text-xs uppercase tracking-wide text-cosmic-300/80">
-                {s.tier === "free" ? "Free" : "Member"}
+                {s.tier === "free" ? "Free" : "One-time purchase"}
               </span>
             </div>
             <p className="mt-2 text-sm text-cosmic-100/90">{s.blurb}</p>
