@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ReadingViewModel } from "@/lib/tarot/view";
 import { exportReadingPdf } from "@/lib/tarot/pdf";
 import CardDeck from "./CardDeck";
+import ReadingShare from "./ReadingShare";
 
 export default function ReadingView({ reading }: { reading: ReadingViewModel }) {
   const [reflection, setReflection] = useState(reading.reflection ?? "");
@@ -50,6 +51,8 @@ export default function ReadingView({ reading }: { reading: ReadingViewModel }) 
           <span className="text-xs text-cosmic-300/70">Reflection journal: add your notes below.</span>
         )}
       </div>
+
+      <ReadingShare key={JSON.stringify([reading.readingId, reading.question, reading.cards])} reading={reading} />
 
       {reading.readingId != null && (
         <div className="glass-panel glow-border mt-6 rounded-2xl p-5">

@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import ReadingShare from '@/components/tarot/ReadingShare';
+import { buildReadingView } from '@/lib/tarot/view';
 import { useParams } from 'next/navigation';
 
 type Card = { name: string; reversed: boolean; artRef: string; positionLabel: string; upright: string; reversedMeaning: string };
@@ -29,6 +31,8 @@ export default function ReadingDetailPage() {
       }
     })();
   }, [params.id]);
+
+  const shareReading = useMemo(() => reading ? buildReadingView({ ...reading, astrology: null, readingId: null }) : null, [reading]);
 
   if (loading) return <main className="min-h-screen bg-cosmic-950 px-4 pt-32 text-cosmic-200">Loading…</main>;
   if (error || !reading) return (
@@ -60,6 +64,8 @@ export default function ReadingDetailPage() {
         <section className="mt-8 rounded-xl border border-cosmic-700 bg-cosmic-900/60 p-6 whitespace-pre-wrap leading-relaxed text-cosmic-200">
           {reading.interpretation}
         </section>
+
+        {shareReading && <ReadingShare reading={shareReading} />}
 
         <div className="mt-8 flex items-center justify-center gap-4 text-sm">
           <a href="/tarot" className="text-gold underline-offset-4 hover:underline">New reading</a>
