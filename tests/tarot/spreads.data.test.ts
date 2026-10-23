@@ -13,9 +13,9 @@ describe('spread menu data', () => {
     expect(getSpread('past_present_future')!.priceLabel).toBe('Free');
   });
 
-  it('premium spreads show the Member price, not an invented number', () => {
+  it('premium spreads show the one-time price, not an invented number', () => {
     for (const id of ['celtic_cross', 'relationship_dynamics', 'career_crossroads']) {
-      expect(getSpread(id)!.priceLabel).toBe('Member · $4.99');
+      expect(getSpread(id)!.priceLabel).toBe('One-time · $4.99');
     }
   });
 

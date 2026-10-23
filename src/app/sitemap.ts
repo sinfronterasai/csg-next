@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   add(map, PROD + "/compatibility", 0.8, "weekly");
   add(map, PROD + "/zodiac", 0.8, "weekly");
   add(map, PROD + "/tarot", 0.8, "weekly");
+  add(map, PROD + "/tarot/relationship-dynamics", 0.7, "monthly");
   add(map, PROD + "/birth-chart", 0.8, "weekly");
   add(map, PROD + "/blog", 0.8, "weekly");
   add(map, PROD + "/reports", 0.7, "weekly");

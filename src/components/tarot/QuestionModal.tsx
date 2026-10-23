@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Spread } from "@/lib/tarot/spreads";
-import { getProduct } from "@/lib/productCatalog";
+import { getProduct, type ProductId } from "@/lib/productCatalog";
 
 const EXAMPLES: Record<string, string[]> = {
   past_present_future: [
@@ -56,6 +56,8 @@ export default function QuestionModal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const examples = EXAMPLES[spread.id];
+  const productId = ({ celtic_cross: "celtic-cross-tarot", relationship_dynamics: "relationship-dynamics-tarot", career_crossroads: "career-crossroads-tarot" } as Record<string, ProductId>)[spread.id];
+  const product = productId ? getProduct(productId) : null;
 
   // Focus management: move focus into the dialog on open, trap Tab, restore on close.
   // Runs once per mount; onClose is read via a ref so parent re-renders with a fresh
@@ -143,14 +145,13 @@ export default function QuestionModal({
         {upgrade ? (
           <div className="mt-5 rounded-lg border border-gold/30 bg-cosmic-900/70 p-4">
             <p className="text-sm text-cosmic-100">
-              This is a Member reading &mdash; {getProduct('celtic-cross-tarot').formattedPrice} or Cosmic Pass. Unlock every Premium spread and the full
-              deep-dive readings.
+              Unlock {spread.name} for {product?.formattedPrice ?? spread.priceLabel} with a one-time purchase. No subscription.
             </p>
             <a
-              href="/tarot/pricing"
+              href={spread.id === "relationship_dynamics" ? "/tarot/relationship-dynamics#purchase" : "/tarot/pricing"}
               className="mt-4 block w-full rounded-lg bg-gold/90 px-4 py-3 text-center font-medium text-cosmic-950 hover:bg-gold min-h-[44px]"
             >
-              Become a Member &middot; {getProduct('celtic-cross-tarot').formattedPrice}
+              See {spread.name} &middot; {product?.formattedPrice ?? spread.priceLabel}
             </a>
           </div>
         ) : (

@@ -13,7 +13,7 @@ export default function TarotPricing() {
   return (
     <main className="min-h-screen bg-cosmic-950 px-4 py-10 text-cosmic-100">
       <div className="mx-auto max-w-5xl">
-        <h1 className="font-serif text-center text-3xl font-bold text-gold glow-text-gold">Tarot Membership</h1>
+        <h1 className="font-serif text-center text-3xl font-bold text-gold glow-text-gold">One-time Tarot Readings</h1>
         <p className="mt-2 text-center text-cosmic-200/80">Choose a one-time reading for the question in front of you.</p>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {paidSpreads.map((spread) => (
@@ -21,8 +21,8 @@ export default function TarotPricing() {
               <h2 className="text-xl font-semibold text-gold">{spread.product.displayName}</h2>
               <p className="mt-2 text-2xl font-bold text-cosmic-100">{spread.product.formattedPrice}</p>
               <p className="mt-3 flex-1 text-sm text-cosmic-200/80">{spread.description}</p>
-              <a href={WHOP_CHECKOUT_URLS[spread.offer]} className="mt-6 rounded-lg bg-gold px-4 py-2 text-center font-medium text-cosmic-950 hover:bg-gold/90">
-                Buy on Whop
+              <a href={spread.offer === "relationship_dynamics" ? "/tarot/relationship-dynamics" : WHOP_CHECKOUT_URLS[spread.offer]} className="mt-6 rounded-lg bg-gold px-4 py-2 text-center font-medium text-cosmic-950 hover:bg-gold/90">
+                Explore this reading
               </a>
             </div>
           ))}

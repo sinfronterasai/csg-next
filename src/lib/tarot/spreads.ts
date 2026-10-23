@@ -52,7 +52,7 @@ export const spreads: Spread[] = [
     id: 'celtic_cross',
     name: 'Celtic Cross',
     tier: 'premium',
-    priceLabel: `Member · ${getProduct('celtic-cross-tarot').formattedPrice}`,
+    priceLabel: `One-time · ${getProduct('celtic-cross-tarot').formattedPrice}`,
     blurb: 'The classic 10-card deep dive into any situation.',
     positions: [
       { label: '1 · Present', meaning: 'The situation as it stands today.' },
@@ -71,7 +71,7 @@ export const spreads: Spread[] = [
     id: 'relationship_dynamics',
     name: 'Relationship Dynamics',
     tier: 'premium',
-    priceLabel: `Member · ${getProduct('relationship-dynamics-tarot').formattedPrice}`,
+    priceLabel: `One-time · ${getProduct('relationship-dynamics-tarot').formattedPrice}`,
     blurb: 'Map the energies between you and another person.',
     positions: [
       { label: 'You', meaning: 'Your energy and stance in the relationship.' },
@@ -86,7 +86,7 @@ export const spreads: Spread[] = [
     id: 'career_crossroads',
     name: 'Career Crossroads',
     tier: 'premium',
-    priceLabel: `Member · ${getProduct('career-crossroads-tarot').formattedPrice}`,
+    priceLabel: `One-time · ${getProduct('career-crossroads-tarot').formattedPrice}`,
     blurb: 'Clarity for a work or direction decision.',
     positions: [
       { label: 'Current Path', meaning: 'Where your career stands now.' },

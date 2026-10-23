@@ -53,10 +53,10 @@ describe('SpreadMenu (landing = spread grid)', () => {
     expect(screen.getByText('Career Crossroads')).toBeInTheDocument();
     // price labels
     expect(screen.getAllByText('Free').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText('Member · $4.99').length).toBe(3);
+    expect(screen.getAllByText('One-time · $4.99').length).toBe(3);
     // tier badges: free spreads and premium spreads are both labelled
     expect(screen.getAllByText('Free', { selector: '[class*="uppercase"]' }).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText('Member', { selector: '[class*="uppercase"]' }).length).toBe(3);
+    expect(screen.getAllByText('One-time purchase', { selector: '[class*="uppercase"]' }).length).toBe(3);
     // card counts derived from positions length
     expect(screen.getAllByText('1 card').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('10 cards').length).toBeGreaterThanOrEqual(1);
@@ -124,10 +124,10 @@ describe('QuestionModal (wired via SpreadMenu)', () => {
     fireEvent.change(textarea, { target: { value: 'Will I get the job?' } });
     fireEvent.click(screen.getByText(/reveal my reading/i));
     // Upgrade CTA appears in-modal, not a blank/404.
-    const cta = await screen.findByText(/this is a member reading/i);
+    const cta = await screen.findByText(/unlock celtic cross for/i);
     expect(cta).toBeInTheDocument();
     // A link to pricing must be present (real destination, not a dead-end).
-    const pricingLink = screen.getByRole('link', { name: /become a member|cosmic pass|\$4\.99/i });
+    const pricingLink = screen.getByRole('link', { name: /see celtic cross/i });
     expect(pricingLink.getAttribute('href')).toMatch(/\/tarot\/pricing/);
   });
 });

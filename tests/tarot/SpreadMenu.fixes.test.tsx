@@ -74,3 +74,10 @@ describe('SpreadMenu fixes', () => {
     expect(screen.getByText('My readings')).toHaveClass('min-h-[44px]');
   });
 });
+
+ it("opens the exact paid spread from the campaign handoff without drawing before a question", () => {
+  (global as any).fetch = jest.fn();
+  render(<SpreadMenu initialSpreadId="relationship_dynamics" />);
+  expect(screen.getByRole("dialog", {name:"Relationship Dynamics question"})).toBeInTheDocument();
+  expect((global as any).fetch).not.toHaveBeenCalled();
+ });

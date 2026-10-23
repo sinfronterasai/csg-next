@@ -3,6 +3,8 @@ import { query } from '@/lib/db';
 
 const ALLOWED_EVENTS = new Set([
   'quiz_view', 'quiz_start', 'quiz_complete', 'result_share', 'result_download',
+  'relationship_offer_view', 'relationship_sample_view', 'checkout_click',
+  'paid_reading_started', 'paid_reading_completed',
   'free_reading_click', 'offer_click', 'purchase', 'email_request', 'consent_granted',
 ]);
 
@@ -24,6 +26,7 @@ export async function POST(request: Request) {
       source: safeText(body.utm_source || body.source, 80),
       campaign: safeText(body.utm_campaign || body.campaign, 120),
       card: safeText(body.card, 120),
+      product_id: safeText(body.product_id, 80),
     };
     await query(
       `INSERT INTO csg_campaign_events (event_name, content_id, archetype, event_params)
