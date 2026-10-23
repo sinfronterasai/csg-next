@@ -47,7 +47,7 @@ export default function ReadingShare({ reading }: { reading: ReadingViewModel })
       <h3 className="text-lg font-semibold text-gold">Make it yours</h3>
       <p className="mt-2 text-sm text-cosmic-200">Preview exactly what you’ll share. Card themes are included; your full interpretation, journal, and astrology details stay out of the image and caption. Nothing is posted automatically.</p>
       <label className="mt-4 block text-sm">Image format
-        <select value={format} onChange={e => setFormat(e.target.value as ShareFormat)} className="form-dark-control ml-3 rounded-lg p-2">
+        <select value={format} onChange={e => setFormat(e.target.value as ShareFormat)} className="form-dark-control ml-3 rounded-lg border border-cosmic-700 bg-cosmic-950 p-2 text-cosmic-100">
           <option value="feed">Feed — 1080 × 1350</option><option value="story">Story — 1080 × 1920</option>
         </select>
       </label>
@@ -58,7 +58,7 @@ export default function ReadingShare({ reading }: { reading: ReadingViewModel })
         {preview && canShare && <button type="button" onClick={share} className="rounded-lg border border-gold/50 px-4 py-2 text-sm text-gold">Share image</button>}
         <button type="button" onClick={copyCaption} className="rounded-lg border border-gold/50 px-4 py-2 text-sm text-gold">Copy caption</button>
       </div>
-      <label className="block text-sm">Your caption<textarea readOnly value={caption} rows={7} className="form-dark-control mt-2 w-full rounded-lg p-3" onFocus={e => e.currentTarget.select()} /></label>
+      <label className="block text-sm">Your caption<textarea readOnly value={caption} rows={7} className="form-dark-control mt-2 w-full rounded-lg border border-cosmic-700 bg-cosmic-950 p-3 text-cosmic-100" onFocus={e => e.currentTarget.select()} /></label>
       <p className="mt-2 text-xs text-cosmic-200">Upload the PNG to Facebook or Instagram and paste your caption. Your device’s Share option appears when supported.</p>
       <p role="status" className="mt-2 text-sm text-gold">{notice}</p>
     </section>}
