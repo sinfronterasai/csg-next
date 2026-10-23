@@ -5,10 +5,10 @@ import { relationshipExample, RELATIONSHIP_OFFER_PATH } from '@/lib/tarot/relati
 
 const product = getProduct('relationship-dynamics-tarot');
 export const metadata: Metadata = {
-  title: 'Relationship Dynamics Tarot Reading — $4.99 | Cosmic Spirit Guide',
+  title: `Relationship Dynamics Tarot Reading — ${product.formattedPrice} | Cosmic Spirit Guide`,
   description: 'Explore one relationship question through six tarot cards and an AI-assisted interpretation. See an example first. One-time payment, no subscription.',
   alternates: { canonical: 'https://cosmicspiritguide.com' + RELATIONSHIP_OFFER_PATH },
-  openGraph: { title: 'Less guessing. A clearer question.', description: 'Six cards. One relationship question. $4.99, one time.', images: ['/campaigns/relationship/offer-social.png'] },
+  openGraph: { title: 'Less guessing. A clearer question.', description: `Six cards. One relationship question. ${product.formattedPrice}, one time.`, images: ['/campaigns/relationship/offer-social.png'] },
 };
 
 export default function RelationshipOfferPage() {

@@ -145,13 +145,13 @@ export default function QuestionModal({
         {upgrade ? (
           <div className="mt-5 rounded-lg border border-gold/30 bg-cosmic-900/70 p-4">
             <p className="text-sm text-cosmic-100">
-              Unlock {spread.name} for {product?.formattedPrice ?? "$4.99"} with a one-time purchase. No subscription.
+              Unlock {spread.name} for {product?.formattedPrice ?? spread.priceLabel} with a one-time purchase. No subscription.
             </p>
             <a
               href={spread.id === "relationship_dynamics" ? "/tarot/relationship-dynamics#purchase" : "/tarot/pricing"}
               className="mt-4 block w-full rounded-lg bg-gold/90 px-4 py-3 text-center font-medium text-cosmic-950 hover:bg-gold min-h-[44px]"
             >
-              See {spread.name} &middot; {product?.formattedPrice ?? "$4.99"}
+              See {spread.name} &middot; {product?.formattedPrice ?? spread.priceLabel}
             </a>
           </div>
         ) : (

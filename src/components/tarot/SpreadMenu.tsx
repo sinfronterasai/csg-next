@@ -6,6 +6,7 @@ import { spreads, type Spread } from "@/lib/tarot/spreads";
 import { buildReadingView, type ApiReading, type ReadingViewModel } from "@/lib/tarot/view";
 import QuestionModal from "./QuestionModal";
 import ReadingView from "./ReadingView";
+import { getProduct } from "@/lib/productCatalog";
 import { campaignEvent } from "@/lib/campaign/client";
 
 type Phase =
@@ -71,7 +72,7 @@ export default function SpreadMenu({ initialSpreadId }: { initialSpreadId?: stri
     return (
       <div>
         <ReadingView reading={phase.view} />
-        {phase.view.spreadId !== "relationship_dynamics" && <aside className="mx-auto mt-8 max-w-3xl rounded-xl border border-gold/30 p-5"><h2 className="font-serif text-xl text-gold">Have a relationship question?</h2><p className="mt-2 text-sm text-cosmic-200">Explore six perspectives with Relationship Dynamics. $4.99, one-time payment.</p><a href="/tarot/relationship-dynamics" onClick={() => campaignEvent("offer_click", { product_id: "relationship-dynamics-tarot" })} className="inline-flex min-h-[44px] items-center text-gold underline">See an example before you decide</a></aside>}
+        {phase.view.spreadId !== "relationship_dynamics" && <aside className="mx-auto mt-8 max-w-3xl rounded-xl border border-gold/30 p-5"><h2 className="font-serif text-xl text-gold">Have a relationship question?</h2><p className="mt-2 text-sm text-cosmic-200">Explore six perspectives with Relationship Dynamics. {getProduct("relationship-dynamics-tarot").formattedPrice}, one-time payment.</p><a href="/tarot/relationship-dynamics" onClick={() => campaignEvent("offer_click", { product_id: "relationship-dynamics-tarot" })} className="inline-flex min-h-[44px] items-center text-gold underline">See an example before you decide</a></aside>}
         <div className="mx-auto mt-8 flex max-w-3xl items-center justify-center gap-4 text-sm">
           <button
             type="button"
