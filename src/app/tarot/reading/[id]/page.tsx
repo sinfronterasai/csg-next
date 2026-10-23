@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import ReadingShare from '@/components/tarot/ReadingShare';
-import { buildReadingView } from '@/lib/tarot/view';
+import { buildSavedReadingView } from '@/lib/tarot/view';
+import type { ReadingRecord } from '@/lib/tarot/store';
 import { useParams } from 'next/navigation';
 
-type Card = { name: string; reversed: boolean; artRef: string; positionLabel: string; upright: string; reversedMeaning: string };
-type Reading = { id: string; spreadId: string; question: string; drawn: Card[]; interpretation: string; createdAt: string };
 
 export default function ReadingDetailPage() {
   const params = useParams<{ id: string }>();
-  const [reading, setReading] = useState<Reading | null>(null);
+  const [reading, setReading] = useState<ReadingRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +31,7 @@ export default function ReadingDetailPage() {
     })();
   }, [params.id]);
 
-  const shareReading = useMemo(() => reading ? buildReadingView({ ...reading, astrology: null, readingId: null }) : null, [reading]);
+  const shareReading = useMemo(() => reading ? buildSavedReadingView(reading) : null, [reading]);
 
   if (loading) return <main className="min-h-screen bg-cosmic-950 px-4 pt-32 text-cosmic-200">Loading…</main>;
   if (error || !reading) return (
@@ -49,7 +48,7 @@ export default function ReadingDetailPage() {
         {reading.question && <p className="mt-2 text-center text-cosmic-200/80">“{reading.question}”</p>}
 
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {reading.drawn.map((c, i) => (
+          {shareReading?.cards.map((c, i) => (
             <div key={i} className="overflow-hidden rounded-xl border border-gold/30 bg-cosmic-900/60">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.artRef} alt={c.name} className="h-48 w-full object-cover" />
