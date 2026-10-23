@@ -80,3 +80,24 @@ export function buildReadingView(api: ApiReading): ReadingViewModel {
     })),
   };
 }
+
+/** Saved readings use cards/positions, while newly generated readings use drawn. */
+export function buildSavedReadingView(record: Pick<import('./store').ReadingRecord, 'id' | 'spreadId' | 'question' | 'cards' | 'positions' | 'interpretation'>): ReadingViewModel {
+  return buildReadingView({
+    readingId: record.id,
+    spreadId: record.spreadId ?? 'one_card',
+    question: record.question,
+    interpretation: record.interpretation,
+    astrology: null,
+    drawn: record.cards.map((card, i) => {
+      const canonical = deckByName.get(card.name);
+      return {
+        name: card.name, reversed: card.reversed,
+        artRef: card.image || canonical?.artRef,
+        positionLabel: record.positions[i]?.label || `Card ${i + 1}`,
+        upright: canonical?.upright ?? '',
+        reversedMeaning: canonical?.reversed ?? '',
+      };
+    }),
+  });
+}
