@@ -218,8 +218,19 @@ export default function Reports() {
     setCheckoutLoading(id);
     try {
       const auth = await fetch('/api/auth/user', { cache: 'no-store' });
-      if (!auth.ok) {
-        window.location.href = `/login?returnTo=${encodeURIComponent('/reports')}`;
+      const authData = await auth.json().catch(() => null);
+      if (!auth.ok || !authData?.user) {
+        router.push(`/login?returnTo=${encodeURIComponent('/reports')}`);
+        return;
+      }
+      const chart = await fetch('/api/birth-chart', { cache: 'no-store' });
+      if (!chart.ok) {
+        setError('We could not confirm your saved birth chart. Please try again.');
+        return;
+      }
+      const chartData = await chart.json();
+      if (!chartData.hasChart) {
+        router.push(`/birth-chart?returnTo=${encodeURIComponent('/reports')}`);
         return;
       }
       // The server claims only a verified Whop order owned by this account's

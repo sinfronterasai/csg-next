@@ -142,7 +142,8 @@ export async function claimWhopReportPurchaseForUser(input: {
                AND report_type = $3
                AND status IN ('paid', 'consumed')
              ORDER BY CASE WHEN status = 'paid' THEN 0 ELSE 1 END,
-                      created_at DESC, purchase_id
+                      CASE WHEN user_id = $1 THEN 0 ELSE 1 END,
+                      updated_at DESC, created_at DESC, purchase_id
              LIMIT 1
              FOR UPDATE
           )
