@@ -213,6 +213,25 @@ export default function Reports() {
     }
   }
 
+  async function redeemPurchase(id: string) {
+    setError(null);
+    setCheckoutLoading(id);
+    try {
+      const auth = await fetch('/api/auth/user', { cache: 'no-store' });
+      if (!auth.ok) {
+        window.location.href = `/login?returnTo=${encodeURIComponent('/reports')}`;
+        return;
+      }
+      // The server claims only a verified Whop order owned by this account's
+      // exact email. This action never opens checkout or grants an entitlement.
+      await generate(id);
+    } catch {
+      setError('We could not retrieve your purchase. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
+
   // Post-checkout resume: when Stripe redirects back to /reports?purchase=success,
   // parse the session id from the URL and verify entitlement server-side before
   // generating. Do NOT trust client-supplied purchase id — the resume route
@@ -370,6 +389,14 @@ export default function Reports() {
                       className="w-full py-3 rounded-full bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold tracking-widest uppercase text-xs transition-all duration-300 hover:shadow-[0_0_30px_rgba(223,183,108,0.5)] disabled:opacity-50"
                     >
                       {checkoutLoading === p.id ? 'Loading…' : p.cta}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void redeemPurchase(p.id)}
+                      disabled={checkoutLoading !== null || loading !== null}
+                      className="block w-full py-2 text-sm text-gold underline underline-offset-4 disabled:opacity-50"
+                    >
+                      {loading === p.id ? 'Preparing your report…' : 'Already purchased? Start your report'}
                     </button>
                   </div>
                 )}
