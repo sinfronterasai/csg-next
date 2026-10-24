@@ -130,3 +130,20 @@ it('stops safely when chart verification fails', async () => {
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(mockPush).not.toHaveBeenCalled();
 });
+
+it('clears a previous pending report before a new redemption verification fails', async () => {
+  const fetchMock = jest.fn()
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ hasChart: true }))
+    .mockImplementationOnce(() => jsonResponse({ pending: true, status: 'queued', message: 'Previous report is pending.' }))
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ error: 'unavailable' }, 500));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('Previous report is pending.')).toBeTruthy());
+  await waitFor(() => expect((screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0] as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('We could not confirm your saved birth chart. Please try again.')).toBeTruthy());
+  expect(screen.queryByText('Previous report is pending.')).toBeNull();
+});

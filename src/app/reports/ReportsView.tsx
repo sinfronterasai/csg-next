@@ -215,6 +215,9 @@ export default function Reports() {
 
   async function redeemPurchase(id: string) {
     setError(null);
+    setResult(null);
+    setResumeState('idle');
+    setResumeMessage(null);
     setCheckoutLoading(id);
     try {
       const auth = await fetch('/api/auth/user', { cache: 'no-store' });
