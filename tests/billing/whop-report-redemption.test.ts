@@ -38,5 +38,5 @@ it('claims one unconsumed order and preserves an existing consumed report for re
   expect(await claim()).toMatchObject({ purchaseId: paid, status: 'paid' });
   expect((await db.query('SELECT * FROM report_orders WHERE user_id IS NULL')).rows).toHaveLength(1);
   await db.query("UPDATE report_orders SET status='consumed' WHERE purchase_id=$1", [paid]);
-  expect(await claim()).toMatchObject({ status: 'consumed', userId: 7 });
+  expect(await claim()).toMatchObject({ purchaseId: paid, status: 'consumed', userId: 7 });
 });

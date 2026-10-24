@@ -2,9 +2,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ReportsView from '@/app/reports/ReportsView';
 
+const mockPush = jest.fn();
+const originalFetch = global.fetch;
+afterEach(() => { cleanup(); global.fetch = originalFetch; mockPush.mockClear(); });
+
 jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
 }));
 
 // These tests exercise the owned-report resume path. Keep checkout in the
@@ -80,14 +84,66 @@ describe('ReportsView paid-report delivery gate', () => {
 it('redeems a verified Whop purchase through generation without opening another checkout', async () => {
   const fetchMock = jest.fn()
     .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ hasChart: true }))
     .mockImplementationOnce(() => jsonResponse({ pending: true, status: 'queued', message: 'Your report is being prepared.' }));
   global.fetch = fetchMock as unknown as typeof fetch;
   render(<ReportsView />);
   fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
   await waitFor(() => expect(screen.getByText('Your report is being prepared.')).toBeTruthy());
   expect(fetchMock.mock.calls[0][0]).toBe('/api/auth/user');
-  expect(fetchMock.mock.calls[1][0]).toBe('/api/reports/generate');
-  expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ type: 'natalpremium' });
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock.mock.calls[1][0]).toBe('/api/birth-chart');
+  expect(fetchMock.mock.calls[2][0]).toBe('/api/reports/generate');
+  expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ type: 'natalpremium' });
+  expect(fetchMock).toHaveBeenCalledTimes(3);
   cleanup();
+});
+
+
+it('sends a signed-out buyer to sign in without attempting generation or checkout', async () => {
+  const fetchMock = jest.fn().mockImplementation(() => jsonResponse({ user: null }));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/login?returnTo=%2Freports'));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it('sends a buyer without a chart to chart setup before attempting generation', async () => {
+  const fetchMock = jest.fn()
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ hasChart: false }));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/birth-chart?returnTo=%2Freports'));
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it('stops safely when chart verification fails', async () => {
+  const fetchMock = jest.fn()
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ error: 'unavailable' }, 500));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('We could not confirm your saved birth chart. Please try again.')).toBeTruthy());
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('clears a previous pending report before a new redemption verification fails', async () => {
+  const fetchMock = jest.fn()
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ hasChart: true }))
+    .mockImplementationOnce(() => jsonResponse({ pending: true, status: 'queued', message: 'Previous report is pending.' }))
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ error: 'unavailable' }, 500));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('Previous report is pending.')).toBeTruthy());
+  await waitFor(() => expect((screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0] as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('We could not confirm your saved birth chart. Please try again.')).toBeTruthy());
+  expect(screen.queryByText('Previous report is pending.')).toBeNull();
 });
