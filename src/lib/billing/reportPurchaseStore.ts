@@ -120,7 +120,7 @@ export async function insertWhopReportPurchase(
   };
 }
 
-/** Bind an unassociated Whop order only to the exact authenticated account email. */
+/** Claim or retrieve one verified Whop order for the exact authenticated email. */
 export async function claimWhopReportPurchaseForUser(input: {
   userId: number | string;
   email: string;
@@ -134,11 +134,18 @@ export async function claimWhopReportPurchaseForUser(input: {
       const result = await tx(
         `UPDATE report_orders
             SET user_id = $1, updated_at = now()
-          WHERE provider = 'whop'
-            AND user_id IS NULL
-            AND lower(purchaser_email) = $2
-            AND report_type = $3
-            AND status IN ('paid', 'consumed')
+          WHERE purchase_id = (
+            SELECT purchase_id FROM report_orders
+             WHERE provider = 'whop'
+               AND (user_id IS NULL OR user_id = $1)
+               AND lower(purchaser_email) = $2
+               AND report_type = $3
+               AND status IN ('paid', 'consumed')
+             ORDER BY CASE WHEN status = 'paid' THEN 0 ELSE 1 END,
+                      created_at DESC, purchase_id
+             LIMIT 1
+             FOR UPDATE
+          )
           RETURNING *`,
         [Number(input.userId), email, input.reportType],
       );

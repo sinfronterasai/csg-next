@@ -75,3 +75,19 @@ describe('ReportsView paid-report delivery gate', () => {
     expect(screen.getByText(/how you love/i)).toBeTruthy();
   });
 });
+
+
+it('redeems a verified Whop purchase through generation without opening another checkout', async () => {
+  const fetchMock = jest.fn()
+    .mockImplementationOnce(() => jsonResponse({ user: { id: 7 } }))
+    .mockImplementationOnce(() => jsonResponse({ pending: true, status: 'queued', message: 'Your report is being prepared.' }));
+  global.fetch = fetchMock as unknown as typeof fetch;
+  render(<ReportsView />);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Already purchased? Start your report' })[0]);
+  await waitFor(() => expect(screen.getByText('Your report is being prepared.')).toBeTruthy());
+  expect(fetchMock.mock.calls[0][0]).toBe('/api/auth/user');
+  expect(fetchMock.mock.calls[1][0]).toBe('/api/reports/generate');
+  expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ type: 'natalpremium' });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  cleanup();
+});
