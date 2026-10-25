@@ -216,7 +216,7 @@ export default function BirthChart() {
                   <label htmlFor="rectified" className="text-xs text-gray-400 cursor-pointer">I don&apos;t know my exact time of birth (Use Solar Houses)</label>
                 </div>
                 <button type="submit" className="w-full py-4 bg-gradient-to-r from-gold-600 via-gold to-gold-400 text-cosmic-950 font-bold uppercase tracking-widest text-xs rounded-xl transform hover:-translate-y-0.5 transition-all shadow-[0_0_20px_rgba(223,183,108,0.2)]">
-                  {savedChartId ? 'Update Chart' : 'Cast Celestial Chart'}
+                  {savedChartId ? 'Update Chart' : 'Generate My Free Birth Chart'}
                 </button>
               </form>
             </div>
