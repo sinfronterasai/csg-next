@@ -48,7 +48,7 @@ describe("Birth chart create flow persists to profile", () => {
     fireEvent.change(timeInput, { target: { value: "12:00" } });
     fireEvent.change(screen.getByPlaceholderText("Paris, France"), { target: { value: "Paris, France" } });
 
-    fireEvent.click(screen.getByText("Cast Celestial Chart"));
+    fireEvent.click(screen.getByRole("button", { name: "Generate My Free Birth Chart" }));
 
     await waitFor(() => {
       const save = calls.find((c) => c.url === "/api/birth-chart" && c.method === 'POST');
