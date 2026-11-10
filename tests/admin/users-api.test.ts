@@ -35,3 +35,13 @@ it('bounds pagination and makes user data private', async () => {
   expect(userAnalytics).toHaveBeenCalledWith('alice', 1);
   expect(response.headers.get('cache-control')).toContain('no-store');
 });
+it('accepts the canonical production origin behind Render but rejects forged proxy headers', async () => {
+  const previous = process.env.NODE_ENV;
+  (process.env as any).NODE_ENV = 'production';
+  try {
+    const internal = new Request('http://localhost:10000/api/admin/users/password', { method: 'POST', headers: { origin: 'https://cosmicspiritguide.com' }, body: JSON.stringify(valid) });
+    expect((await POST(internal)).status).toBe(200);
+    const forged = new Request('http://localhost:10000/api/admin/users/password', { method: 'POST', headers: { origin: 'https://evil.example', 'x-forwarded-host': 'evil.example', 'x-forwarded-proto': 'https' }, body: JSON.stringify(valid) });
+    expect((await POST(forged)).status).toBe(403);
+  } finally { (process.env as any).NODE_ENV = previous; }
+});
