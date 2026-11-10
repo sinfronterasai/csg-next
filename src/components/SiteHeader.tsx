@@ -43,6 +43,7 @@ export default function SiteHeader() {
       <a href="/blog" className="text-gray-300 hover:text-gold transition-colors duration-300">Blog</a>
       <a href="/birth-chart" className="text-gray-300 hover:text-gold transition-colors duration-300">Birth Chart</a>
       <a href="/tarot" className="text-gray-300 hover:text-gold transition-colors duration-300">Tarot</a>
+      {userRole === 'admin' && <a href="/admin/users" className="text-gold hover:text-white transition-colors duration-300">Admin</a>}
       {(userRole === 'editor' || userRole === 'admin') && <a href="/admin/reports/recovery" className="text-gold hover:text-white transition-colors duration-300">Recovery</a>}
       <div className="relative group">
         <button onClick={() => router.push('/reports')} className="flex items-center gap-2 text-gray-300 hover:text-gold transition-colors duration-300">
