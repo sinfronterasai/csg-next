@@ -5,7 +5,6 @@ import ZodiacExplorer from '../components/ZodiacExplorer';
 import About from '../components/About';
 import Services from '../components/Services';
 import Newsletter from '../components/Newsletter';
-import Footer from '../components/Footer';
 import type { ChartData } from '../lib/chartEngine';
 import { getSign } from '../lib/astrology';
 
@@ -125,7 +124,6 @@ export default function HomeView() {
       <About />
       <Services />
       <Newsletter />
-      <Footer />
     </main>
   );
 }

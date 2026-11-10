@@ -15,22 +15,25 @@ export default function Footer() {
           <div>
             <h4 className="font-serif text-white tracking-widest uppercase mb-4">Navigations</h4>
             <ul className="space-y-2">
-              <li><a href="#about" className="hover:text-white transition-colors">Cosmos Mechanics</a></li>
-              <li><a href="#zodiac-explorer" className="hover:text-white transition-colors">The 12 Signs</a></li>
+              <li><a href="/astrology" className="hover:text-white transition-colors">Astrology Guide</a></li>
+              <li><a href="/zodiac" className="hover:text-white transition-colors">The 12 Signs</a></li>
               <li><a href="/constellations" className="hover:text-white transition-colors">Star Map Explorer</a></li>
               <li><a href="/birth-chart" className="hover:text-white transition-colors">Transit Calculator</a></li>
               <li><a href="/moon-calculator" className="hover:text-white transition-colors">Moon Sign Calculator</a></li>
               <li><a href="/tarot" className="hover:text-white transition-colors">Tarot Reading</a></li>
               <li><a href="/reports" className="hover:text-white transition-colors">Reports</a></li>
+              <li><a href="/pricing" className="hover:text-white transition-colors">Products &amp; Pricing</a></li>
+              <li><a href="/services" className="hover:text-white transition-colors">Services</a></li>
+              <li><a href="/quizzes/tarot-archetype" className="hover:text-white transition-colors">Tarot Archetype Quiz</a></li>
             </ul>
           </div>
           <div>
             <h4 className="font-serif text-white tracking-widest uppercase mb-4">Legal Alignments</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Paradigm</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Cosmic Disclaimer</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Divinity</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact Astrals</a></li>
+              <li><a href="/about" className="hover:text-white transition-colors">About Us</a></li>
+              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-white transition-colors">Terms of Use</a></li>
+              <li><a href="/contact" className="hover:text-white transition-colors">Contact Us</a></li>
             </ul>
           </div>
           <div className="space-y-4">
