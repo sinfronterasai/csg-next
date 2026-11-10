@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { AdminUserError, changeUserPassword, currentAdminUser } from '@/lib/admin/users';
+import { APPROVED_APP_BASE_URL } from '@/lib/passwordReset';
 
 const headers = { 'Cache-Control': 'private, no-store' };
 export async function POST(request: Request) {
@@ -7,7 +8,10 @@ export async function POST(request: Request) {
     const user = await currentAdminUser();
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401, headers });
     if (user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers });
-    if (request.headers.get('origin') !== new URL(request.url).origin || request.headers.get('sec-fetch-site') === 'cross-site') {
+    // Render can give Next.js an internal request URL. Compare browser writes
+    // with the fixed public origin in production, never caller-supplied proxy headers.
+    const expectedOrigin = process.env.NODE_ENV === 'production' ? APPROVED_APP_BASE_URL : new URL(request.url).origin;
+    if (request.headers.get('origin') !== expectedOrigin || request.headers.get('sec-fetch-site') === 'cross-site') {
       return NextResponse.json({ error: 'Same-origin request required.' }, { status: 403, headers });
     }
     let body;
