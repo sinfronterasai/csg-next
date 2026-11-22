@@ -6,6 +6,7 @@ const ALLOWED_EVENTS = new Set([
   'relationship_offer_view', 'relationship_sample_view', 'checkout_click',
   'paid_reading_started', 'paid_reading_completed',
   'free_reading_click', 'offer_click', 'purchase', 'email_request', 'consent_granted',
+  'quiz_capture_submit',
 ]);
 
 function safeText(value: unknown, max = 160): string | null {
