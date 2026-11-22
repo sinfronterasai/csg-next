@@ -83,6 +83,11 @@ export async function POST(request: Request) {
       });
     }
     await processEmailOutbox(5);
+    await query(
+      `INSERT INTO csg_campaign_events (event_name, content_id, archetype, event_params)
+       VALUES ('quiz_capture_submit', $1, $2, $3::jsonb)`,
+      [body.contentId || null, archetypeKey, JSON.stringify({ source: body.utmSource || 'tarot_quiz', campaign: body.utmCampaign || null, marketing_opt_in: body.marketingOptIn === true, send_result: body.sendResult === true })],
+    ).catch((error) => console.error('[marketing/subscribe] capture event:', error instanceof Error ? error.message : 'unknown'));
     return NextResponse.json({ ok: true, message: body.marketingOptIn === true ? 'Your requested email is on its way. Check your inbox to confirm follow-up subscriptions.' : 'Your requested email is on its way.' });
   } catch (error) {
     console.error('[marketing/subscribe] deferred:', error instanceof Error ? error.message : 'unknown error');
