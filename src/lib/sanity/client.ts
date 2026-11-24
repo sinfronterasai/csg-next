@@ -7,7 +7,7 @@ const token = process.env.SANITY_API_READ_TOKEN || process.env.SANITY_API_TOKEN 
 export const sanityClient: SanityClient = createClient({
   projectId,
   dataset,
-  apiVersion: "2023-05-03",
+  apiVersion: "2026-11-24",
   useCdn: true,
   token,
   perspective: "published",

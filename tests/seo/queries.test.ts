@@ -1,3 +1,7 @@
+jest.mock("@/lib/sanity/client", () => ({
+  sanityClient: { fetch: jest.fn() },
+}));
+
 import {
   POSTS_LIST_QUERY,
   ALL_POST_SLUGS_QUERY,
