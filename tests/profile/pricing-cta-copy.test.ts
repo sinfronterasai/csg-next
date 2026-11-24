@@ -10,12 +10,12 @@ describe('profile pricing CTA copy', () => {
 
   it('keeps the free account status separate from one-time tarot purchases', () => {
     expect(overview).toContain('Free Account');
-    expect(overview).toContain('One-Time Tarot Readings');
+    expect(overview).toMatch(/href="\/tarot\/pricing"[\s\S]*One-Time Tarot Readings/);
     expect(overview).not.toContain('Free · Upgrade');
   });
 
   it('does not describe the tarot pricing page as a membership upgrade', () => {
-    expect(account).toContain('Explore One-Time Tarot Readings');
+    expect(account).toMatch(/href="\/tarot\/pricing"[\s\S]*Explore One-Time Tarot Readings/);
     expect(account).not.toContain('Upgrade to Premium');
   });
 });
