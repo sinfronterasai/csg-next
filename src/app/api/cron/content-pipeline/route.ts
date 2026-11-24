@@ -163,11 +163,13 @@ function safeError(error: unknown): string {
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  const secret = process.env.CRON_SECRET;
+  // Reuse the cron secret already provisioned on this service rather than
+  // requiring a second one. CRON_SECRET is honoured first if it is ever set.
+  const secret = process.env.CRON_SECRET || process.env.RESEND_OUTBOX_CRON_SECRET;
   const authorization = request.headers.get("authorization");
 
   if (!secret) {
-    console.error(`[${ROUTE}] CRON_SECRET is not set on the service`);
+    console.error(`[${ROUTE}] no cron secret is set on the service`);
     return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
   }
   if (authorization !== `Bearer ${secret}`) {
