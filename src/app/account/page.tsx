@@ -63,7 +63,7 @@ export default function AccountPage() {
           {tier === 'free' && (
             <a href="/tarot/pricing"
               className="block rounded-full border border-gold bg-gradient-to-r from-cosmic-primary to-cosmic-secondary py-2.5 text-center text-sm font-semibold uppercase tracking-widest text-white transition hover:opacity-90">
-              Upgrade to Premium
+              Explore One-Time Tarot Readings
             </a>
           )}
 
