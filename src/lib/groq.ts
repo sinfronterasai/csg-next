@@ -18,9 +18,15 @@ export const GROQ_MODEL = "qwen/qwen3.6-27b";
 
 export async function generateText(
   prompt: string,
-  options: { systemPrompt?: string; model?: string; temperature?: number; max_tokens?: number } = {},
+  options: {
+    systemPrompt?: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+    jsonMode?: boolean;
+  } = {},
 ): Promise<string> {
-  const { systemPrompt, model = GROQ_MODEL, temperature = 0.8, max_tokens = 2000 } = options;
+  const { systemPrompt, model = GROQ_MODEL, temperature = 0.8, max_tokens = 2000, jsonMode = false } = options;
   const messages: any[] = [];
   if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
   messages.push({ role: "user", content: prompt });
@@ -30,6 +36,7 @@ export async function generateText(
     messages,
     temperature,
     max_tokens,
+    ...(jsonMode ? { response_format: { type: "json_object" as const } } : {}),
     // qwen/qwen3.6-27b is a reasoning model that emits a <think>...</think> block by
     // default. We only want the final reading, so disable the thinking step entirely.
     // (Strip logic below is kept as defense-in-depth in case a future model re-enables it.)
