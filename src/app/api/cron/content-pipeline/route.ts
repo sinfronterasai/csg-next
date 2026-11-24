@@ -242,7 +242,10 @@ export async function POST(request: Request) {
     '{"title":"...","excerpt":"...","content":"markdown body","metaTitle":"...","metaDescription":"...","tags":["..."],"category":"astrology","keyPoints":["..."]}',
   ].join("\n");
 
-  const raw = await generateText(prompt, { temperature: 0.7, max_tokens: 4000 });
+  // Ask Groq to enforce a JSON object at the API boundary. Prompt-only JSON
+  // requests can still return unescaped quotes inside long markdown bodies,
+  // which makes JSON.parse fail and prevents the draft from being created.
+  const raw = await generateText(prompt, { temperature: 0.7, max_tokens: 4000, jsonMode: true });
   const parsed = parseArticle(raw);
 
   if (!parsed.title || !String(parsed.title).trim()) throw new Error("Writer returned no title");
