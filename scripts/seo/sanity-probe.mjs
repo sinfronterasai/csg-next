@@ -3,7 +3,7 @@ import { createClient } from '@sanity/client';
 const projectId = process.env.SANITY_PROJECT_ID || 'kicslgfz';
 const dataset = process.env.SANITY_DATASET || 'production';
 const token = process.env.SANITY_API_READ_TOKEN || process.env.SANITY_API_TOKEN;
-const client = createClient({ projectId, dataset, apiVersion: '2023-05-03', useCdn: false, token });
+const client = createClient({ projectId, dataset, apiVersion: '2026-11-24', useCdn: false, token });
 try {
   const q = `*[_type == "blogPost" && status == "published" && defined(slug.current)]{ "slug": slug.current, _id, title, publishedAt, canonicalUrl, seoTitle, metaDescription, robots, _updatedAt }`;
   const posts = await client.fetch(q);
