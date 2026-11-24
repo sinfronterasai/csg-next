@@ -4,11 +4,13 @@ import { join } from "node:path";
 
 let db: PGlite;
 let failNextInsert = false;
+let failNextUpdate = false;
 const docs = new Map<string, any>();
 let rev = 0;
 jest.mock("@/lib/db", () => ({ transaction: (fn: any) => fn(async (sql: string, args?: any[]) => {
   if (sql.includes("pg_advisory_xact_lock")) return { rows: [], rowCount: 1 };
   if (failNextInsert && sql.startsWith("INSERT INTO blog_posts")) { failNextInsert = false; throw new Error("simulated database outage"); }
+  if (failNextUpdate && sql.startsWith("UPDATE blog_posts SET")) { failNextUpdate = false; throw new Error("simulated database outage"); }
   const result = await db.query(sql, args); return { rows: result.rows, rowCount: result.affectedRows };
 }) }));
 jest.mock("@/lib/sanity/write", () => ({ assertSanityWriteConfigured: () => {}, sanityWriteClient: {
@@ -85,4 +87,17 @@ it("does not overwrite a published counterpart", async () => {
   expect((await response.json()).outcome).toBe("already_published");
   expect(docs.get(publishedId).title).toBe("Existing published article");
   expect(docs.has(`drafts.${publishedId}`)).toBe(false);
+});
+it("recovers a revision after Sanity succeeds but the database rolls back", async () => {
+  const p = { ...makePackage(), submissionId: "01JCX8Q2M4T9VK3B7N5R0W6Y8H", slug: "recoverable-revision", calendarId: null };
+  const first = await POST(request(p)); expect(first.status).toBe(201);
+  const id = (await first.json()).sanityId;
+  const revision = { ...p, revision: 2, baseRevision: 1, title: "Corrected title" };
+  failNextUpdate = true;
+  expect((await POST(request(revision))).status).toBe(500);
+  const written = docs.get(id)._rev;
+  const retry = await POST(request(revision));
+  expect(retry.status).toBe(200);
+  expect(docs.get(id)._rev).toBe(written);
+  expect((await db.query("SELECT title FROM blog_posts WHERE slug=$1", [p.slug])).rows[0]).toEqual({ title: "Corrected title" });
 });
