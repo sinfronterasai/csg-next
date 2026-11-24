@@ -24,6 +24,10 @@ export async function POST(request: Request) {
     const formats: Record<string, string> = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
     const mime = formats[metadata.format || ""];
     if (!mime || !metadata.width || !metadata.height || (metadata.pages || 1) !== 1) return NextResponse.json({ error: "Unsupported image" }, { status: 422 });
+    // Header metadata alone can look valid for truncated or corrupt files.
+    // Decode pixels before sending the original bytes to Sanity.
+    try { await sharp(bytes, { limitInputPixels: 40000000 }).stats(); }
+    catch { return NextResponse.json({ error: "Unsupported or corrupt image" }, { status: 422 }); }
     const digest = createHash("sha256").update(bytes).digest("hex");
     const asset = await sanityWriteClient.assets.upload("image", bytes, { contentType: mime, filename: `csg-${digest}.${metadata.format === "jpeg" ? "jpg" : metadata.format}` });
     return NextResponse.json({ assetId: asset._id, width: metadata.width, height: metadata.height, format: metadata.format, contentType: mime, size: bytes.length, sha256: digest }, { status: 201, headers: { "Cache-Control": "no-store" } });

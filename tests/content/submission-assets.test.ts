@@ -21,3 +21,13 @@ it("rejects invalid bytes before upload and rejects unauthorized callers", async
   expect(upload).not.toHaveBeenCalled();
   expect((await POST(new Request("https://example.test", { method: "POST" }))).status).toBe(401);
 });
+it("rejects a truncated image even when its header is readable", async () => {
+  const bytes = await sharp({ create: { width: 1200, height: 630, channels: 3, background: "#ffffff" } }).png().toBuffer();
+  const truncated = bytes.subarray(0, Math.floor(bytes.length / 2));
+  expect((await sharp(truncated).metadata()).format).toBe("png");
+  const form = new FormData();
+  form.append("file", new File([new Uint8Array(truncated)], "truncated.png", { type: "image/png" }));
+  const response = await POST(new Request("https://example.test", { method: "POST", headers: { authorization: "Bearer test-secret" }, body: form }));
+  expect(response.status).toBe(422);
+  expect(upload).not.toHaveBeenCalled();
+});
