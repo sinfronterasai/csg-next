@@ -15,6 +15,12 @@ describe("editorial submission validation", () => {
     const paths = validateSubmission(p).map(e => e.path);
     expect(paths).toEqual(expect.arrayContaining(["reviews.culture.status", "images[1].assetId", "claims[0].sourceIds"]));
   });
+  it("requires image and accessibility reviews to pass", () => {
+    const p = validPackage();
+    p.reviews.images = { ...review, status: "block" };
+    p.reviews.accessibility = { ...review, status: "pass-with-changes" };
+    expect(validateSubmission(p).map(e => e.path)).toEqual(expect.arrayContaining(["reviews.images.status", "reviews.accessibility.status"]));
+  });
   it("rejects an unplaced image and a mismatched retry base", () => {
     const p = validPackage();
     p.body = "## First\n[[image:first]]";

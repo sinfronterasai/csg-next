@@ -53,7 +53,7 @@ export function validateSubmission(value: unknown): SubmissionError[] {
   for (const name of ["editorial", "factCheck", "culture", "accessibility", "images"]) {
     const r = reviews[name];
     if (!r || !["pass", "pass-with-changes", "block"].includes(r.status) || typeof r.reviewer !== "string" || !r.reviewer.trim() || typeof r.notes !== "string" || !r.notes.trim() || !Number.isFinite(Date.parse(r.reviewedAt))) add(`reviews.${name}`, "Complete review required");
-    else if (["editorial", "factCheck", "culture"].includes(name) && r.status !== "pass") add(`reviews.${name}.status`, "Review must pass before submission");
+    else if (r.status !== "pass") add(`reviews.${name}.status`, "Review must pass before submission");
   }
   const claims = Array.isArray(p.claims) ? p.claims : [];
   const sources = Array.isArray(p.sources) ? p.sources : [];
