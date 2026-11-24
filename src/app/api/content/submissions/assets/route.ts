@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (!mime || !metadata.width || !metadata.height || (metadata.pages || 1) !== 1) return NextResponse.json({ error: "Unsupported image" }, { status: 422 });
     const digest = createHash("sha256").update(bytes).digest("hex");
     const asset = await sanityWriteClient.assets.upload("image", bytes, { contentType: mime, filename: `csg-${digest}.${metadata.format === "jpeg" ? "jpg" : metadata.format}` });
-    return NextResponse.json({ assetId: asset._id, width: metadata.width, height: metadata.height, format: metadata.format, size: bytes.length, sha256: digest }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ assetId: asset._id, width: metadata.width, height: metadata.height, format: metadata.format, contentType: mime, size: bytes.length, sha256: digest }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BodyTooLarge) return NextResponse.json({ error: "File too large" }, { status: 413 });
     console.error("[content/assets] upload failed", error instanceof Error ? error.name : "unknown");
