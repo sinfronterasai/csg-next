@@ -60,7 +60,7 @@ export default function OverviewTab({ user, onNavigate }: Props) {
         <h2 className="font-serif text-3xl font-bold text-gold glow-text-gold">
           Welcome, {greeting}
         </h2>
-        <div className="mt-3 inline-flex items-center gap-2">
+        <div className="mt-3 inline-flex flex-wrap items-center justify-center gap-2">
           {tier === 'cosmic' ? (
             <span className="rounded-full border border-gold bg-gradient-to-r from-cosmic-primary/20 to-cosmic-secondary/20 px-4 py-1 text-xs uppercase tracking-widest text-gold">
               <i className="fa-solid fa-star mr-2"></i>Cosmic Pass
@@ -70,12 +70,17 @@ export default function OverviewTab({ user, onNavigate }: Props) {
               Membership
             </span>
           ) : (
-            <Link
-              href="/tarot/pricing"
-              className="rounded-full border border-gold/50 px-4 py-1 text-xs uppercase tracking-widest text-gold hover:bg-gold/10 transition"
-            >
-              <i className="fa-solid fa-crown mr-2"></i>Free · Upgrade
-            </Link>
+            <>
+              <span className="rounded-full border border-cosmic-700 px-4 py-1 text-xs uppercase tracking-widest text-cosmic-300">
+                Free Account
+              </span>
+              <Link
+                href="/tarot/pricing"
+                className="rounded-full border border-gold/50 px-4 py-1 text-xs uppercase tracking-widest text-gold transition hover:bg-gold/10"
+              >
+                <i className="fa-solid fa-layer-group mr-2"></i>One-Time Tarot Readings
+              </Link>
+            </>
           )}
         </div>
       </div>
