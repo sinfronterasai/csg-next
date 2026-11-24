@@ -22,4 +22,12 @@ describe("editorial submission validation", () => {
     p.baseRevision = 2;
     expect(validateSubmission(p).map(e => e.path)).toEqual(expect.arrayContaining(["baseRevision", "images[2].key"]));
   });
+  it("requires test submissions to use a public-query-excluded slug", () => {
+    const p = validPackage(); p.testOnly = true;
+    expect(validateSubmission(p).map(e => e.path)).toContain("slug");
+    p.slug = "__test-editorial-intake";
+    expect(validateSubmission(p)).toEqual([]);
+    delete p.testOnly;
+    expect(validateSubmission(p).map(e => e.path)).toContain("slug");
+  });
 });

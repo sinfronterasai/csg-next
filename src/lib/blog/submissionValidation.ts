@@ -20,7 +20,10 @@ export function validateSubmission(value: unknown): SubmissionError[] {
   if (p.calendarId != null && (!Number.isSafeInteger(p.calendarId) || p.calendarId < 1)) add("calendarId", "Expected a positive integer");
   if (p.author != null && (typeof p.author !== "string" || !p.author.trim() || p.author.length > 120)) add("author", "Expected an author name up to 120 characters");
   for (const [name, max] of Object.entries({ title: 120, slug: 96, excerpt: 300, body: 100000, category: 96, primaryKeyword: 200, metaTitle: 60, metaDescription: 160 })) required(name, max);
-  if (typeof p.slug === "string" && !slugPattern.test(p.slug)) add("slug", "Use lowercase letters, numbers and single hyphens");
+  const testSlug = p.testOnly === true && typeof p.slug === "string" && /^__test-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.slug);
+  if (p.testOnly != null && typeof p.testOnly !== "boolean") add("testOnly", "Expected a boolean");
+  if (typeof p.slug === "string" && !slugPattern.test(p.slug) && !testSlug) add("slug", "Use lowercase letters, numbers and single hyphens");
+  if (p.testOnly === true && !testSlug) add("slug", "Test submissions must use a __test- slug");
   if (typeof p.category === "string" && !slugPattern.test(p.category)) add("category", "Expected a category slug");
   if (p.tags != null && (!Array.isArray(p.tags) || p.tags.length > 8 || p.tags.some((v: unknown) => typeof v !== "string" || !slugPattern.test(v)))) add("tags", "Expected at most eight tag slugs");
   const markers = typeof p.body === "string" ? [...p.body.matchAll(/^\[\[image:([a-z0-9-]+)\]\]$/gm)].map(x => x[1]) : [];
