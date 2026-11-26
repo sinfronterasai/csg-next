@@ -1,5 +1,5 @@
 jest.mock("@/lib/sanity/client", () => ({
-  sanityClient: { fetch: jest.fn() },
+  sanityClient: { withConfig: jest.fn(() => ({ fetch: jest.fn() })) },
 }));
 
 import {

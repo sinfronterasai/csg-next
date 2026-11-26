@@ -7,6 +7,8 @@ import { fetchPublishedPosts } from "@/lib/blog/queries";
 import { transformPost } from "@/lib/blog/transform";
 import { SITE_BASE_URL } from "@/lib/seo";
 
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   const { metadata } = buildMetadata({
     title: "All Articles | Cosmic Spirit Guide",

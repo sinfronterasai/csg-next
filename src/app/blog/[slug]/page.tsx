@@ -7,6 +7,8 @@ import PortableText from "@/components/blog/PortableText";
 import { SITE_BASE_URL } from "@/lib/seo";
 import { buildBreadcrumbList, escapeJsonLd } from "@/lib/blog/breadcrumb";
 
+export const revalidate = 60;
+
 export async function generateStaticParams() {
   // Pre-build every published article so each is reachable by its slug.
   try {
