@@ -6,6 +6,7 @@ import { submissionAuth } from "@/lib/blog/submissionAuth";
 import { validateSubmission } from "@/lib/blog/submissionValidation";
 import { BodyTooLarge, readLimitedBody } from "@/lib/blog/limitedBody";
 import { assertSanityWriteConfigured, sanityWriteClient } from "@/lib/sanity/write";
+import { submissionEditorial } from "@/lib/blog/submissionEditorial";
 
 const MAX_BODY = 1024 * 1024;
 class Rejection extends Error {
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
     const { _key: _unused, ...featuredImage } = featured;
     const body = markdownToPortableText(p.body, inline);
     const wordCount = p.body.replace(/^\[\[image:[a-z0-9-]+\]\]$/gm, "").split(/\s+/).filter(Boolean).length;
-    const doc = { _type: "blogPost", title: p.title, slug: { _type: "slug", current: p.slug }, excerpt: p.excerpt, content: body, status: "draft", category: { _type: "reference", _ref: category._id }, tags: (p.tags || []).filter((t: string) => byTag.has(t)).map((t: string, n: number) => ({ _type: "reference", _key: `tag-${n}`, _ref: byTag.get(t) })), author: p.author || "Cosmic Spirit Guide", metaTitle: p.metaTitle, seoTitle: p.metaTitle, metaDescription: p.metaDescription, featuredImage, wordCount, readingTime: Math.max(1, Math.round(wordCount / 220)), csgSubmissionId: p.submissionId, csgSubmissionRevision: p.revision, csgSubmissionHash: digest };
+    const doc = { _type: "blogPost", title: p.title, slug: { _type: "slug", current: p.slug }, excerpt: p.excerpt, content: body, status: "draft", category: { _type: "reference", _ref: category._id }, tags: (p.tags || []).filter((t: string) => byTag.has(t)).map((t: string, n: number) => ({ _type: "reference", _key: `tag-${n}`, _ref: byTag.get(t) })), author: p.author || "Cosmic Spirit Guide", metaTitle: p.metaTitle, seoTitle: p.metaTitle, metaDescription: p.metaDescription, featuredImage, wordCount, readingTime: Math.max(1, Math.round(wordCount / 220)), csgSubmissionId: p.submissionId, csgSubmissionRevision: p.revision, csgSubmissionHash: digest, ...submissionEditorial(p) };
     const result = await transaction(async (sql) => {
       await sql("BEGIN");
       try {
