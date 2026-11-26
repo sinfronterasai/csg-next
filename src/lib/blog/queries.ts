@@ -1,5 +1,9 @@
 import { sanityClient } from "@/lib/sanity/client";
 
+// The page cache controls freshness. Read the origin so regeneration does not
+// repopulate the cache from a stale Sanity CDN response.
+const blogClient = sanityClient.withConfig({ useCdn: false });
+
 // B11 — Fail-closed publication contract.
 //
 // Public queries MUST require BOTH:
@@ -76,17 +80,17 @@ export const LATEST_POST_QUERY = `*[_type == "blogPost" && ${APPROVED_PREDICATE}
 export const POST_BY_SLUG_QUERY = `*[_type == "blogPost" && slug.current == $slug && ${APPROVED_PREDICATE}][0]{${PUB_FIELDS}}`;
 
 export async function fetchPublishedPosts() {
-  return sanityClient.fetch(POSTS_LIST_QUERY);
+  return blogClient.fetch(POSTS_LIST_QUERY);
 }
 
 export async function fetchPostBySlug(slug: string) {
-  return sanityClient.fetch(POST_BY_SLUG_QUERY, { slug });
+  return blogClient.fetch(POST_BY_SLUG_QUERY, { slug });
 }
 
 export async function fetchLatestPost() {
-  return sanityClient.fetch(LATEST_POST_QUERY);
+  return blogClient.fetch(LATEST_POST_QUERY);
 }
 
 export async function fetchAllPostSlugs(): Promise<string[]> {
-  return sanityClient.fetch(ALL_POST_SLUGS_QUERY);
+  return blogClient.fetch(ALL_POST_SLUGS_QUERY);
 }

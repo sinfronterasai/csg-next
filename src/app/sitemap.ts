@@ -5,6 +5,8 @@ import { fetchAllPostSlugs } from "@/lib/blog/queries";
 import { allSignKeys } from "@/lib/seo/programmatic";
 import { isProgrammaticIndexed } from "@/lib/seo/programmatic-approval";
 
+export const revalidate = 60;
+
 const PROD = "https://cosmicspiritguide.com";
 
 // Helper: accumulate unique URLs keyed by canonical (dedupe by absolute URL).
