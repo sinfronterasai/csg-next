@@ -40,7 +40,7 @@ beforeAll(async () => {
 });
 afterAll(async () => { delete process.env.CSG_CONTENT_SUBMISSION_TOKEN; await db.close(); });
 it("creates a draft once, preserves links and images, and rejects an editor conflict", async () => {
-  const p = makePackage();
+  const p = { ...makePackage(), sources: [{ id: "s1", title: "A source", publisher: "Publisher", url: "https://example.org/source", accessedAt: "2026-11-24", supports: [] }], articlePurpose: "supporting-guide", primaryCta: { label: "Cast your birth chart", route: "/birth-chart", kind: "birth-chart" }, editorial: { readerQuestion: "What is a birth chart?", searchIntent: "informational", distinctContribution: "A practical introduction", overlapReview: "Checked existing guides" }, openQuestions: ["Confirm the source."] };
   const created = await POST(request(p));
   expect(created.status).toBe(201);
   const receipt = await created.json();
@@ -49,6 +49,11 @@ it("creates a draft once, preserves links and images, and rejects an editor conf
   expect(doc.featuredImage.asset._ref).toBe(p.images[0].assetId);
   expect(doc.content.filter((b: any) => b._type === "image")).toHaveLength(2);
   expect(doc.content.some((b: any) => b.markDefs?.some((m: any) => m.href === "/birth-chart"))).toBe(true);
+  expect(doc.editorial).toMatchObject({ readerQuestion: p.editorial.readerQuestion, searchIntent: "informational", outstandingVerification: "Confirm the source." });
+  expect(doc.editorial.factualSources).toEqual(["https://example.org/source"]);
+  expect(doc.primaryCta).toMatchObject(p.primaryCta);
+  expect(doc.articlePurpose).toBe("supporting-guide");
+  expect(doc.review).toBeUndefined();
   expect((await POST(request(p))).status).toBe(200);
   expect((await db.query("SELECT count(*)::int AS count FROM blog_posts")).rows[0]).toEqual({ count: 1 });
   const revision = { ...p, revision: 2, baseRevision: 1, title: "Team revision" };

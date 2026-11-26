@@ -64,5 +64,20 @@ export function validateSubmission(value: unknown): SubmissionError[] {
   claims.forEach((c: any, n: number) => { if (!c || !Array.isArray(c.sourceIds)) return; if (c.status === "sourced" && !c.sourceIds.length) add(`claims[${n}]`, "Sourced claim requires a source"); if (c.status === "unverified" && p.allowUnverified !== true) add(`claims[${n}]`, "Unverified claim requires explicit flag"); if (c.sourceIds.some((id: string) => !sourceIds.has(id))) add(`claims[${n}].sourceIds`, "Unknown source"); });
   sources.forEach((s: any, n: number) => { if (Array.isArray(s?.supports) && s.supports.some((id: string) => !claimIds.has(id))) add(`sources[${n}].supports`, "Unknown claim"); });
   if (p.openQuestions != null && (!Array.isArray(p.openQuestions) || p.openQuestions.some((v: unknown) => typeof v !== "string"))) add("openQuestions", "Expected an array of strings");
+  if (p.articlePurpose != null && !["hub", "supporting-guide", "interpretation", "calculator-explainer", "seasonal", "reference"].includes(p.articlePurpose)) add("articlePurpose", "Unknown article purpose");
+  if (p.editorial != null) {
+    if (typeof p.editorial !== "object" || Array.isArray(p.editorial)) add("editorial", "Expected an editorial context object");
+    else {
+      for (const [key, max] of Object.entries({ readerQuestion: 300, distinctContribution: 2000, overlapReview: 2000, outstandingVerification: 2000 })) {
+        const v = p.editorial[key];
+        if (v != null && (typeof v !== "string" || v.length > max)) add(`editorial.${key}`, `Expected text up to ${max} characters`);
+      }
+      if (p.editorial.searchIntent != null && !["informational", "navigational", "transactional"].includes(p.editorial.searchIntent)) add("editorial.searchIntent", "Unknown search intent");
+    }
+  }
+  if (p.primaryCta != null) {
+    const cta = p.primaryCta;
+    if (!cta || typeof cta !== "object" || Array.isArray(cta) || typeof cta.label !== "string" || !cta.label.trim() || cta.label.length > 120 || typeof cta.route !== "string" || !/^\/(?!\/)[a-z0-9/_-]*$/i.test(cta.route) || !["moon-calculator", "birth-chart", "compatibility", "tarot", "transits", "report", "other"].includes(cta.kind) || Object.keys(cta).some(k => !["label", "route", "kind"].includes(k))) add("primaryCta", "Expected a label, internal route and supported kind");
+  }
   return errors;
 }
